@@ -1,0 +1,1 @@
+{"code":200,"msg":"ok","data":{"limits":[{"type":"TOKENS_LIMIT","percentage":63,"usage":1000,"currentValue":630,"remaining":370,"nextResetTime":1760616000000,"unit":2,"number":5},{"type":"TIME_LIMIT","percentage":10,"unit":5,"number":1}]}}

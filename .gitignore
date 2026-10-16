@@ -1,0 +1,10 @@
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+.build/
+.swiftpm/
+*.dSYM
+.DS_Store
+/docs/screenshots/*.tmp.png
