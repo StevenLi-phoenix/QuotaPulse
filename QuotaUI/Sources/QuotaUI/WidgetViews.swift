@@ -108,13 +108,19 @@ public struct WidgetMediumView: View {
                                 Text(String(localized: "~\(Int(d.rounded()))d", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
                             }
                         } else {
-                            ForEach(p.windows.prefix(2)) { w in
+                            ForEach(p.displayWindows.prefix(2)) { w in
                                 VStack(alignment: .leading, spacing: 2) {
-                                    UsageBar(percent: w.currentUtilization(), color: p.id.color, height: 5)
+                                    if w.isReported {
+                                        UsageBar(percent: w.currentUtilization(), color: p.id.color, height: 5)
+                                    } else {
+                                        Capsule().fill(.quaternary.opacity(0.5)).frame(height: 5)
+                                    }
                                     HStack {
                                         Text(w.title).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                                         Spacer(minLength: 2)
-                                        Text(QuotaFormat.percent(w.currentUtilization())).font(.system(size: 9, weight: .semibold).monospacedDigit())
+                                        Text(w.isReported ? QuotaFormat.percent(w.currentUtilization()) : Present.resetShort(w))
+                                            .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                                            .foregroundStyle(w.isReported ? .primary : .tertiary)
                                     }
                                 }
                             }
@@ -172,7 +178,7 @@ public struct WidgetLargeView: View {
                             if let s = sparklines[p.id], s.count >= 2 { Sparkline(values: s, color: p.id.color).frame(width: 70, height: 18) }
                             StatusBadge(p.status)
                         }
-                        ForEach(p.windows.prefix(2)) { w in
+                        ForEach(p.displayWindows.prefix(2)) { w in
                             WindowRow(window: w, forecast: p.forecasts[w.id], color: p.id.color, compact: true)
                         }
                         if let b = p.balance, p.windows.isEmpty {

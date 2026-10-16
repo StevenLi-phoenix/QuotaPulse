@@ -57,6 +57,7 @@
 |---|---|---|
 | 5h 窗口 `resets_at` | `2026-10-16T15:29:59.89Z`（整个白天不变；样本 11:41Z→12:18Z 期间固定）。窗口始于 10:30Z 附近的首条请求，值对齐到 **:00/:30 半小时边界** | 本账号 `secondary_window: null`，只有 `primary_window`：`limit_window_seconds=604800`、`reset_at=1792649646`（2026-10-22T06:14:06Z，**非整点**，固定周期滚动） |
 | 周窗口 | `2026-10-22T14:59:59.89Z` = 上周首次请求后 7 天，同样对齐半小时 | 同上（单一窗口） |
+| 单窗口 | `plan_type == "pro"` → 只有周窗口是正常的（`.notApplicable`，UI 隐藏）；其他套餐出现 `secondary_window: null` 是 Codex 服务端已知 bug（`.notReported`，灰色占位 "Not reported by Codex API (known bug)"，API 恢复后自动显示） | |
 | 到期行为 | 额度清零，**不开新窗**；下次请求才开新窗，届时 `resets_at` 变为新值（utilization 回落 → 新周期） | 额度与周期一起重置，`reset_at` 按周期长度前推 |
 | 新字段 | `five_hour.limit_dollars/used_dollars/remaining_dollars/locked_reason`（均 null）；`limits[]` 含 `kind: session / weekly_all / weekly_scoped`（后者 15%，无 `scope.model`） | `credits.balance` 是 **credits 数量不是美元**（62484.43），`approx_local_messages` 区间、`rate_limit_reset_credits`、`model_usage` |
 

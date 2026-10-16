@@ -93,9 +93,21 @@ public struct CodexProvider: UsageProvider {
             }
         }
         guard !windows.isEmpty else { throw ProviderError.decoding("Codex usage response had no rate_limit windows") }
-        // Some plans report a single window (secondary_window: null); say so instead of leaving a gap.
-        if windows.count == 1, (root["rate_limit"] as? [String: Any])?["secondary_window"] is NSNull || (root["rate_limit"] as? [String: Any])?["secondary_window"] == nil {
-            windows[0].note = windows[0].note ?? "Only window reported for this plan"
+        // `secondary_window: null` means only one of the two windows arrived. Codex **Pro** genuinely has
+        // no 5-hour window (`.notApplicable`, hidden); on every other plan it is a known API bug
+        // (`.notReported`, grey placeholder). The row fills in by itself once both windows return.
+        let rateLimit = root["rate_limit"] as? [String: Any]
+        let secondaryMissing = rateLimit?["secondary_window"] == nil || rateLimit?["secondary_window"] is NSNull
+        let planType = (root["plan_type"] as? String)?.lowercased() ?? ""
+        if secondaryMissing, let only = windows.first(where: { $0.id == "primary" }) {
+            let haveWeekly = (only.duration ?? 0) > 6 * 3600
+            let availability: WindowAvailability = (planType == "pro" && haveWeekly) ? .notApplicable : .notReported
+            let placeholder = haveWeekly
+                ? UsageWindow(id: "five_hour_placeholder", title: "5-hour", utilization: 0, resetsAt: nil, duration: 5 * 3600, resetSemantics: .fixedCadence, availability: availability)
+                : UsageWindow(id: "weekly_placeholder", title: "Weekly", utilization: 0, resetsAt: nil, duration: 7 * 86400, resetSemantics: .fixedCadence, availability: availability)
+            if let idx = windows.firstIndex(where: { $0.id == "primary" }) {
+                windows.insert(placeholder, at: haveWeekly ? idx : idx + 1)
+            }
         }
         let plan = (root["plan_type"] as? String)?.replacingOccurrences(of: "_", with: " ").capitalized
         var balance: Balance?

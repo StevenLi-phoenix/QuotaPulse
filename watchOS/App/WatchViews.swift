@@ -71,7 +71,7 @@ struct WatchDetailView: View {
             if let p = model.snapshot.provider(provider) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack { ProviderGlyph(p.id, size: 22); Text(p.id.displayName).font(.headline); if let plan = p.account?.plan { PlanBadge(plan) } }
-                    ForEach(p.windows) { w in
+                    ForEach(p.displayWindows) { w in
                         WindowRow(window: w, forecast: p.forecasts[w.id], color: p.id.color, compact: true, now: now)
                         if let t = Present.forecastText(window: w, forecast: p.forecasts[w.id], now: now) {
                             Text(t).font(.caption2).foregroundStyle(p.forecasts[w.id]?.willExhaustBeforeReset == true ? UsageLevel.critical.color : .secondary)

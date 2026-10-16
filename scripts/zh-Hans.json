@@ -180,5 +180,7 @@
   "Reveal telemetry folder": "显示遥测目录",
   "Devices": "设备",
   "Each device uploads its JSON Lines log on refresh to POST /v1/telemetry; files land under telemetry/<device>/YYYY-MM-DD.log next to the hub data.": "每台设备刷新时把 JSON Lines 日志 POST 到 /v1/telemetry；文件落在 hub 数据旁的 telemetry/<设备>/YYYY-MM-DD.log。",
-  "Last heartbeat \\(heartbeat) · \\(d.eventCount) events": "最近心跳 \\(heartbeat) · \\(d.eventCount) 条事件"
+  "Last heartbeat \\(heartbeat) · \\(d.eventCount) events": "最近心跳 \\(heartbeat) · \\(d.eventCount) 条事件",
+  "Not reported by Codex API (known bug)": "Codex API 未返回（已知 bug）",
+  "n/a": "无"
 }

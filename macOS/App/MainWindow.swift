@@ -184,11 +184,11 @@ struct ForecastTable: View {
                     Text(L("Confidence")).foregroundStyle(.secondary)
                 }
                 .font(.caption)
-                ForEach(provider.windows) { w in
+                ForEach(provider.displayWindows) { w in
                     let f = provider.forecasts[w.id]
                     GridRow {
-                        Text(w.title)
-                        Text(QuotaFormat.percent(w.utilization)).monospacedDigit()
+                        Text(w.title).foregroundStyle(w.isReported ? .primary : .tertiary)
+                        Text(w.isReported ? QuotaFormat.percent(w.utilization) : L("n/a")).monospacedDigit()
                         Text(f.map { QuotaFormat.rate($0.rate) } ?? "—").monospacedDigit()
                         Text(f?.projectedAtReset.map { QuotaFormat.percent($0) } ?? "—").monospacedDigit()
                         Text(confidence(f))

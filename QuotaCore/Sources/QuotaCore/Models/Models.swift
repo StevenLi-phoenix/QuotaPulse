@@ -95,6 +95,16 @@ public enum ResetSemantics: String, Codable, Sendable, Hashable {
     case fixedCadence
 }
 
+/// Whether the provider actually returned numbers for this window.
+public enum WindowAvailability: String, Codable, Sendable, Hashable {
+    case reported
+    /// The API is known to omit this window right now (e.g. Codex's `secondary_window: null` bug on
+    /// Plus/Team plans); the row stays as a placeholder so the layout doesn't change when it comes back.
+    case notReported
+    /// The plan simply doesn't have this window (Codex Pro has no 5-hour window); hidden in every UI.
+    case notApplicable
+}
+
 /// What a window is doing right now.
 public enum WindowPhase: Sendable, Hashable {
     /// Counting down to `resetsAt` (already rolled forward for fixed-cadence windows).
@@ -117,9 +127,10 @@ public struct UsageWindow: Codable, Sendable, Identifiable, Hashable {
     /// Optional scoping note ("Opus", "Sonnet", "GPT-5.3 Spark"…).
     public var note: String?
     public var resetSemantics: ResetSemantics
+    public var availability: WindowAvailability
 
     public init(id: String, title: String, utilization: Double, resetsAt: Date?, duration: TimeInterval?, note: String? = nil,
-                resetSemantics: ResetSemantics = .fixedCadence) {
+                resetSemantics: ResetSemantics = .fixedCadence, availability: WindowAvailability = .reported) {
         self.id = id
         self.title = title
         self.utilization = min(100, max(0, utilization))
@@ -127,9 +138,12 @@ public struct UsageWindow: Codable, Sendable, Identifiable, Hashable {
         self.duration = duration
         self.note = note
         self.resetSemantics = resetSemantics
+        self.availability = availability
     }
 
-    enum CodingKeys: String, CodingKey { case id, title, utilization, resetsAt, duration, note, resetSemantics }
+    public var isReported: Bool { availability == .reported }
+
+    enum CodingKeys: String, CodingKey { case id, title, utilization, resetsAt, duration, note, resetSemantics, availability }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -140,6 +154,7 @@ public struct UsageWindow: Codable, Sendable, Identifiable, Hashable {
         duration = try c.decodeIfPresent(TimeInterval.self, forKey: .duration)
         note = try c.decodeIfPresent(String.self, forKey: .note)
         resetSemantics = try c.decodeIfPresent(ResetSemantics.self, forKey: .resetSemantics) ?? .fixedCadence
+        availability = try c.decodeIfPresent(WindowAvailability.self, forKey: .availability) ?? .reported
     }
 
     public var remaining: Double { max(0, 100 - utilization) }
@@ -323,8 +338,14 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
     /// The window that is closest to running out (highest utilization), used for the menu bar label.
     public var primaryWindow: UsageWindow? {
         let now = Date()
-        return windows.max(by: { $0.currentUtilization(now: now) < $1.currentUtilization(now: now) })
+        return reportedWindows.max(by: { $0.currentUtilization(now: now) < $1.currentUtilization(now: now) })
     }
+
+    /// Windows that carry real numbers (placeholders excluded).
+    public var reportedWindows: [UsageWindow] { windows.filter(\.isReported) }
+
+    /// Windows the UI should draw: real ones plus `.notReported` placeholders, never `.notApplicable`.
+    public var displayWindows: [UsageWindow] { windows.filter { $0.availability != .notApplicable } }
 
     /// Head-line percentage: highest window utilization, or balance-derived "pressure" (nil when unknown).
     public var headlinePercent: Double? {
@@ -362,7 +383,7 @@ public struct QuotaSnapshot: Codable, Sendable, Hashable {
         var best: (ProviderSnapshot, UsageWindow)?
         let now = Date()
         for p in providers where p.status.isOK {
-            for w in p.windows {
+            for w in p.reportedWindows {
                 if best == nil || w.currentUtilization(now: now) > best!.1.currentUtilization(now: now) { best = (p, w) }
             }
         }

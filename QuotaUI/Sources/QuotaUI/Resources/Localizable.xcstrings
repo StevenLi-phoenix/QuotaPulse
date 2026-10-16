@@ -191,6 +191,16 @@
         }
       }
     },
+    "Not reported by Codex API (known bug)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex API 未返回（已知 bug）"
+          }
+        }
+      }
+    },
     "Not set up": {
       "localizations": {
         "zh-Hans": {
@@ -447,6 +457,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "低于预算 \\(pts) 点"
+          }
+        }
+      }
+    },
+    "n/a": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
           }
         }
       }

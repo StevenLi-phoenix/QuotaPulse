@@ -200,9 +200,31 @@ public struct WindowRow: View {
     }
 
     public var body: some View {
+        switch window.availability {
+        case .reported: reportedBody
+        case .notReported: placeholderBody
+        case .notApplicable: EmptyView()
+        }
+    }
+
+    /// Grey placeholder row for a window the API currently omits (keeps the card's shape).
+    private var placeholderBody: some View {
+        VStack(alignment: .leading, spacing: compact ? 3 : 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(window.title).font(compact ? .caption : .subheadline).fontWeight(.medium).foregroundStyle(.tertiary)
+                Spacer(minLength: 4)
+                Text(L("n/a")).font(.system(compact ? .caption : .subheadline, design: .rounded).weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            Capsule().fill(.quaternary.opacity(0.5)).frame(height: compact ? 5 : 7)
+            Label(Present.resetText(window, now: now), systemImage: "questionmark.circle")
+                .font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+        }
+    }
+
+    private var reportedBody: some View {
         let used = window.currentUtilization(now: now)
         let fresh: Bool = { if case .awaitingFirstUse = window.phase(now: now) { return true } else { return false } }()
-        VStack(alignment: .leading, spacing: compact ? 3 : 5) {
+        return VStack(alignment: .leading, spacing: compact ? 3 : 5) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(window.title).font(compact ? .caption : .subheadline).fontWeight(.medium)
                 if let note = window.note, !compact, !window.title.contains(note) {
@@ -306,7 +328,7 @@ public struct ProviderCard: View {
             if snapshot.status.isError && snapshot.windows.isEmpty && snapshot.balance == nil {
                 errorBody
             } else {
-                ForEach(snapshot.windows) { w in
+                ForEach(snapshot.displayWindows) { w in
                     WindowRow(window: w, forecast: snapshot.forecasts[w.id], color: snapshot.id.color, compact: compact, now: now)
                 }
                 if let b = snapshot.balance {

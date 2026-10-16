@@ -125,7 +125,7 @@ public actor QuotaEngine {
                 switch fresh.status {
                 case .ok:
                     gate.recordSuccess(id)
-                    for w in fresh.windows {
+                    for w in fresh.reportedWindows {
                         newSamples.append(Sample(provider: id, window: w.id, at: now, value: w.utilization, resetsAt: w.resetsAt))
                     }
                     if let b = fresh.balance {
@@ -160,7 +160,7 @@ public actor QuotaEngine {
         // Forecasts
         for i in merged.indices {
             var forecasts: [String: Forecast] = [:]
-            for w in merged[i].windows {
+            for w in merged[i].reportedWindows {
                 let hist = await samples.samples(provider: merged[i].id, window: w.id)
                 forecasts[w.id] = ForecastEngine.forecast(window: w, samples: hist, now: now)
             }

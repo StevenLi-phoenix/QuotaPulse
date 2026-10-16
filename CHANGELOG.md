@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - Reset semantics per provider (`UsageWindow.resetSemantics`): Claude windows roll from the first request and read "Fresh · next window starts on first request" once expired; Codex windows roll forward by their fixed cadence. Forecast, pace and countdowns follow the semantics (6 new tests).
 - macOS: first launch opens the main window with a dismissible "QuotaPulse lives in the menu bar" tip; "Show in Dock" toggle (General); `quotapulse://open?section=…` deep links.
-- Codex: credits balance shown as credits (not dollars); single-window plans are labelled instead of leaving a gap. Claude `limits[]` kinds `session` / `weekly_all` / `weekly_scoped` parsed without duplicates.
+- Codex: credits balance shown as credits (not dollars). When `secondary_window` is null the missing 5-hour row is kept as a grey `.notReported` placeholder ("Not reported by Codex API (known bug)") on Plus/Team/Business and fills in automatically once the API returns it; on Pro, which has no 5-hour window, it is `.notApplicable` and hidden. Forecast and pace only run on reported windows. Claude `limits[]` kinds `session` / `weekly_all` / `weekly_scoped` parsed without duplicates.
 - Simulator automation hooks (`QUOTAPULSE_PAIRING_URL`, `QUOTAPULSE_START_ROUTE=provider/<id>|settings`) and a `QuotaPulseUITests` target that adds the widget to the simulator home screen through the real gallery.
 - Verified on iPhone 17 / iOS 27.0 and iPhone 15 Plus / iOS 26.5 + 27.0 (393 pt and 430 pt widths, Dynamic Type XXL, dark mode).
 

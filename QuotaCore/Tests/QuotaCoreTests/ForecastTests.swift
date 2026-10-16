@@ -184,12 +184,28 @@ import Testing
          "credits":{"has_credits":true,"unlimited":false,"balance":"62484.4310550000"}}
         """
         let snap = try CodexProvider.parse(Data(json.utf8), now: now)
-        #expect(snap.windows.count == 1)
-        #expect(snap.windows[0].title == "Weekly")
-        #expect(snap.windows[0].note == "Only window reported for this plan")
-        #expect(snap.windows[0].resetSemantics == .fixedCadence)
+        // secondary_window: null (Codex API bug) → the 5-hour row stays as a .notReported placeholder.
+        #expect(snap.windows.map { $0.title } == ["5-hour", "Weekly"])
+        #expect(snap.windows[0].availability == .notReported)
+        #expect(snap.windows[0].duration == TimeInterval(18000))
+        #expect(snap.windows[1].availability == .reported)
+        #expect(snap.windows[1].note == nil)
+        #expect(snap.primaryWindow?.title == "Weekly")
+        #expect(snap.reportedWindows.count == 1)
+        #expect(snap.windows[1].resetSemantics == .fixedCadence)
         #expect(snap.balance?.isCredits == true)
         #expect(snap.balance?.formatted == "62,484 credits")
+        // Both windows present → no placeholder, normal display.
+        let full = try CodexProvider.parse(try fixture("codex_usage"), now: now)
+        #expect(full.windows.allSatisfy { $0.isReported })
+        let roundTrip = try JSON.decoder.decode(ProviderSnapshot.self, from: try JSON.encoder.encode(snap))
+        #expect(roundTrip.windows[0].availability == .notReported)
+        #expect(snap.displayWindows.count == 2)
+        // Codex Pro has no 5-hour window at all: placeholder is .notApplicable and hidden from display.
+        let pro = try CodexProvider.parse(Data(json.replacingOccurrences(of: "\"plus\"", with: "\"pro\"").utf8), now: now)
+        #expect(pro.windows.first?.availability == .notApplicable)
+        #expect(pro.displayWindows.map { $0.title } == ["Weekly"])
+        #expect(pro.reportedWindows.count == 1)
     }
 
     @Test func claudeLimitsKindsAreNotDuplicated() throws {

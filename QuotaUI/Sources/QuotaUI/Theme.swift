@@ -82,6 +82,7 @@ public enum QPDesign {
 
 public enum Present {
     public static func resetText(_ window: UsageWindow, now: Date = Date()) -> String {
+        if !window.isReported { return L("Not reported by Codex API (known bug)") }
         switch window.phase(now: now) {
         case let .active(r):
             return String(localized: "Resets in \(QuotaFormat.countdown(to: r, from: now))", bundle: .module)
@@ -94,10 +95,11 @@ public enum Present {
 
     /// Few-character variant for widgets / complications.
     public static func resetShort(_ window: UsageWindow, now: Date = Date()) -> String {
+        if !window.isReported { return L("n/a") }
         switch window.phase(now: now) {
-        case let .active(r): QuotaFormat.countdown(to: r, from: now)
-        case .awaitingFirstUse: L("Fresh")
-        case .unknown: "—"
+        case let .active(r): return QuotaFormat.countdown(to: r, from: now)
+        case .awaitingFirstUse: return L("Fresh")
+        case .unknown: return "—"
         }
     }
 

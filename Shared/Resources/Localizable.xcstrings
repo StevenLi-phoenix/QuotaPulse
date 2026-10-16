@@ -1350,6 +1350,16 @@
           }
         }
       }
+    },
+    "n/a": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
