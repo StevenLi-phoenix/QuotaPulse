@@ -204,3 +204,14 @@ public enum QuotaFormat {
         return String(format: "%.0f%%/h", perHour)
     }
 }
+
+public extension FileManager {
+    /// The user's home on macOS; the app container on iOS/watchOS (where CLI credentials don't exist anyway).
+    var qpHomeDirectory: URL {
+        #if os(macOS)
+        return homeDirectoryForCurrentUser
+        #else
+        return URL(fileURLWithPath: NSHomeDirectory())
+        #endif
+    }
+}

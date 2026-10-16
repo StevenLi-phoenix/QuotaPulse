@@ -94,7 +94,7 @@ public struct ClaudeCredentialLoader: ClaudeCredentialLoading {
     public var keychainTimeout: TimeInterval
 
     public init(environment: [String: String] = ProcessInfo.processInfo.environment,
-                home: URL = FileManager.default.homeDirectoryForCurrentUser,
+                home: URL = FileManager.default.qpHomeDirectory,
                 allowKeychain: Bool = true,
                 keychainTimeout: TimeInterval = 3) {
         self.environment = environment

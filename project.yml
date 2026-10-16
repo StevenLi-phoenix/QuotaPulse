@@ -1,0 +1,244 @@
+name: QuotaPulse
+options:
+  bundleIdPrefix: app.lishuyu.quotapulse
+  deploymentTarget:
+    macOS: "26.0"
+    iOS: "26.0"
+    watchOS: "26.0"
+  xcodeVersion: "27.1"
+  createIntermediateGroups: true
+  groupSortPosition: top
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEVELOPMENT_TEAM: 88U7V98QAC
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    GENERATE_INFOPLIST_FILE: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+settingGroups:
+  macSigning:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    PROVISIONING_PROFILE_SPECIFIER: ""
+    ENABLE_HARDENED_RUNTIME: NO
+    ENABLE_APP_SANDBOX: NO
+  simSigning:
+    CODE_SIGN_STYLE: Automatic
+packages:
+  QuotaCore:
+    path: QuotaCore
+  QuotaUI:
+    path: QuotaUI
+targets:
+  # ───────────── macOS ─────────────
+  QuotaPulse:
+    type: application
+    platform: macOS
+    sources:
+      - path: macOS/App
+      - path: Shared/Resources
+    dependencies:
+      - package: QuotaCore
+      - package: QuotaUI
+      - target: QuotaPulseWidget
+    settings:
+      groups: [macSigning]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse
+        PRODUCT_NAME: QuotaPulse
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Shuyu Li"
+    info:
+      path: macOS/App/Info.plist
+      properties:
+        CFBundleDisplayName: QuotaPulse
+        LSUIElement: true
+        NSSupportsAutomaticTermination: false
+        NSSupportsSuddenTermination: false
+        CFBundleURLTypes:
+          - CFBundleURLName: app.lishuyu.quotapulse
+            CFBundleURLSchemes: [quotapulse]
+        CFBundleLocalizations: [en, zh-Hans]
+        CFBundleDevelopmentRegion: en
+  QuotaPulseWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: macOS/Widget
+    dependencies:
+      - package: QuotaCore
+      - package: QuotaUI
+    settings:
+      groups: [macSigning]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse.widget
+        PRODUCT_NAME: QuotaPulseWidget
+        SKIP_INSTALL: YES
+    info:
+      path: macOS/Widget/Info.plist
+      properties:
+        CFBundleDisplayName: QuotaPulse
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        CFBundleLocalizations: [en, zh-Hans]
+  # ───────────── iOS ─────────────
+  QuotaPulse-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: iOS/App
+      - path: Shared/Resources
+    dependencies:
+      - package: QuotaCore
+      - package: QuotaUI
+      - target: QuotaPulseWidget-iOS
+      - target: QuotaPulse-watchOS
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Watch
+    settings:
+      groups: [simSigning]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse.ios
+        PRODUCT_NAME: QuotaPulse
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    info:
+      path: iOS/App/Info.plist
+      properties:
+        CFBundleDisplayName: QuotaPulse
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [app.lishuyu.quotapulse.refresh]
+        NSCameraUsageDescription: "QuotaPulse scans the pairing QR code shown by the Mac app."
+        NSLocalNetworkUsageDescription: "QuotaPulse talks to your Mac over the local network or Tailscale to read quota data."
+        CFBundleURLTypes:
+          - CFBundleURLName: app.lishuyu.quotapulse
+            CFBundleURLSchemes: [quotapulse]
+        CFBundleLocalizations: [en, zh-Hans]
+        CFBundleDevelopmentRegion: en
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+    entitlements:
+      path: iOS/App/QuotaPulse.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+  QuotaPulseWidget-iOS:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: iOS/Widget
+    dependencies:
+      - package: QuotaCore
+      - package: QuotaUI
+    settings:
+      groups: [simSigning]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse.ios.widget
+        PRODUCT_NAME: QuotaPulseWidget
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: iOS/Widget/Info.plist
+      properties:
+        CFBundleDisplayName: QuotaPulse
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: iOS/Widget/QuotaPulseWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+  # ───────────── watchOS ─────────────
+  QuotaPulse-watchOS:
+    type: application
+    platform: watchOS
+    sources:
+      - path: watchOS/App
+    dependencies:
+      - package: QuotaCore
+      - package: QuotaUI
+      - target: QuotaPulseWidget-watchOS
+    settings:
+      groups: [simSigning]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse.ios.watchkitapp
+        PRODUCT_NAME: QuotaPulse
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: app.lishuyu.quotapulse.ios
+        INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
+    info:
+      path: watchOS/App/Info.plist
+      properties:
+        CFBundleDisplayName: QuotaPulse
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: app.lishuyu.quotapulse.ios
+        WKRunsIndependentlyOfCompanionApp: true
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+    entitlements:
+      path: watchOS/App/QuotaPulseWatch.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+  QuotaPulseWidget-watchOS:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: watchOS/Widget
+    dependencies:
+      - package: QuotaCore
+      - package: QuotaUI
+    settings:
+      groups: [simSigning]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse.ios.watchkitapp.widget
+        PRODUCT_NAME: QuotaPulseWatchWidget
+        SKIP_INSTALL: YES
+    info:
+      path: watchOS/Widget/Info.plist
+      properties:
+        CFBundleDisplayName: QuotaPulse
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: watchOS/Widget/QuotaPulseWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+schemes:
+  QuotaPulse-macOS:
+    build:
+      targets:
+        QuotaPulse: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  QuotaPulse-iOS:
+    build:
+      targets:
+        QuotaPulse-iOS: all
+    run:
+      config: Debug
+  QuotaPulse-watchOS:
+    build:
+      targets:
+        QuotaPulse-watchOS: all
+    run:
+      config: Debug

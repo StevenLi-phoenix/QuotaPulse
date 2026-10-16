@@ -42,7 +42,7 @@ public struct ClaudeProvider: UsageProvider {
             let parsed = try Self.parse(response.data, now: ctx.now)
             var snap = parsed
             snap.account = AccountInfo(plan: creds.planLabel, label: record.source.rawValue)
-            QPLog.providers.info("Claude usage ok: \(snap.windows.map { "\($0.id)=\(Int($0.utilization))%" }.joined(separator: " "), privacy: .public)")
+            QPLog.providers.notice("Claude usage ok: \(snap.windows.map { "\($0.id)=\(Int($0.utilization))%" }.joined(separator: " "), privacy: .public)")
             return snap
         case 401:
             throw ProviderError.unauthorized("Claude rejected the token (401). Open Claude Code to refresh, or run `claude login`.")

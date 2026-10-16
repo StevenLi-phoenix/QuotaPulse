@@ -1,0 +1,436 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Almost out": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即将用尽"
+          }
+        }
+      }
+    },
+    "At this pace you hit 100% at \\(resetClock(ex))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按当前速度将在 \\(resetClock(ex)) 用尽"
+          }
+        }
+      }
+    },
+    "At this pace: \\(QuotaFormat.percent(p)) by reset (\\(QuotaFormat.rate(f.rate)))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按当前速度：重置时约 \\(QuotaFormat.percent(p))（\\(QuotaFormat.rate(f.rate))）"
+          }
+        }
+      }
+    },
+    "Balance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余额"
+          }
+        }
+      }
+    },
+    "Balance unavailable for API calls": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余额不可用于 API 调用"
+          }
+        }
+      }
+    },
+    "Charts unavailable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图表不可用"
+          }
+        }
+      }
+    },
+    "Extra usage": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "额外用量"
+          }
+        }
+      }
+    },
+    "Halfway": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "过半"
+          }
+        }
+      }
+    },
+    "Idle — no usage in this window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空闲——本窗口暂无用量"
+          }
+        }
+      }
+    },
+    "Learning your pace…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在学习你的用量节奏…"
+          }
+        }
+      }
+    },
+    "Learning your spend…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在学习你的花费…"
+          }
+        }
+      }
+    },
+    "No history yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无历史"
+          }
+        }
+      }
+    },
+    "No reset time": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无重置时间"
+          }
+        }
+      }
+    },
+    "No spend observed yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未观察到花费"
+          }
+        }
+      }
+    },
+    "Not set up": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未配置"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正常"
+          }
+        }
+      }
+    },
+    "Offline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离线"
+          }
+        }
+      }
+    },
+    "On pace": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "节奏正常"
+          }
+        }
+      }
+    },
+    "Open QuotaPulse to start": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 QuotaPulse 开始使用"
+          }
+        }
+      }
+    },
+    "Out at \\(Present.resetClock(ex))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(Present.resetClock(ex)) 用尽"
+          }
+        }
+      }
+    },
+    "Paid \\(QuotaFormat.money(tu, symbol: balance.symbol)) · Granted \\(QuotaFormat.money(g, symbol: balance.symbol))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充值 \\(QuotaFormat.money(tu, symbol: balance.symbol)) · 赠送 \\(QuotaFormat.money(g, symbol: balance.symbol))"
+          }
+        }
+      }
+    },
+    "Plenty left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余量充足"
+          }
+        }
+      }
+    },
+    "Rate limited": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被限流"
+          }
+        }
+      }
+    },
+    "Resets in \\(QuotaFormat.countdown(to: r, from: now))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(QuotaFormat.countdown(to: r, from: now)) 后重置"
+          }
+        }
+      }
+    },
+    "Resetting…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在重置…"
+          }
+        }
+      }
+    },
+    "Running low": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所剩不多"
+          }
+        }
+      }
+    },
+    "Samples are recorded on every refresh. Come back in a little while.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次刷新都会记录样本，稍后再来看看。"
+          }
+        }
+      }
+    },
+    "Server error": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器错误"
+          }
+        }
+      }
+    },
+    "Session expired": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会话已过期"
+          }
+        }
+      }
+    },
+    "Sign in needed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要登录"
+          }
+        }
+      }
+    },
+    "Unreadable data": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据无法解析"
+          }
+        }
+      }
+    },
+    "Updated \\(Int(s / 3600)) h ago": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(Int(s / 3600)) 小时前更新"
+          }
+        }
+      }
+    },
+    "Updated \\(Int(s / 60)) min ago": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(Int(s / 60)) 分钟前更新"
+          }
+        }
+      }
+    },
+    "Updated \\(date.formatted(date: .abbreviated, time: .shortened))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新于 \\(date.formatted(date: .abbreviated, time: .shortened))"
+          }
+        }
+      }
+    },
+    "Updated just now": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刚刚更新"
+          }
+        }
+      }
+    },
+    "\\(perDay)/day — about \\(Int(days.rounded())) days left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(perDay)/天 —— 约可用 \\(Int(days.rounded())) 天"
+          }
+        }
+      }
+    },
+    "\\(perDay)/day — less than a day left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(perDay)/天 —— 不足一天"
+          }
+        }
+      }
+    },
+    "\\(perDay)/day — over a year left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(perDay)/天 —— 可用一年以上"
+          }
+        }
+      }
+    },
+    "\\(pts) pts ahead of budget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "超出预算 \\(pts) 点"
+          }
+        }
+      }
+    },
+    "\\(pts) pts under budget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低于预算 \\(pts) 点"
+          }
+        }
+      }
+    },
+    "tomorrow \\(date.formatted(date: .omitted, time: .shortened))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "明天 \\(date.formatted(date: .omitted, time: .shortened))"
+          }
+        }
+      }
+    },
+    "~\\(Int(d.rounded()))d": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 \\(Int(d.rounded())) 天"
+          }
+        }
+      }
+    },
+    "~\\(Int(d.rounded()))d left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约剩 \\(Int(d.rounded())) 天"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

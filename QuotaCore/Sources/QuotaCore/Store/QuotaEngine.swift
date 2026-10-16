@@ -36,7 +36,7 @@ public actor QuotaEngine {
         self.settings = s
         self.samples = SampleStore(url: location.samplesURL, retentionDays: s.retentionDays)
         self.snapshot = snapshotStore.load() ?? .empty
-        QPLog.engine.info("engine init: data at \(location.root.path, privacy: .public), \(s.enabledProviders.count) providers enabled")
+        QPLog.engine.notice("engine init: data at \(location.root.path, privacy: .public), \(s.enabledProviders.count) providers enabled")
     }
 
     public func setOnUpdate(_ handler: @escaping @Sendable (QuotaSnapshot) -> Void) {
@@ -46,7 +46,7 @@ public actor QuotaEngine {
 
     // MARK: Settings
 
-    public func update(_ mutate: (inout AppSettings) -> Void) {
+    public func update(_ mutate: @Sendable (inout AppSettings) -> Void) {
         var s = settings
         mutate(&s)
         settings = s
@@ -176,7 +176,7 @@ public actor QuotaEngine {
         do { try snapshotStore.save(snap) } catch {
             QPLog.store.error("snapshot save failed: \(error.localizedDescription, privacy: .public)")
         }
-        QPLog.engine.info("refresh done: \(merged.map { "\($0.id.rawValue):\($0.status.shortLabel)" }.joined(separator: " "), privacy: .public)")
+        QPLog.engine.notice("refresh done: \(merged.map { "\($0.id.rawValue):\($0.status.shortLabel)" }.joined(separator: " "), privacy: .public)")
         onUpdate?(snap)
         return snap
     }

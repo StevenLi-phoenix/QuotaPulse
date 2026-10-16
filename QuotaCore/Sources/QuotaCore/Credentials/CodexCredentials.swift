@@ -99,7 +99,7 @@ public struct CodexCredentialLoader: CodexCredentialLoading {
     public var home: URL
 
     public init(environment: [String: String] = ProcessInfo.processInfo.environment,
-                home: URL = FileManager.default.homeDirectoryForCurrentUser) {
+                home: URL = FileManager.default.qpHomeDirectory) {
         self.environment = environment
         self.home = home
     }
@@ -159,7 +159,7 @@ public struct CodexTokenRefresher: Sendable {
             let body = (try? JSONSerialization.jsonObject(with: response.data) as? [String: Any]) ?? [:]
             let code = (body["error"] as? String) ?? ((body["error"] as? [String: Any])?["code"] as? String) ?? "HTTP \(response.statusCode)"
             switch code {
-            case "refresh_token_expired", "refresh_token_reused", "invalid_grant", "refresh_token_invalidated":
+            case "refresh_token_expired", "refresh_token_reused", "invalid_grant", "refresh_token_invalidated", "invalid_refresh_token":
                 throw ProviderError.expired("Codex session expired (\(code)). Run `codex login`.")
             default:
                 throw ProviderError.server(response.statusCode, "Codex token refresh failed: \(code)")

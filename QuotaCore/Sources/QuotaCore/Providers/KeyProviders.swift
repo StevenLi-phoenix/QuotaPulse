@@ -20,7 +20,7 @@ public struct DeepSeekProvider: UsageProvider {
         switch response.statusCode {
         case 200:
             let snap = try Self.parse(response.data, now: ctx.now)
-            QPLog.providers.info("DeepSeek balance ok: \(snap.balance.map { "\($0.currency) \($0.total)" } ?? "-", privacy: .public)")
+            QPLog.providers.notice("DeepSeek balance ok: \(snap.balance.map { "\($0.currency) \($0.total)" } ?? "-", privacy: .public)")
             return snap
         case 401, 403: throw ProviderError.unauthorized("DeepSeek rejected the API key (\(response.statusCode)).")
         case 429: throw ProviderError.rateLimited(retryAfter: response.retryAfterDate(now: ctx.now))
@@ -65,7 +65,7 @@ public struct OpenCodeProvider: UsageProvider {
         switch response.statusCode {
         case 200:
             let snap = try Self.parse(response.data, now: ctx.now)
-            QPLog.providers.info("OpenCode usage ok: \(snap.windows.map { "\($0.id)=\(Int($0.utilization))%" }.joined(separator: " "), privacy: .public)")
+            QPLog.providers.notice("OpenCode usage ok: \(snap.windows.map { "\($0.id)=\(Int($0.utilization))%" }.joined(separator: " "), privacy: .public)")
             return snap
         case 401, 403: throw ProviderError.unauthorized("OpenCode rejected the API key (\(response.statusCode)).")
         case 404: throw ProviderError.notConfigured("No OpenCode Go subscription on this key (404).")
@@ -77,7 +77,7 @@ public struct OpenCodeProvider: UsageProvider {
     /// Settings key → env → opencode's own auth.json (`opencode-go.key`).
     func resolveKey(_ ctx: FetchContext) throws -> String {
         if let k = try? ctx.apiKey(for: .opencode, envKeys: Self.envKeys) { return k }
-        let home = FileManager.default.homeDirectoryForCurrentUser
+        let home = FileManager.default.qpHomeDirectory
         let xdg = ctx.environment["XDG_DATA_HOME"].map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent(".local/share")
         let authURL = xdg.appendingPathComponent("opencode/auth.json")
         if let data = try? Data(contentsOf: authURL),

@@ -35,7 +35,7 @@ public final class HubServer: @unchecked Sendable {
             default: "starting"
             }
             self.lock.withLock { self._state = text }
-            QPLog.hub.info("hub \(text, privacy: .public)")
+            QPLog.hub.notice("hub \(text, privacy: .public)")
         }
         listener.newConnectionHandler = { [weak self] conn in self?.handle(conn) }
         listener.start(queue: queue)
@@ -83,7 +83,8 @@ public final class HubServer: @unchecked Sendable {
             guard flags & IFF_UP != 0, flags & IFF_LOOPBACK == 0, let sa = ptr.pointee.ifa_addr, sa.pointee.sa_family == UInt8(AF_INET) else { continue }
             var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             if getnameinfo(sa, socklen_t(sa.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
-                addrs.append(String(cString: host))
+                let bytes = host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
+                addrs.append(String(decoding: bytes, as: UTF8.self))
             }
         }
         return addrs.sorted { a, b in

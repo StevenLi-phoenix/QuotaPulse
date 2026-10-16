@@ -34,7 +34,7 @@ public struct CodexProvider: UsageProvider {
         case 200:
             var snap = try Self.parse(response.data, now: ctx.now)
             if snap.account?.plan == nil { snap.account = AccountInfo(plan: creds.planType?.capitalized) }
-            QPLog.providers.info("Codex usage ok: \(snap.windows.map { "\($0.id)=\(Int($0.utilization))%" }.joined(separator: " "), privacy: .public)")
+            QPLog.providers.notice("Codex usage ok: \(snap.windows.map { "\($0.id)=\(Int($0.utilization))%" }.joined(separator: " "), privacy: .public)")
             return snap
         case 401, 403:
             throw ProviderError.unauthorized("Codex rejected the session (\(response.statusCode)). Run `codex login`.")
