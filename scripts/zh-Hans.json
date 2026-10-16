@@ -151,5 +151,7 @@
   "Settings": "设置",
   "Done": "完成",
   "No camera available. Enter the pairing details manually.": "没有可用的相机，请手动输入配对信息。",
-  "Pair on your iPhone first": "请先在 iPhone 上完成配对"
+  "Pair on your iPhone first": "请先在 iPhone 上完成配对",
+  "Early estimate: 100% around \\(resetClock(ex)) (\\(QuotaFormat.rate(f.rate)))": "初步估计：约 \\(resetClock(ex)) 用尽（\\(QuotaFormat.rate(f.rate))）",
+  "Early estimate: \\(QuotaFormat.percent(p)) by reset (\\(QuotaFormat.rate(f.rate)))": "初步估计：重置时约 \\(QuotaFormat.percent(p))（\\(QuotaFormat.rate(f.rate))）"
 }

@@ -22,6 +22,11 @@ final class WatchModel: NSObject {
         snapshot = SnapshotStore(url: location.snapshotURL).load() ?? .empty
         super.init()
         if let data = defaults.data(forKey: "hub.pairing.v1"), let p = try? JSON.decoder.decode(HubPairing.self, from: data) { pairing = p }
+        // Automation hook (simulator / CI): QUOTAPULSE_PAIRING_URL=quotapulse://pair?url=…&token=…
+        if let raw = ProcessInfo.processInfo.environment["QUOTAPULSE_PAIRING_URL"], let url = URL(string: raw), let p = HubPairing.parse(url) {
+            pairing = p
+            defaults.set(try? JSON.encoder.encode(p), forKey: "hub.pairing.v1")
+        }
         if WCSession.isSupported() {
             session = WCSession.default
             session?.delegate = self
@@ -46,11 +51,13 @@ final class WatchModel: NSObject {
         }
         // 2. Ask the phone.
         guard let session, session.activationState == .activated, session.isReachable else { return }
-        session.sendMessage(["want": "snapshot"], replyHandler: { [weak self] reply in
+        // WatchConnectivity calls these on its own queue: keep them nonisolated and hop to the main actor.
+        session.sendMessage(["want": "snapshot"], replyHandler: { @Sendable [weak self] reply in
             let (s, p) = Self.payloads(reply)
             Task { @MainActor in self?.ingest(snapshot: s, pairing: p, source: "iPhone") }
-        }, errorHandler: { [weak self] error in
-            Task { @MainActor in self?.lastError = error.localizedDescription }
+        }, errorHandler: { @Sendable [weak self] error in
+            let message = error.localizedDescription
+            Task { @MainActor in self?.lastError = message }
         })
     }
 

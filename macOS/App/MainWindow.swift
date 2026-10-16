@@ -50,6 +50,9 @@ struct MainWindow: View {
                 }
             }
             .navigationTitle(section.title)
+            .onChange(of: model.requestedSection, initial: true) { _, new in
+                if let new, let s = Section(rawValue: new) { section = s }
+            }
             .toolbar {
                 ToolbarItem {
                     Button {

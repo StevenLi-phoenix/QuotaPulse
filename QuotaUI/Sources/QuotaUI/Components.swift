@@ -174,6 +174,8 @@ public struct PlanBadge: View {
         Text(text.uppercased())
             .font(.system(size: 9, weight: .bold, design: .rounded))
             .tracking(0.5)
+            .lineLimit(1)
+            .fixedSize()
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(.quaternary, in: Capsule())
             .foregroundStyle(.secondary)
@@ -222,9 +224,10 @@ public struct WindowRow: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             if !compact, let text = Present.forecastText(window: window, forecast: forecast, now: now) {
-                Label(text, systemImage: forecast?.willExhaustBeforeReset == true ? "exclamationmark.triangle.fill" : "chart.line.uptrend.xyaxis")
+                let alarming = forecast?.willExhaustBeforeReset == true && forecast?.confidence != .low
+                Label(text, systemImage: alarming ? "exclamationmark.triangle.fill" : "chart.line.uptrend.xyaxis")
                     .font(.caption2)
-                    .foregroundStyle(forecast?.willExhaustBeforeReset == true ? UsageLevel.critical.color : .secondary)
+                    .foregroundStyle(alarming ? UsageLevel.critical.color : (forecast?.willExhaustBeforeReset == true ? UsageLevel.hot.color : .secondary))
                     .lineLimit(2)
             }
         }
@@ -320,7 +323,7 @@ public struct ProviderCard: View {
             ProviderGlyph(snapshot.id, size: compact ? 26 : 32)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
-                    Text(snapshot.id.localizedName).font(compact ? .subheadline.weight(.semibold) : .headline)
+                    Text(snapshot.id.localizedName).font(compact ? .subheadline.weight(.semibold) : .headline).lineLimit(1).fixedSize()
                     if let plan = snapshot.account?.plan, !plan.isEmpty { PlanBadge(plan) }
                 }
                 Text(snapshot.lastSuccessAt.map { Present.updatedText($0, now: now) } ?? snapshot.id.subtitle)
@@ -328,7 +331,11 @@ public struct ProviderCard: View {
             }
             Spacer(minLength: 4)
             if sparkline.count >= 2 {
-                Sparkline(values: sparkline, color: snapshot.id.color).frame(width: compact ? 56 : 80, height: compact ? 20 : 26)
+                // Flexible width so the name never wraps on narrow cards; the sparkline gives way first.
+                Sparkline(values: sparkline, color: snapshot.id.color)
+                    .frame(maxWidth: compact ? 56 : 80)
+                    .frame(height: compact ? 20 : 26)
+                    .layoutPriority(-1)
             }
             StatusBadge(snapshot.status)
             if let p = snapshot.headlinePercent {

@@ -46,6 +46,9 @@ extension QuotaPulseApp {
     /// `quotapulse://open` shows the main window; `quotapulse://panel` the dropdown preview.
     func handle(_ url: URL) {
         guard url.scheme == "quotapulse" else { return }
+        if let section = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "section" })?.value {
+            model.requestedSection = section
+        }
         openWindow(id: url.host == "panel" ? "panel" : MainWindow.id)
         NSApp.activate(ignoringOtherApps: true)
     }

@@ -6,6 +6,9 @@ import WatchConnectivity
 import WidgetKit
 import os
 
+/// Carries non-Sendable framework objects (BGTask, reply handlers) across an actor hop we control.
+struct UncheckedBox<T>: @unchecked Sendable { let value: T }
+
 /// iPhone side: holds the hub pairing, polls the hub, caches for widgets and forwards to the watch.
 @MainActor @Observable
 final class ClientModel: NSObject {
@@ -30,6 +33,14 @@ final class ClientModel: NSObject {
         snapshot = SnapshotStore(url: location.snapshotURL).load() ?? .empty
         super.init()
         pairing = Self.loadPairing(defaults: defaults, secrets: secrets)
+        // Automation hook (simulator / CI): QUOTAPULSE_PAIRING_URL=quotapulse://pair?url=…&token=…
+        if let raw = ProcessInfo.processInfo.environment["QUOTAPULSE_PAIRING_URL"], let url = URL(string: raw), let p = HubPairing.parse(url) {
+            var stored = p
+            try? secrets.set(p.token, for: SecretKey.pairedHubToken)
+            stored.token = ""
+            defaults.set(try? JSON.encoder.encode(stored), forKey: Self.pairingKey)
+            pairing = p
+        }
         if WCSession.isSupported() {
             session = WCSession.default
             session?.delegate = self
@@ -133,8 +144,10 @@ final class ClientModel: NSObject {
         }
     }
 
-    nonisolated static func handleBackgroundRefresh(_ task: BGAppRefreshTask) {
+    nonisolated static func handleBackgroundRefresh(_ bgTask: BGAppRefreshTask) {
+        let boxed = UncheckedBox(value: bgTask)
         let work = Task { @MainActor in
+            let task = boxed.value
             let location = DataLocation.standard()
             guard let pairing = loadPairing(defaults: UserDefaults(suiteName: DataLocation.appGroupID) ?? .standard, secrets: KeychainSecretStore()) else {
                 task.setTaskCompleted(success: false); return
@@ -151,7 +164,7 @@ final class ClientModel: NSObject {
             req.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
             try? BGTaskScheduler.shared.submit(req)
         }
-        task.expirationHandler = { work.cancel() }
+        bgTask.expirationHandler = { work.cancel() }
     }
 
     // MARK: Watch
@@ -180,11 +193,12 @@ extension ClientModel: WCSessionDelegate {
     nonisolated func sessionDidDeactivate(_ session: WCSession) { session.activate() }
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         // Watch asks for the latest data.
+        let boxed = UncheckedBox(value: replyHandler)
         Task { @MainActor in
             var reply: [String: Any] = [:]
             if let data = try? JSON.encoder.encode(self.snapshot) { reply["snapshot"] = data }
             if let p = self.pairing, let data = try? JSON.encoder.encode(p) { reply["pairing"] = data }
-            replyHandler(reply)
+            boxed.value(reply)
         }
     }
 }

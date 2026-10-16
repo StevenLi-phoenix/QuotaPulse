@@ -12,13 +12,15 @@ QuotaPulse watches the rate-limit windows and balances of the AI providers you a
 
 Everything runs on your own machines. Your Mac is the **hub**: it reads the credentials your CLIs already keep locally, polls the providers, stores the history and serves a tiny authenticated JSON API over LAN / Tailscale. The iPhone and Apple Watch apps only ever see those numbers — never a token.
 
-| macOS menu bar | macOS main window | Desktop widget |
+| macOS menu bar | macOS main window | History & forecast |
 |---|---|---|
-| ![](docs/screenshots/mac-panel.png) | ![](docs/screenshots/mac-overview.png) | ![](docs/screenshots/widget-large.png) |
+| ![](docs/screenshots/mac-panel.png) | ![](docs/screenshots/mac-overview.png) | ![](docs/screenshots/mac-history.png) |
 
-| iPhone | Apple Watch | Complications |
-|---|---|---|
-| ![](docs/screenshots/ios-home.png) | ![](docs/screenshots/watch-home.png) | ![](docs/screenshots/complication-circular.png) ![](docs/screenshots/complication-rectangular.png) |
+| Desktop widgets | iPhone | iPhone detail | Apple Watch |
+|---|---|---|---|
+| ![](docs/screenshots/widget-large.png) ![](docs/screenshots/widget-medium.png) | ![](docs/screenshots/ios-home.png) | ![](docs/screenshots/ios-detail.png) | ![](docs/screenshots/watch-home.png) ![](docs/screenshots/complication-circular.png) ![](docs/screenshots/complication-rectangular.png) |
+
+Screenshots are from the running apps on this Mac and the iOS 27.1 / watchOS 27 simulators; the widget and complication images are rendered from the real widget views (`swift run WidgetRender`).
 
 ## Features
 

@@ -20,6 +20,8 @@ final class AppModel {
     private(set) var apiKeyPresence: [ProviderID: Bool] = [:]
     private(set) var lastRefreshAt: Date?
     private(set) var sampleCount = 0
+    /// Section requested via `quotapulse://open?section=history` (deep links, screenshots).
+    var requestedSection: String?
     var launchAtLogin: Bool { SMAppService.mainApp.status == .enabled }
     var notificationsAuthorized = false
 

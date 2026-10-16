@@ -61,6 +61,26 @@
         }
       }
     },
+    "Early estimate: 100% around \\(resetClock(ex)) (\\(QuotaFormat.rate(f.rate)))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初步估计：约 \\(resetClock(ex)) 用尽（\\(QuotaFormat.rate(f.rate))）"
+          }
+        }
+      }
+    },
+    "Early estimate: \\(QuotaFormat.percent(p)) by reset (\\(QuotaFormat.rate(f.rate)))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初步估计：重置时约 \\(QuotaFormat.percent(p))（\\(QuotaFormat.rate(f.rate))）"
+          }
+        }
+      }
+    },
     "Extra usage": {
       "localizations": {
         "zh-Hans": {

@@ -24,6 +24,18 @@ public struct HistoryChart: View {
         windows.first { $0.id == id }?.title ?? (id == Sample.balanceWindowID ? L("Balance") : id)
     }
 
+    /// Hours for a day or less, weekday + hour beyond — long "Oct 15 at 2…" labels get clipped.
+    private var xAxis: some AxisContent {
+        AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+            AxisGridLine()
+            if range <= 24 * 3600 {
+                AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated)))
+            } else {
+                AxisValueLabel(format: .dateTime.weekday(.abbreviated).hour(.defaultDigits(amPM: .abbreviated)))
+            }
+        }
+    }
+
     private var windowSamples: [Sample] { samples.filter { $0.window != Sample.balanceWindowID } }
     private var balanceSamples: [Sample] { samples.filter { $0.window == Sample.balanceWindowID } }
 
@@ -42,6 +54,7 @@ public struct HistoryChart: View {
                     RuleMark(y: .value("Full", 100)).foregroundStyle(.red.opacity(0.35)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 }
                 .chartXScale(domain: start...now)
+                .chartXAxis { xAxis }
                 .chartYScale(domain: 0...100)
                 .chartYAxis { AxisMarks(values: [0, 25, 50, 75, 100]) { v in AxisGridLine(); AxisValueLabel { if let d = v.as(Double.self) { Text("\(Int(d))%") } } } }
                 .chartLegend(position: .top, alignment: .leading)
@@ -57,6 +70,7 @@ public struct HistoryChart: View {
                         .interpolationMethod(.monotone)
                 }
                 .chartXScale(domain: start...now)
+                .chartXAxis { xAxis }
                 .frame(minHeight: 120)
             }
             if windowSamples.isEmpty && balanceSamples.isEmpty {

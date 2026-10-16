@@ -30,9 +30,10 @@ struct QuotaPulseiOSApp: App {
 
 struct RootView: View {
     @Environment(ClientModel.self) private var model
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if model.pairing == nil {
                     PairView()
@@ -42,5 +43,14 @@ struct RootView: View {
             }
         }
         .tint(Color(hex: 0xD97757))
+        .onAppear {
+            // Automation hook (simulator / screenshots): QUOTAPULSE_START_ROUTE=provider/claude
+            if let route = ProcessInfo.processInfo.environment["QUOTAPULSE_START_ROUTE"] {
+                let parts = route.split(separator: "/")
+                if parts.count == 2, parts[0] == "provider", let id = ProviderID(rawValue: String(parts[1])) {
+                    path.append(id)
+                }
+            }
+        }
     }
 }

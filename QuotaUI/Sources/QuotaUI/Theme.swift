@@ -99,14 +99,20 @@ public enum Present {
         guard let f = forecast, f.confidence != .insufficient else {
             return (forecast?.sampleCount ?? 0) > 0 ? L("Learning your pace…") : nil
         }
+        // A handful of samples over a few minutes is a guess, not a verdict: say so.
+        let early = f.confidence == .low
         if let ex = f.exhaustionAt {
-            return String(localized: "At this pace you hit 100% at \(resetClock(ex))", bundle: .module)
+            return early
+                ? String(localized: "Early estimate: 100% around \(resetClock(ex)) (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+                : String(localized: "At this pace you hit 100% at \(resetClock(ex))", bundle: .module)
         }
         if f.rate < 0.05 {
             return L("Idle — no usage in this window")
         }
         if let p = f.projectedAtReset {
-            return String(localized: "At this pace: \(QuotaFormat.percent(p)) by reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+            return early
+                ? String(localized: "Early estimate: \(QuotaFormat.percent(p)) by reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+                : String(localized: "At this pace: \(QuotaFormat.percent(p)) by reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
         }
         return QuotaFormat.rate(f.rate)
     }
