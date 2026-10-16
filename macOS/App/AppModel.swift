@@ -18,10 +18,31 @@ final class AppModel {
     private(set) var pairing: HubPairing?
     private(set) var hubAddresses: [String] = []
     private(set) var apiKeyPresence: [ProviderID: Bool] = [:]
+    private(set) var devices: [TelemetryStore.DeviceRecord] = []
     private(set) var lastRefreshAt: Date?
     private(set) var sampleCount = 0
     /// Section requested via `quotapulse://open?section=history` (deep links, screenshots).
     var requestedSection: String?
+    /// True until the user dismisses the "I live in the menu bar" tip.
+    var showsMenuBarTip: Bool {
+        get { !UserDefaults.standard.bool(forKey: "tip.menuBar.dismissed") }
+        set { UserDefaults.standard.set(!newValue, forKey: "tip.menuBar.dismissed") }
+    }
+    var isFirstLaunch: Bool { !UserDefaults.standard.bool(forKey: "launched.before") }
+    var showInDock: Bool {
+        get { UserDefaults.standard.bool(forKey: "showInDock") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "showInDock")
+            Self.applyActivationPolicy(showInDock: newValue)
+        }
+    }
+
+    static func applyActivationPolicy(showInDock: Bool) {
+        NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
+        if showInDock { NSApp.activate(ignoringOtherApps: true) }
+    }
+
+    func markLaunched() { UserDefaults.standard.set(true, forKey: "launched.before") }
     var launchAtLogin: Bool { SMAppService.mainApp.status == .enabled }
     var notificationsAuthorized = false
 
@@ -33,6 +54,7 @@ final class AppModel {
     private var alertedThresholds: [String: Double] = [:]
 
     init() {
+        DataLocation.migrateLegacyIfNeeded()
         let location = DataLocation.standard()
         let secrets = KeychainSecretStore()
         self.location = location
@@ -187,9 +209,20 @@ final class AppModel {
         }
         let token = ensureHubToken()
         let engine = self.engine
+        let store = TelemetryStore(root: telemetryFolder)
         let router = HubRouter(token: token, hubName: snapshot.hubName.isEmpty ? (Host.current().localizedName ?? "Mac") : snapshot.hubName,
                                snapshot: { await engine.snapshot },
-                               history: { p, h in await engine.history(provider: p, hours: h) })
+                               history: { p, h in await engine.history(provider: p, hours: h) },
+                               telemetry: { lines, identity in
+                                   do {
+                                       let n = try store.ingest(lines: lines, identity: identity)
+                                       QPLog.hub.notice("telemetry: \(n) lines from \(identity.name, privacy: .public) (\(identity.platform, privacy: .public) \(identity.appVersion, privacy: .public))")
+                                       return n
+                                   } catch {
+                                       QPLog.hub.error("telemetry ingest failed: \(error.localizedDescription, privacy: .public)")
+                                       return nil
+                                   }
+                               })
         let server = HubServer(port: settings.hub.port, exposeOnNetwork: settings.hub.exposeOnNetwork, router: router)
         do {
             try server.start()
@@ -253,6 +286,18 @@ final class AppModel {
                 }
             }
         }
+    }
+
+    // MARK: Devices (telemetry from iPhone / Watch)
+
+    var telemetryFolder: URL { location.root.appendingPathComponent("telemetry", isDirectory: true) }
+
+    func reloadDevices() { devices = TelemetryStore(root: telemetryFolder).devices() }
+
+    func revealTelemetry(_ device: TelemetryStore.DeviceRecord? = nil) {
+        let url = device.map { telemetryFolder.appendingPathComponent(DeviceIdentity(name: $0.name, appVersion: "", platform: "").folderName, isDirectory: true) } ?? telemetryFolder
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     // MARK: Misc

@@ -44,16 +44,16 @@ struct WatchProviderRow: View {
     var body: some View {
         HStack(spacing: 8) {
             if let w = provider.primaryWindow {
-                UsageRing(percent: w.utilization, color: provider.id.color, lineWidth: 4, showsLabel: false).frame(width: 30, height: 30)
+                UsageRing(percent: w.currentUtilization(now: now), color: provider.id.color, lineWidth: 4, showsLabel: false).frame(width: 30, height: 30)
             } else {
                 ProviderGlyph(provider.id, size: 26)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(provider.id.displayName).font(.headline)
                 if let w = provider.primaryWindow {
-                    Text("\(QuotaFormat.percent(w.utilization)) · \(Present.resetText(w, now: now))").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    Text("\(QuotaFormat.percent(w.currentUtilization(now: now))) · \(Present.resetShort(w, now: now))").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 } else if let b = provider.balance {
-                    Text(QuotaFormat.money(b.total, symbol: b.symbol)).font(.caption2).foregroundStyle(.secondary)
+                    Text(b.formatted).font(.caption2).foregroundStyle(.secondary)
                 }
                 if provider.status.isError { Text(Present.statusTitle(provider.status)).font(.caption2).foregroundStyle(UsageLevel.hot.color) }
             }

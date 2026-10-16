@@ -1,17 +1,22 @@
 import Foundation
 
-/// Standard on-disk layout. macOS: ~/Library/Application Support/QuotaPulse (shared with the widget,
-/// no App Group needed). iOS/watchOS: the App Group container when available, else the app's own.
+/// Standard on-disk layout. macOS: the team-prefixed App Group container
+/// (`~/Library/Group Containers/88U7V98QAC.app.lishuyu.quotapulse/QuotaPulse`), which both the
+/// unsandboxed app and the sandboxed widget may use without a provisioning profile.
+/// iOS/watchOS: the `group.…` container when available, else the app's own.
 public struct DataLocation: Sendable {
     public let root: URL
     public init(root: URL) { self.root = root }
 
     public static let appGroupID = "group.app.lishuyu.quotapulse"
+    public static let macGroupID = "88U7V98QAC.app.lishuyu.quotapulse"
 
     public static func standard() -> DataLocation {
         #if os(macOS)
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return DataLocation(root: base.appendingPathComponent("QuotaPulse", isDirectory: true))
+        if let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: macGroupID) {
+            return DataLocation(root: group.appendingPathComponent("QuotaPulse", isDirectory: true))
+        }
+        return legacyMac()
         #else
         if let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) {
             return DataLocation(root: group.appendingPathComponent("QuotaPulse", isDirectory: true))
@@ -20,6 +25,30 @@ public struct DataLocation: Sendable {
         return DataLocation(root: base.appendingPathComponent("QuotaPulse", isDirectory: true))
         #endif
     }
+
+    #if os(macOS)
+    /// Pre-0.2 location (Application Support); migrated into the group container on launch.
+    public static func legacyMac() -> DataLocation {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return DataLocation(root: base.appendingPathComponent("QuotaPulse", isDirectory: true))
+    }
+
+    /// Moves settings/samples/snapshot from the legacy folder once; returns true when something moved.
+    @discardableResult
+    public static func migrateLegacyIfNeeded() -> Bool {
+        let old = legacyMac(), new = standard()
+        guard old.root != new.root, FileManager.default.fileExists(atPath: old.settingsURL.path) || FileManager.default.fileExists(atPath: old.samplesURL.path),
+              !FileManager.default.fileExists(atPath: new.settingsURL.path) else { return false }
+        try? FileManager.default.createDirectory(at: new.root, withIntermediateDirectories: true)
+        var moved = false
+        for name in ["settings.json", "snapshot.json", "samples.json", "pairing.json"] {
+            let src = old.root.appendingPathComponent(name), dst = new.root.appendingPathComponent(name)
+            if FileManager.default.fileExists(atPath: src.path), (try? FileManager.default.moveItem(at: src, to: dst)) != nil { moved = true }
+        }
+        QPLog.store.notice("migrated legacy data to \(new.root.path, privacy: .public): \(moved)")
+        return moved
+    }
+    #endif
 
     public var settingsURL: URL { root.appendingPathComponent("settings.json") }
     public var snapshotURL: URL { root.appendingPathComponent("snapshot.json") }

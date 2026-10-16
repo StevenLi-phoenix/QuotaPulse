@@ -152,3 +152,126 @@ import Testing
         server.stop()
     }
 }
+
+@Suite struct TelemetryTests {
+    let now = Date(timeIntervalSince1970: 1_792_120_000)
+    func tempDir() -> URL {
+        let u = FileManager.default.temporaryDirectory.appendingPathComponent("qp-telemetry-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: u, withIntermediateDirectories: true)
+        return u
+    }
+    let identity = DeviceIdentity(name: "iPhone-TEST", appVersion: "0.2.0", platform: "iOS")
+
+    @Test func writesJSONLinesPerDayAndCursor() throws {
+        let logger = FileLogger(directory: tempDir(), identity: identity)
+        logger.log("info", "hub", "fetch", ["status": "200"], at: now)
+        logger.log("error", "hub", "fetch", ["status": "500"], at: now.addingTimeInterval(86400))
+        logger.flush()
+        let files = logger.logFiles()
+        #expect(files.map(\.lastPathComponent) == ["quotapulse-2026-10-16.log", "quotapulse-2026-10-17.log"])
+        let p = logger.pendingUpload()
+        #expect(p.lines.count == 2)
+        let e = TelemetryEvent.decode(line: Substring(p.lines[0]))
+        #expect(e?.event == "fetch" && e?.fields["status"] == "200" && e?.device == "iPhone-TEST")
+        logger.markUploaded(p)
+        #expect(logger.pendingUpload().lines.isEmpty)
+        logger.log("info", "hub", "fetch", ["status": "200"], at: now.addingTimeInterval(86400 + 10))
+        logger.flush()
+        #expect(logger.pendingUpload().lines.count == 1)
+        // cursor survives a new logger instance
+        let again = FileLogger(directory: logger.directory, identity: identity)
+        #expect(again.pendingUpload().lines.count == 1)
+    }
+
+    @Test func enforcesTotalSizeCap() {
+        let logger = FileLogger(directory: tempDir(), identity: identity, maxTotalBytes: 4000)
+        let big = String(repeating: "x", count: 300)
+        for d in 0..<5 {
+            for i in 0..<5 { logger.log("info", "t", "e\(i)", ["pad": big], at: now.addingTimeInterval(Double(d) * 86400)) }
+        }
+        logger.flush()
+        // Opening day 5 triggers the cap; older days are dropped first.
+        logger.log("info", "t", "new", at: now.addingTimeInterval(5 * 86400))
+        logger.flush()
+        #expect(logger.totalBytes <= 4000 + 2000)
+        #expect(logger.logFiles().last?.lastPathComponent == "quotapulse-2026-10-21.log")
+        #expect(logger.logFiles().count < 6)
+    }
+
+    @Test func hubStoreIngestsAndIndexes() throws {
+        let store = TelemetryStore(root: tempDir())
+        let e1 = TelemetryEvent(ts: now, level: "info", category: "hub", event: "fetch", fields: ["ms": "120"], device: "iPhone-TEST", app: "0.2.0", platform: "iOS")
+        let e2 = TelemetryEvent(ts: now.addingTimeInterval(5), level: "error", category: "hub", event: "fetch", fields: ["status": "500"], device: "iPhone-TEST", app: "0.2.0", platform: "iOS")
+        let n = try store.ingest(lines: [Substring(e1.encodedLine()), Substring(e2.encodedLine()), "not json"], identity: identity, now: now)
+        #expect(n == 2)
+        let file = store.root.appendingPathComponent("iPhone-TEST/2026-10-16.log")
+        #expect(FileManager.default.fileExists(atPath: file.path))
+        let devices = store.devices()
+        #expect(devices.count == 1)
+        #expect(devices[0].eventCount == 2)
+        #expect(devices[0].lastError == "fetch status=500")
+        #expect(devices[0].appVersion == "0.2.0")
+        _ = try store.ingest(lines: [Substring(e1.encodedLine())], identity: identity, now: now.addingTimeInterval(60))
+        #expect(store.devices()[0].eventCount == 3)
+        #expect(store.devices()[0].lastError == "fetch status=500")
+    }
+
+    @Test func routerAcceptsAuthenticatedPostOnly() async throws {
+        let store = TelemetryStore(root: tempDir())
+        let router = HubRouter(token: "secret", hubName: "mini", snapshot: { .empty }, history: { _, _ in [] },
+                               telemetry: { lines, id in try? store.ingest(lines: lines, identity: id) })
+        let e = TelemetryEvent(ts: now, level: "info", category: "app", event: "launch", device: "d", app: "1", platform: "iOS")
+        let body = Data((e.encodedLine() + "\n").utf8)
+        let noAuth = await router.handle(.init(method: "POST", path: "/v1/telemetry", query: [:], headers: [:], body: body))
+        #expect(noAuth.status == 401)
+        let ok = await router.handle(.init(method: "POST", path: "/v1/telemetry", query: [:], headers: ["Authorization": "Bearer secret", "X-Device-Name": "d", "X-App-Version": "1", "X-Platform": "iOS"], body: body))
+        #expect(ok.status == 200)
+        #expect(String(decoding: ok.body, as: UTF8.self) == "{\"accepted\":1}")
+        #expect(store.devices().first?.name == "d")
+        let wrongMethod = await router.handle(.init(method: "POST", path: "/v1/snapshot", query: [:], headers: ["Authorization": "Bearer secret"], body: body))
+        #expect(wrongMethod.status == 405)
+    }
+
+    @Test func parserHandlesBodies() {
+        let raw = Data("POST /v1/telemetry HTTP/1.1\r\nContent-Length: 5\r\nAuthorization: Bearer x\r\n\r\nhel".utf8)
+        #expect(HTTPParser.parse(raw) == nil) // incomplete body
+        let full = Data("POST /v1/telemetry HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello".utf8)
+        let req = HTTPParser.parse(full)
+        #expect(req?.method == "POST")
+        #expect(req?.body == Data("hello".utf8))
+    }
+
+    @Test func clientUploadsAndAdvancesCursor() async throws {
+        let logger = FileLogger(directory: tempDir(), identity: identity)
+        logger.log("info", "pairing", "paired", at: now)
+        logger.flush()
+        let transport = StubTransport { req in
+            #expect(req.httpMethod == "POST")
+            #expect(req.value(forHTTPHeaderField: "X-Device-Name") == "iPhone-TEST")
+            #expect(req.httpBody.map { String(decoding: $0, as: UTF8.self) }?.contains("\"paired\"") == true)
+            return HTTPResponse(statusCode: 200, data: Data("{\"accepted\":1}".utf8))
+        }
+        let client = HubClient(pairing: HubPairing(baseURL: URL(string: "http://127.0.0.1:1")!, token: "t", hubName: "h"), transport: transport)
+        let r = await client.syncTelemetry(from: logger)
+        #expect(r.uploaded == 1 && r.error == nil)
+        #expect(logger.pendingUpload().lines.isEmpty)
+    }
+
+    @Test func serverEndToEndTelemetry() async throws {
+        let store = TelemetryStore(root: tempDir())
+        let port = UInt16.random(in: 40000...60000)
+        let router = HubRouter(token: "secret", hubName: "mini", snapshot: { .empty }, history: { _, _ in [] },
+                               telemetry: { lines, id in try? store.ingest(lines: lines, identity: id) })
+        let server = HubServer(port: port, exposeOnNetwork: false, router: router)
+        try server.start()
+        try await Task.sleep(for: .milliseconds(300))
+        let logger = FileLogger(directory: tempDir(), identity: identity)
+        for i in 0..<20 { logger.log("info", "hub", "fetch", ["i": "\(i)", "pad": String(repeating: "y", count: 200)], at: now) }
+        logger.flush()
+        let client = HubClient(pairing: HubPairing(baseURL: URL(string: "http://127.0.0.1:\(port)")!, token: "secret", hubName: "mini"))
+        let r = await client.syncTelemetry(from: logger)
+        #expect(r.uploaded == 20, "\(r.error ?? "")")
+        #expect(store.devices().first?.eventCount == 20)
+        server.stop()
+    }
+}

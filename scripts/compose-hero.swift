@@ -22,8 +22,9 @@ let canvas = NSImage(size: NSSize(width: W, height: H), flipped: false) { rect i
     place("mac-panel.png", x: 60, y: 120, w: 440, radius: 14)
     place("widget-large.png", x: 540, y: 300, w: 380, radius: 22)
     place("widget-small.png", x: 540, y: 100, w: 180, radius: 22)
-    place("widget-medium.png", x: 740, y: 100, w: 380, radius: 22)
-    place("ios-home.png", x: 1150, y: 90, w: 300, radius: 34)
+    place("ip17-widget-medium.png", x: 740, y: 60, w: 190, radius: 30)
+    place("widget-medium.png", x: 950, y: 100, w: 190, radius: 14)
+    place("ip17-home.png", x: 1150, y: 90, w: 300, radius: 34)
     place("watch-home.png", x: 960, y: 560, w: 180, radius: 40)
     let title = "QuotaPulse"
     let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 44, weight: .bold), .foregroundColor: NSColor.white]

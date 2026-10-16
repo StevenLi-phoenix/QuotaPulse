@@ -14,15 +14,17 @@ public enum WidgetViews {
     }
 }
 
-/// Live-ticking countdown for < 24 h, static "Nd Nh" beyond that (a 47:59:59 timer reads badly).
+/// Live-ticking countdown for < 24 h, static "Nd Nh" beyond that (a 47:59:59 timer reads badly);
+/// "Fresh" for a rolling window whose reset passed.
 public struct ResetCountdown: View {
-    public var resetsAt: Date
-    public init(_ resetsAt: Date) { self.resetsAt = resetsAt }
+    public var window: UsageWindow
+    public init(_ window: UsageWindow) { self.window = window }
     public var body: some View {
-        if resetsAt.timeIntervalSinceNow < 24 * 3600 {
-            Text(resetsAt, style: .timer)
-        } else {
-            Text(QuotaFormat.countdown(to: resetsAt))
+        switch window.phase() {
+        case let .active(r) where r.timeIntervalSinceNow < 24 * 3600: Text(r, style: .timer)
+        case let .active(r): Text(QuotaFormat.countdown(to: r))
+        case .awaitingFirstUse: Text(L("Fresh"))
+        case .unknown: Text("—")
         }
     }
 }
@@ -42,24 +44,23 @@ public struct WidgetSmallView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     ProviderGlyph(p.id, size: 20)
-                    Text(p.id.localizedName).font(.caption.weight(.semibold)).lineLimit(1)
+                    // The name wins over the plan badge on narrow (systemSmall) widgets.
+                    Text(p.id.localizedName).font(.caption.weight(.semibold)).lineLimit(1).fixedSize()
                     Spacer(minLength: 0)
-                    if let plan = p.account?.plan { PlanBadge(plan) }
+                    if let plan = p.account?.plan { PlanBadge(plan).layoutPriority(-1) }
                 }
                 Spacer(minLength: 2)
                 HStack(alignment: .center, spacing: 10) {
                     if let w = primary {
-                        UsageRing(percent: w.utilization, color: p.id.color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
+                        UsageRing(percent: w.currentUtilization(), color: p.id.color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(QuotaFormat.percent(w.utilization)).font(.system(.title3, design: .rounded).weight(.bold)).monospacedDigit()
+                            Text(QuotaFormat.percent(w.currentUtilization())).font(.system(.title3, design: .rounded).weight(.bold)).monospacedDigit()
                             Text(w.title).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                            if let r = w.resetsAt {
-                                ResetCountdown(r).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).lineLimit(1)
-                            }
+                            ResetCountdown(w).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).lineLimit(1)
                         }
                     } else if let b = p.balance {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(QuotaFormat.money(b.total, symbol: b.symbol)).font(.system(.title2, design: .rounded).weight(.bold)).monospacedDigit()
+                            Text(b.formatted).font(.system(b.isCredits ? .headline : .title2, design: .rounded).weight(.bold)).monospacedDigit().minimumScaleFactor(0.6)
                             Text(L("Balance")).font(.caption2).foregroundStyle(.secondary)
                             if let d = p.forecasts[Sample.balanceWindowID]?.daysRemaining {
                                 Text(String(localized: "~\(Int(d.rounded()))d left", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
@@ -101,7 +102,7 @@ public struct WidgetMediumView: View {
                         ProviderGlyph(p.id, size: 18)
                         Text(p.id.localizedName).font(.caption.weight(.semibold)).frame(width: 64, alignment: .leading).lineLimit(1)
                         if let b = p.balance, p.windows.isEmpty {
-                            Text(QuotaFormat.money(b.total, symbol: b.symbol)).font(.caption.monospacedDigit().weight(.semibold))
+                            Text(b.formatted).font(.caption.monospacedDigit().weight(.semibold))
                             Spacer()
                             if let d = p.forecasts[Sample.balanceWindowID]?.daysRemaining {
                                 Text(String(localized: "~\(Int(d.rounded()))d", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
@@ -109,11 +110,11 @@ public struct WidgetMediumView: View {
                         } else {
                             ForEach(p.windows.prefix(2)) { w in
                                 VStack(alignment: .leading, spacing: 2) {
-                                    UsageBar(percent: w.utilization, color: p.id.color, height: 5)
+                                    UsageBar(percent: w.currentUtilization(), color: p.id.color, height: 5)
                                     HStack {
                                         Text(w.title).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                                         Spacer(minLength: 2)
-                                        Text(QuotaFormat.percent(w.utilization)).font(.system(size: 9, weight: .semibold).monospacedDigit())
+                                        Text(QuotaFormat.percent(w.currentUtilization())).font(.system(size: 9, weight: .semibold).monospacedDigit())
                                     }
                                 }
                             }
@@ -205,16 +206,16 @@ public struct AccessoryCircularView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Gauge(value: min(1, w.utilization / 100)) {
+            Gauge(value: min(1, w.currentUtilization() / 100)) {
                 Image(systemName: p.id.symbol)
             } currentValueLabel: {
-                Text("\(Int(w.utilization.rounded()))").font(.system(.body, design: .rounded).weight(.semibold))
+                Text("\(Int(w.currentUtilization().rounded()))").font(.system(.body, design: .rounded).weight(.semibold))
             }
             .gaugeStyle(.accessoryCircular)
             .tint(Gradient(colors: [UsageLevel.calm.color, UsageLevel.warm.color, UsageLevel.critical.color]))
         } else if let p = provider, let b = p.balance {
             Gauge(value: 1) { Image(systemName: p.id.symbol) } currentValueLabel: {
-                Text(QuotaFormat.money(b.total, symbol: b.symbol)).font(.system(.caption2, design: .rounded).weight(.semibold)).minimumScaleFactor(0.5)
+                Text(b.isCredits ? "\(Int(b.total / 1000))k" : QuotaFormat.money(b.total, symbol: b.symbol)).font(.system(.caption2, design: .rounded).weight(.semibold)).minimumScaleFactor(0.5)
             }
             .gaugeStyle(.accessoryCircular)
             .tint(p.id.color)
@@ -241,10 +242,10 @@ public struct AccessoryRectangularView: View {
                         Text(p.id.localizedName).font(.caption2.weight(.semibold)).lineLimit(1)
                         Spacer(minLength: 2)
                         if let w = p.primaryWindow {
-                            Text(QuotaFormat.percent(w.utilization)).font(.caption2.monospacedDigit().weight(.semibold))
-                            if let r = w.resetsAt { ResetCountdown(r).font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary).frame(width: 46, alignment: .trailing) }
+                            Text(QuotaFormat.percent(w.currentUtilization())).font(.caption2.monospacedDigit().weight(.semibold))
+                            ResetCountdown(w).font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary).frame(width: 46, alignment: .trailing)
                         } else if let b = p.balance {
-                            Text(QuotaFormat.money(b.total, symbol: b.symbol)).font(.caption2.monospacedDigit().weight(.semibold))
+                            Text(b.formatted).font(.caption2.monospacedDigit().weight(.semibold)).minimumScaleFactor(0.6)
                         }
                     }
                 }
@@ -259,9 +260,9 @@ public struct AccessoryInlineView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Text("\(Image(systemName: p.id.symbol)) \(p.id.localizedName) \(QuotaFormat.percent(w.utilization)) · \(Present.resetText(w))")
+            Text("\(Image(systemName: p.id.symbol)) \(p.id.localizedName) \(QuotaFormat.percent(w.currentUtilization())) · \(Present.resetShort(w))")
         } else if let p = provider, let b = p.balance {
-            Text("\(Image(systemName: p.id.symbol)) \(p.id.localizedName) \(QuotaFormat.money(b.total, symbol: b.symbol))")
+            Text("\(Image(systemName: p.id.symbol)) \(p.id.localizedName) \(b.formatted)")
         } else {
             Text("QuotaPulse")
         }
@@ -274,10 +275,10 @@ public struct AccessoryCornerView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Text("\(Int(w.utilization.rounded()))%")
+            Text("\(Int(w.currentUtilization().rounded()))%")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .widgetCurvedLabel { Text(p.id.localizedName) }
-                .widgetCurvedGauge(value: min(1, w.utilization / 100))
+                .widgetCurvedGauge(value: min(1, w.currentUtilization() / 100))
         } else {
             Image(systemName: "gauge.with.dots.needle.33percent")
         }

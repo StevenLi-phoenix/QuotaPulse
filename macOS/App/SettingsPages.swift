@@ -140,16 +140,52 @@ struct HubPage: View {
                     }
                 } header: { Text(L("Pair a device")) }
 
+                Section {
+                    if model.devices.isEmpty {
+                        Text(L("No device has reported yet. Paired iPhones and Watches send their logs on every refresh.")).font(.caption).foregroundStyle(.secondary)
+                    }
+                    ForEach(model.devices) { d in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: d.platform.lowercased().hasPrefix("watch") ? "applewatch" : "iphone").font(.title3).foregroundStyle(.secondary).frame(width: 24)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(d.name).font(.headline)
+                                    Text("\(d.platform) · v\(d.appVersion)").font(.caption).foregroundStyle(.secondary)
+                                }
+                                let heartbeat = Present.updatedText(d.lastSeen, now: model.ticker.now).replacingOccurrences(of: "Updated ", with: "")
+                                Text(String(localized: "Last heartbeat \(heartbeat) · \(d.eventCount) events"))
+                                    .font(.caption).foregroundStyle(.secondary)
+                                if let e = d.lastError {
+                                    Label("\(e)" + (d.lastErrorAt.map { " · \($0.formatted(date: .abbreviated, time: .shortened))" } ?? ""), systemImage: "exclamationmark.triangle")
+                                        .font(.caption).foregroundStyle(UsageLevel.hot.color).lineLimit(2)
+                                }
+                            }
+                            Spacer()
+                            Button(L("Reveal in Finder")) { model.revealTelemetry(d) }.controlSize(.small)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    HStack {
+                        Button(L("Refresh list")) { model.reloadDevices() }
+                        Button(L("Reveal telemetry folder")) { model.revealTelemetry() }
+                    }
+                    .controlSize(.small)
+                } header: { Text(L("Devices")) } footer: {
+                    Text(L("Each device uploads its JSON Lines log on refresh to POST /v1/telemetry; files land under telemetry/<device>/YYYY-MM-DD.log next to the hub data."))
+                }
+
                 Section(L("Endpoints")) {
                     ForEach([HubProtocol.healthPath, HubProtocol.snapshotPath, HubProtocol.historyPath + "?provider=claude&hours=24"], id: \.self) { p in
                         Text("GET \(p)").font(.caption.monospaced())
                     }
+                    Text("POST \(HubProtocol.telemetryPath)  (application/x-ndjson)").font(.caption.monospaced())
                     Text(L("Send `Authorization: Bearer <token>`.")).font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
         .formStyle(.grouped)
-        .onAppear { portDraft = String(model.settings.hub.port); selectedHost = model.hubAddresses.first ?? "127.0.0.1" }
+        .onAppear { portDraft = String(model.settings.hub.port); selectedHost = model.hubAddresses.first ?? "127.0.0.1"; model.reloadDevices() }
+        .onChange(of: model.ticker.now) { _, _ in model.reloadDevices() }
     }
 }
 
@@ -231,6 +267,9 @@ struct GeneralPage: View {
                 }
                 .pickerStyle(.segmented)
                 Toggle(L("Launch at login"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
+                Toggle(L("Show in Dock"), isOn: Binding(get: { model.showInDock }, set: { model.showInDock = $0 }))
+                Text(L("Off: QuotaPulse is a menu-bar-only app (find it top right, or search QuotaPulse in Spotlight). On: a Dock icon that reopens this window."))
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section(L("History")) {
                 Picker(L("Keep samples for"), selection: Binding(get: { model.settings.retentionDays }, set: { model.setRetention($0) })) {

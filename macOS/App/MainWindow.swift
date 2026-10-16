@@ -72,8 +72,13 @@ struct OverviewPage: View {
     private let columns = [GridItem(.adaptive(minimum: 340, maximum: 520), spacing: 14, alignment: .top)]
 
     var body: some View {
+        @Bindable var model = model
         let now = model.ticker.now
         ScrollView {
+            if model.showsMenuBarTip {
+                MenuBarTip(onDismiss: { model.showsMenuBarTip = false })
+                    .padding(.horizontal, 20).padding(.top, 16)
+            }
             if model.snapshot.providers.isEmpty {
                 EmptyStateView(title: L("Nothing to show yet"), message: L("Enable a provider in Settings or wait for the first refresh."))
                     .padding(40)
@@ -87,6 +92,31 @@ struct OverviewPage: View {
                 .animation(QPDesign.spring, value: model.snapshot.providers.map(\.id))
             }
         }
+    }
+}
+
+/// "I live in the menu bar" — menu-bar-only apps are easy to lose on first launch.
+struct MenuBarTip: View {
+    var onDismiss: () -> Void
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(nsImage: MenuBarIcon.ring(percent: 37, hasData: true, refreshing: false))
+                .padding(8)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(L("QuotaPulse lives in the menu bar")).font(.headline)
+                Text(L("Look for the small ring and percentage at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General."))
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle(L("Show in Dock"), isOn: Binding(get: { model.showInDock }, set: { model.showInDock = $0 })).toggleStyle(.switch).controlSize(.small)
+            Button { onDismiss() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.borderless)
+        }
+        .padding(14)
+        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: QPDesign.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: QPDesign.cardRadius, style: .continuous).strokeBorder(Color.accentColor.opacity(0.25)))
     }
 }
 
@@ -169,7 +199,7 @@ struct ForecastTable: View {
                     let f = provider.forecasts[Sample.balanceWindowID]
                     GridRow {
                         Text(L("Balance"))
-                        Text(QuotaFormat.money(b.total, symbol: b.symbol)).monospacedDigit()
+                        Text(b.formatted).monospacedDigit()
                         Text(f.map { "\(QuotaFormat.money($0.rate, symbol: b.symbol))/d" } ?? "—").monospacedDigit()
                         Text(f?.daysRemaining.map { String(localized: "\(Int($0.rounded())) days") } ?? "—")
                         Text(confidence(f))

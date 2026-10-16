@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-10-16
+
+### Added
+- Reset semantics per provider (`UsageWindow.resetSemantics`): Claude windows roll from the first request and read "Fresh · next window starts on first request" once expired; Codex windows roll forward by their fixed cadence. Forecast, pace and countdowns follow the semantics (6 new tests).
+- macOS: first launch opens the main window with a dismissible "QuotaPulse lives in the menu bar" tip; "Show in Dock" toggle (General); `quotapulse://open?section=…` deep links.
+- Codex: credits balance shown as credits (not dollars); single-window plans are labelled instead of leaving a gap. Claude `limits[]` kinds `session` / `weekly_all` / `weekly_scoped` parsed without duplicates.
+- Simulator automation hooks (`QUOTAPULSE_PAIRING_URL`, `QUOTAPULSE_START_ROUTE=provider/<id>|settings`) and a `QuotaPulseUITests` target that adds the widget to the simulator home screen through the real gallery.
+- Verified on iPhone 17 / iOS 27.0 and iPhone 15 Plus / iOS 26.5 + 27.0 (393 pt and 430 pt widths, Dynamic Type XXL, dark mode).
+
+- Telemetry: `FileLogger` (JSON Lines, daily files, 10 MB cap, background queue, upload cursor) on iOS and watchOS records pairing, hub fetches (latency/status/sample counts), background refresh scheduling and runs, WatchConnectivity transfers, widget reloads and forecast summaries; MetricKit crash/hang payloads are stored under `Documents/Diagnostics`. Devices push pending lines to the hub (`POST /v1/telemetry`, bearer token) on every refresh; the Mac keeps them under `telemetry/<device>/YYYY-MM-DD.log` and lists devices (heartbeat, version, last error, Reveal in Finder) under Hub & Devices. iOS Settings → Diagnostics shows the state and exports a zip through the share sheet; `UIFileSharingEnabled` exposes the logs in Files.
+
+### Fixed
+- macOS widget never appeared in the widget gallery: chronod refuses unsandboxed extensions ("Extension is not entitled to run in the App Sandbox"). The widget is now sandboxed and both app and widget share the team-prefixed App Group `88U7V98QAC.app.lishuyu.quotapulse`; data moved from Application Support to the group container (migrated automatically). `scripts/install.sh` registers the extension with `lsregister` / `pluginkit` and verifies it.
+
 ## [0.1.0] - 2026-10-16
 
 ### Added

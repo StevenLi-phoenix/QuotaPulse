@@ -291,12 +291,52 @@
         }
       }
     },
+    "Device": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备"
+          }
+        }
+      }
+    },
+    "Devices": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备"
+          }
+        }
+      }
+    },
+    "Diagnostics": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断"
+          }
+        }
+      }
+    },
     "Done": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "完成"
+          }
+        }
+      }
+    },
+    "Each device uploads its JSON Lines log on refresh to POST /v1/telemetry; files land under telemetry/<device>/YYYY-MM-DD.log next to the hub data.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每台设备刷新时把 JSON Lines 日志 POST 到 /v1/telemetry；文件落在 hub 数据旁的 telemetry/<设备>/YYYY-MM-DD.log。"
           }
         }
       }
@@ -327,6 +367,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "接口"
+          }
+        }
+      }
+    },
+    "Export diagnostics": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出诊断"
+          }
+        }
+      }
+    },
+    "Failed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失败"
           }
         }
       }
@@ -461,6 +521,16 @@
         }
       }
     },
+    "JSON Lines logs live in Files → QuotaPulse → Logs and are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JSON Lines 日志在“文件”→ QuotaPulse → Logs，并会推送到你的 Mac（Hub 与设备 → 设备）。MetricKit 的崩溃/卡顿报告保存在 Diagnostics 下。"
+          }
+        }
+      }
+    },
     "Keep samples for": {
       "localizations": {
         "zh-Hans": {
@@ -471,12 +541,62 @@
         }
       }
     },
+    "Last heartbeat \\(heartbeat) · \\(d.eventCount) events": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近心跳 \\(heartbeat) · \\(d.eventCount) 条事件"
+          }
+        }
+      }
+    },
+    "Last upload": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次上传"
+          }
+        }
+      }
+    },
     "Launch at login": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "登录时启动"
+          }
+        }
+      }
+    },
+    "Lines waiting for the hub": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待上传到 Hub 的行数"
+          }
+        }
+      }
+    },
+    "Log size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日志大小"
+          }
+        }
+      }
+    },
+    "Look for the small ring and percentage at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "看屏幕右上角那个小圆环和百分比 ↗。点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。"
           }
         }
       }
@@ -521,6 +641,16 @@
         }
       }
     },
+    "MetricKit payloads": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MetricKit 报告"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "zh-Hans": {
@@ -547,6 +677,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有可用的相机，请手动输入配对信息。"
+          }
+        }
+      }
+    },
+    "No device has reported yet. Paired iPhones and Watches send their logs on every refresh.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有设备上报。已配对的 iPhone 和手表每次刷新时会发送日志。"
           }
         }
       }
@@ -587,6 +727,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "默认关闭：Claude Code 会自行轮换 token，第二个刷新者可能把它踢下线。打开一次 Claude Code 就能同时刷新两边的 token。"
+          }
+        }
+      }
+    },
+    "Off: QuotaPulse is a menu-bar-only app (find it top right, or search QuotaPulse in Spotlight). On: a Dock icon that reopens this window.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关：QuotaPulse 只在菜单栏（右上角，或在 Spotlight 搜 QuotaPulse）。开：显示 Dock 图标，点击重新打开此窗口。"
           }
         }
       }
@@ -741,6 +891,16 @@
         }
       }
     },
+    "QuotaPulse lives in the menu bar": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QuotaPulse 住在菜单栏里"
+          }
+        }
+      }
+    },
     "QuotaPulse never sees your provider credentials on this device — only the numbers your Mac publishes.": {
       "localizations": {
         "zh-Hans": {
@@ -821,6 +981,16 @@
         }
       }
     },
+    "Refresh list": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新列表"
+          }
+        }
+      }
+    },
     "Refresh now": {
       "localizations": {
         "zh-Hans": {
@@ -857,6 +1027,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "在 Finder 中显示数据目录"
+          }
+        }
+      }
+    },
+    "Reveal in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 中显示"
+          }
+        }
+      }
+    },
+    "Reveal telemetry folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示遥测目录"
           }
         }
       }
@@ -951,12 +1141,32 @@
         }
       }
     },
+    "Share diagnostics zip": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享诊断 zip"
+          }
+        }
+      }
+    },
     "Show": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "显示"
+          }
+        }
+      }
+    },
+    "Show in Dock": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Dock 显示"
           }
         }
       }
@@ -1017,6 +1227,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "URL"
+          }
+        }
+      }
+    },
+    "Upload logs to hub now": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即上传日志到 Hub"
           }
         }
       }
@@ -1107,6 +1327,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "\\(Int($0.rounded())) 天"
+          }
+        }
+      }
+    },
+    "\\(u.count) lines · \\(u.at.formatted(date: .omitted, time: .shortened))": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(u.count) 行 · \\(u.at.formatted(date: .omitted, time: .shortened))"
           }
         }
       }

@@ -12,4 +12,17 @@ if pgrep -f "$DST/Contents/MacOS/QuotaPulse" >/dev/null; then pkill -f "$DST/Con
 rm -rf "$DST"
 cp -R "$SRC" "$DST"
 echo "Installed $DST"
+# Make LaunchServices / PlugInKit see the (sandboxed) widget extension right away.
+LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$LSREG" -f -R "$DST" >/dev/null 2>&1 || true
+pluginkit -a "$DST/Contents/PlugIns/QuotaPulseWidget.appex" >/dev/null 2>&1 || true
 open -n "$DST"
+sleep 3
+# chronod (the widget daemon) sometimes purges a freshly replaced extension ("shouldn't cache it");
+# a restart makes it re-scan and keep it. It relaunches on its own.
+killall chronod 2>/dev/null || true
+if pluginkit -m -i app.lishuyu.quotapulse.widget >/dev/null 2>&1; then
+  echo "Widget extension registered: $(pluginkit -m -i app.lishuyu.quotapulse.widget)"
+else
+  echo "WARNING: widget extension not registered yet — open Notification Center → Edit Widgets after a few seconds, or log out/in." >&2
+fi

@@ -171,6 +171,7 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Button(L("Push to Apple Watch now")) { model.pushToWatch() }
             }
+            DiagnosticsSection()
             Section(L("About")) {
                 Text(L("QuotaPulse never sees your provider credentials on this device — only the numbers your Mac publishes."))
                     .font(.caption).foregroundStyle(.secondary)
@@ -178,6 +179,48 @@ struct SettingsView: View {
         }
         .navigationTitle(L("Settings"))
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button(L("Done")) { dismiss() } } }
+    }
+}
+
+// MARK: - Diagnostics
+
+struct DiagnosticsSection: View {
+    @Environment(ClientModel.self) private var model
+    @State private var exportURL: URL?
+    @State private var exportError: String?
+    @State private var uploading = false
+
+    var body: some View {
+        Section {
+            LabeledContent(L("Device"), value: model.logger.identity.name)
+            LabeledContent(L("Log size"), value: ByteCountFormatter.string(fromByteCount: Int64(model.logger.totalBytes), countStyle: .file))
+            LabeledContent(L("Lines waiting for the hub"), value: "\(model.pendingTelemetryLines)")
+            if let u = model.lastTelemetryUpload {
+                LabeledContent(L("Last upload")) {
+                    VStack(alignment: .trailing) {
+                        Text(u.error == nil ? String(localized: "\(u.count) lines · \(u.at.formatted(date: .omitted, time: .shortened))") : L("Failed")).foregroundStyle(u.error == nil ? .secondary : UsageLevel.critical.color)
+                        if let e = u.error { Text(e).font(.caption2).foregroundStyle(.secondary).lineLimit(2) }
+                    }
+                }
+            }
+            LabeledContent(L("MetricKit payloads"), value: "\(DiagnosticsCollector.storedPayloadCount)")
+            Button {
+                uploading = true
+                Task { await model.syncTelemetry(); uploading = false }
+            } label: { HStack { Text(L("Upload logs to hub now")); if uploading { Spacer(); ProgressView() } } }
+            .disabled(model.pairing == nil || uploading)
+            if let exportURL {
+                ShareLink(item: exportURL) { Label(L("Share diagnostics zip"), systemImage: "square.and.arrow.up") }
+            } else {
+                Button {
+                    do { exportURL = try DiagnosticsCollector.exportZip(logger: model.logger); exportError = nil }
+                    catch { exportError = error.localizedDescription }
+                } label: { Label(L("Export diagnostics"), systemImage: "doc.zipper") }
+            }
+            if let exportError { Text(exportError).font(.caption).foregroundStyle(UsageLevel.critical.color) }
+        } header: { Text(L("Diagnostics")) } footer: {
+            Text(L("JSON Lines logs live in Files → QuotaPulse → Logs and are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics."))
+        }
     }
 }
 

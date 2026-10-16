@@ -72,7 +72,7 @@ public struct CodexProvider: UsageProvider {
             guard let obj, let used = JSON.number(obj["used_percent"]) else { return nil }
             let duration = JSON.number(obj["limit_window_seconds"]) ?? defaultDuration
             return UsageWindow(id: id, title: title, utilization: used, resetsAt: DateParsing.epoch(JSON.number(obj["reset_at"])),
-                               duration: duration, note: note)
+                               duration: duration, note: note, resetSemantics: .fixedCadence)
         }
         if let rl = root["rate_limit"] as? [String: Any] {
             if let w = window(rl["primary_window"] as? [String: Any], id: "primary", title: "5-hour", defaultDuration: 5 * 3600) {
@@ -93,10 +93,18 @@ public struct CodexProvider: UsageProvider {
             }
         }
         guard !windows.isEmpty else { throw ProviderError.decoding("Codex usage response had no rate_limit windows") }
+        // Some plans report a single window (secondary_window: null); say so instead of leaving a gap.
+        if windows.count == 1, (root["rate_limit"] as? [String: Any])?["secondary_window"] is NSNull || (root["rate_limit"] as? [String: Any])?["secondary_window"] == nil {
+            windows[0].note = windows[0].note ?? "Only window reported for this plan"
+        }
         let plan = (root["plan_type"] as? String)?.replacingOccurrences(of: "_", with: " ").capitalized
         var balance: Balance?
         if let credits = root["credits"] as? [String: Any], let bal = JSON.number(credits["balance"]) {
-            balance = Balance(currency: "USD", total: bal, isAvailable: (credits["has_credits"] as? Bool) ?? (bal > 0))
+            // `balance` is a credit count, not money; `unlimited` plans have no meaningful balance.
+            let unlimited = credits["unlimited"] as? Bool ?? false
+            if !unlimited, bal > 0 || (credits["has_credits"] as? Bool) == true {
+                balance = Balance(currency: "credits", total: bal, isAvailable: (credits["has_credits"] as? Bool) ?? (bal > 0))
+            }
         }
         return ProviderSnapshot(id: .codex, fetchedAt: now, status: .ok, account: AccountInfo(plan: plan), windows: windows, balance: balance)
     }

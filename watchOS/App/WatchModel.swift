@@ -2,6 +2,7 @@ import Observation
 import QuotaCore
 import QuotaUI
 import WatchConnectivity
+import WatchKit
 import WidgetKit
 
 /// Watch side: receives snapshots from the iPhone, or fetches straight from the hub when it can.
@@ -13,6 +14,7 @@ final class WatchModel: NSObject {
     private(set) var lastError: String?
     private(set) var source = ""
     let ticker = Ticker(interval: .seconds(20))
+    let logger: FileLogger
 
     private let location = DataLocation.standard()
     private let defaults = UserDefaults(suiteName: DataLocation.appGroupID) ?? .standard
@@ -20,7 +22,15 @@ final class WatchModel: NSObject {
 
     override init() {
         snapshot = SnapshotStore(url: location.snapshotURL).load() ?? .empty
+        let defaults0 = UserDefaults.standard
+        var short = defaults0.string(forKey: "device.shortID") ?? ""
+        if short.isEmpty { short = String(UUID().uuidString.prefix(4)); defaults0.set(short, forKey: "device.shortID") }
+        let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
+        let identity = DeviceIdentity(name: "Watch-\(short)", appVersion: version, platform: "watchOS \(WKInterfaceDevice.current().systemVersion)")
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        logger = FileLogger(directory: docs.appendingPathComponent("Logs", isDirectory: true), identity: identity, maxTotalBytes: 2 * 1024 * 1024)
         super.init()
+        logger.notice("app", "launch", ["device": identity.name, "version": version])
         if let data = defaults.data(forKey: "hub.pairing.v1"), let p = try? JSON.decoder.decode(HubPairing.self, from: data) { pairing = p }
         // Automation hook (simulator / CI): QUOTAPULSE_PAIRING_URL=quotapulse://pair?url=…&token=…
         if let raw = ProcessInfo.processInfo.environment["QUOTAPULSE_PAIRING_URL"], let url = URL(string: raw), let p = HubPairing.parse(url) {
@@ -67,9 +77,11 @@ final class WatchModel: NSObject {
         lastError = nil
         try? SnapshotStore(url: location.snapshotURL).save(snap)
         WidgetCenter.shared.reloadAllTimelines()
+        logger.info("widget", "reload.requested", ["source": source])
     }
 
     private func ingest(snapshot data: Data?, pairing pdata: Data?, source: String) {
+        logger.info("watch", "payload.received", ["source": source, "snapshotBytes": "\(data?.count ?? 0)", "hasPairing": "\(pdata != nil)"])
         if let pdata, let p = try? JSON.decoder.decode(HubPairing.self, from: pdata) {
             pairing = p
             defaults.set(pdata, forKey: "hub.pairing.v1")

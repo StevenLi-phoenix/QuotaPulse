@@ -50,3 +50,14 @@
 4. **通知权限懒申请**：阈值告警默认关；打开时才 `requestAuthorization`，避免无人值守时弹系统对话框。
 5. **Keychain 读取走 `/usr/bin/security` 子进程 + 3 秒超时**：Claude Code 自己用该 CLI 写入，ACL 已包含它，因此不会弹窗；万一弹窗，超时 kill 子进程即关闭对话框并退回文件读取。
 6. **不做浏览器 cookie 导入**：CodexBar 的 cookie 路线需要读 Chrome cookie 数据库（Keychain 弹窗 + 隐私面大），与"无人值守、不弹窗"冲突。
+
+## Reset 语义实测（2026-10-16 12:23Z，本机真实账号）
+
+| | Claude（Max 20x） | Codex（Plus） |
+|---|---|---|
+| 5h 窗口 `resets_at` | `2026-10-16T15:29:59.89Z`（整个白天不变；样本 11:41Z→12:18Z 期间固定）。窗口始于 10:30Z 附近的首条请求，值对齐到 **:00/:30 半小时边界** | 本账号 `secondary_window: null`，只有 `primary_window`：`limit_window_seconds=604800`、`reset_at=1792649646`（2026-10-22T06:14:06Z，**非整点**，固定周期滚动） |
+| 周窗口 | `2026-10-22T14:59:59.89Z` = 上周首次请求后 7 天，同样对齐半小时 | 同上（单一窗口） |
+| 到期行为 | 额度清零，**不开新窗**；下次请求才开新窗，届时 `resets_at` 变为新值（utilization 回落 → 新周期） | 额度与周期一起重置，`reset_at` 按周期长度前推 |
+| 新字段 | `five_hour.limit_dollars/used_dollars/remaining_dollars/locked_reason`（均 null）；`limits[]` 含 `kind: session / weekly_all / weekly_scoped`（后者 15%，无 `scope.model`） | `credits.balance` 是 **credits 数量不是美元**（62484.43），`approx_local_messages` 区间、`rate_limit_reset_credits`、`model_usage` |
+
+落地（`QuotaCore`）：`UsageWindow.resetSemantics`（Claude `.rollingFromFirstUse`，Codex/OpenCode/GLM `.fixedCadence`）；`effectiveResetsAt(now:)`（fixed 过期后按周期前推，rolling 过期返回 nil）；`phase(now:)` → `.active / .awaitingFirstUse / .unknown`；`currentUtilization(now:)`（rolling 过期视为 0）。预测与 pace 用 `cycleStart(now:)`；rolling 过期直接 `.insufficient`。UI：rolling 过期显示 "Fresh · next window starts on first request"（小组件 "Fresh"），不再出现负倒计时；Codex 单窗口标注 "Only window reported for this plan"，credits 显示为 "62,484 credits"。

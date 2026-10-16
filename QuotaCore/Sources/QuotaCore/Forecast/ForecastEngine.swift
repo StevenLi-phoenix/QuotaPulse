@@ -13,6 +13,8 @@ public enum ForecastEngine {
     ///   - samples: samples of this provider+window (any order, any age).
     ///   - window: the latest state.
     public static func forecast(window: UsageWindow, samples: [Sample], now: Date = Date()) -> Forecast {
+        // A rolling window past its reset has nothing to extrapolate: the next window hasn't started.
+        if case .awaitingFirstUse = window.phase(now: now) { return .insufficient }
         let cycle = currentCycle(samples: samples, window: window, now: now)
         guard cycle.count >= minSamples, let first = cycle.first, let last = cycle.last,
               last.at.timeIntervalSince(first.at) >= minSpan else {
@@ -22,11 +24,11 @@ public enum ForecastEngine {
         let span = last.at.timeIntervalSince(first.at)
         let slopePerSec = max(0, Regression.slope(cycle.map { ($0.at.timeIntervalSince1970, $0.value) }))
         let perHour = slopePerSec * 3600
-        let current = window.utilization
+        let current = window.currentUtilization(now: now)
 
         var projected: Double?
         var exhaustion: Date?
-        if let resetsAt = window.resetsAt, resetsAt > now {
+        if let resetsAt = window.effectiveResetsAt(now: now), resetsAt > now {
             let remaining = resetsAt.timeIntervalSince(now)
             projected = min(100, current + slopePerSec * remaining)
             if slopePerSec > 0 {
@@ -39,7 +41,7 @@ public enum ForecastEngine {
         }
 
         var pace: Double?
-        if let start = window.startsAt, let duration = window.duration, duration > 0 {
+        if let start = window.cycleStart(now: now), let duration = window.duration, duration > 0 {
             let elapsed = min(duration, max(0, now.timeIntervalSince(start)))
             let expected = elapsed / duration * 100
             pace = current - expected
@@ -60,7 +62,7 @@ public enum ForecastEngine {
         let sorted = samples.filter { $0.at <= now }.sorted { $0.at < $1.at }
         guard !sorted.isEmpty else { return [] }
         var cut: Date = .distantPast
-        if let start = window.startsAt { cut = start }
+        if let start = window.cycleStart(now: now) { cut = start }
         // Also cut at any reset that happened inside the recorded data (utilization dropped ≥ 5 points,
         // or the server-reported resetsAt moved forward).
         var lastResets: Date?

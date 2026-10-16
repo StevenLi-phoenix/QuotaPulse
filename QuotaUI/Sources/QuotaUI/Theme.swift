@@ -82,9 +82,23 @@ public enum QPDesign {
 
 public enum Present {
     public static func resetText(_ window: UsageWindow, now: Date = Date()) -> String {
-        guard let r = window.resetsAt else { return L("No reset time") }
-        if r <= now { return L("Resetting…") }
-        return String(localized: "Resets in \(QuotaFormat.countdown(to: r, from: now))", bundle: .module)
+        switch window.phase(now: now) {
+        case let .active(r):
+            return String(localized: "Resets in \(QuotaFormat.countdown(to: r, from: now))", bundle: .module)
+        case .awaitingFirstUse:
+            return L("Fresh · next window starts on first request")
+        case .unknown:
+            return window.resetSemantics == .rollingFromFirstUse ? L("In use · reset time pending") : L("No reset time")
+        }
+    }
+
+    /// Few-character variant for widgets / complications.
+    public static func resetShort(_ window: UsageWindow, now: Date = Date()) -> String {
+        switch window.phase(now: now) {
+        case let .active(r): QuotaFormat.countdown(to: r, from: now)
+        case .awaitingFirstUse: L("Fresh")
+        case .unknown: "—"
+        }
     }
 
     public static func resetClock(_ date: Date) -> String {

@@ -6,6 +6,10 @@ public enum HubProtocol {
     public static let healthPath = "/v1/health"
     public static let snapshotPath = "/v1/snapshot"
     public static let historyPath = "/v1/history"
+    public static let telemetryPath = "/v1/telemetry"
+    public static let deviceHeader = "X-Device-Name"
+    public static let appVersionHeader = "X-App-Version"
+    public static let platformHeader = "X-Platform"
     public static let urlScheme = "quotapulse"
 
     public struct Health: Codable, Sendable, Equatable {
@@ -113,10 +117,11 @@ public struct HubClient: Sendable {
 
 /// Pure request router used by the server (testable without sockets).
 public struct HubRouter: Sendable {
-    public struct Request: Sendable { public var method: String; public var path: String; public var query: [String: String]; public var headers: [String: String]
-        public init(method: String, path: String, query: [String: String], headers: [String: String]) {
-            self.method = method; self.path = path; self.query = query; self.headers = headers
+    public struct Request: Sendable { public var method: String; public var path: String; public var query: [String: String]; public var headers: [String: String]; public var body: Data
+        public init(method: String, path: String, query: [String: String], headers: [String: String], body: Data = Data()) {
+            self.method = method; self.path = path; self.query = query; self.headers = headers; self.body = body
         }
+        public func header(_ name: String) -> String? { headers.first { $0.key.caseInsensitiveCompare(name) == .orderedSame }?.value }
     }
     public struct Response: Sendable { public var status: Int; public var body: Data; public var contentType: String
         public init(status: Int, body: Data, contentType: String = "application/json") { self.status = status; self.body = body; self.contentType = contentType }
@@ -126,24 +131,41 @@ public struct HubRouter: Sendable {
     public var hubName: String
     public var snapshot: @Sendable () async -> QuotaSnapshot
     public var history: @Sendable (ProviderID, Double) async -> [Sample]
+    /// Receives uploaded JSON Lines; returns the accepted count or nil on failure.
+    public var telemetry: @Sendable ([Substring], DeviceIdentity) async -> Int?
 
     public init(token: String, hubName: String,
                 snapshot: @escaping @Sendable () async -> QuotaSnapshot,
-                history: @escaping @Sendable (ProviderID, Double) async -> [Sample]) {
-        self.token = token; self.hubName = hubName; self.snapshot = snapshot; self.history = history
+                history: @escaping @Sendable (ProviderID, Double) async -> [Sample],
+                telemetry: @escaping @Sendable ([Substring], DeviceIdentity) async -> Int? = { _, _ in nil }) {
+        self.token = token; self.hubName = hubName; self.snapshot = snapshot; self.history = history; self.telemetry = telemetry
     }
 
     public func handle(_ req: Request) async -> Response {
         func json<T: Encodable>(_ v: T, status: Int = 200) -> Response {
             Response(status: status, body: (try? JSON.encoder.encode(v)) ?? Data("{}".utf8))
         }
-        guard req.method == "GET" else { return Response(status: 405, body: Data("{\"error\":\"method\"}".utf8)) }
+        guard req.method == "GET" || (req.method == "POST" && req.path == HubProtocol.telemetryPath) else {
+            return Response(status: 405, body: Data("{\"error\":\"method\"}".utf8))
+        }
         let auth = req.headers.first { $0.key.lowercased() == "authorization" }?.value ?? ""
         let presented = auth.hasPrefix("Bearer ") ? String(auth.dropFirst(7)) : (req.query["token"] ?? "")
         guard constantTimeEquals(presented, token) else {
             return Response(status: 401, body: Data("{\"error\":\"unauthorized\"}".utf8))
         }
         switch req.path {
+        case HubProtocol.telemetryPath:
+            guard req.body.count <= 4 * 1024 * 1024, let text = String(data: req.body, encoding: .utf8) else {
+                return Response(status: 413, body: Data("{\"error\":\"body\"}".utf8))
+            }
+            let identity = DeviceIdentity(name: req.header(HubProtocol.deviceHeader) ?? "unknown",
+                                          appVersion: req.header(HubProtocol.appVersionHeader) ?? "?",
+                                          platform: req.header(HubProtocol.platformHeader) ?? "?")
+            let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
+            guard let accepted = await telemetry(lines, identity) else {
+                return Response(status: 500, body: Data("{\"error\":\"store\"}".utf8))
+            }
+            return Response(status: 200, body: Data("{\"accepted\":\(accepted)}".utf8))
         case HubProtocol.healthPath:
             let s = await snapshot()
             return json(HubProtocol.Health(ok: true, hubName: hubName, generatedAt: s.generatedAt == .distantPast ? nil : s.generatedAt))
@@ -169,11 +191,13 @@ public struct HubRouter: Sendable {
     }
 }
 
-/// Minimal HTTP/1.1 request parser (GET only, no body).
+/// Minimal HTTP/1.1 request parser: GET without body, POST with Content-Length.
 public enum HTTPParser {
+    /// nil until the whole request (headers + declared body) has arrived.
     public static func parse(_ data: Data) -> HubRouter.Request? {
-        guard let text = String(data: data, encoding: .utf8), let headerEnd = text.range(of: "\r\n\r\n") else { return nil }
-        let head = text[..<headerEnd.lowerBound]
+        guard let sep = data.range(of: Data("\r\n\r\n".utf8)) else { return nil }
+        guard let text = String(data: data[..<sep.lowerBound], encoding: .utf8) else { return nil }
+        let head = text[...]
         var lines = head.components(separatedBy: "\r\n")
         guard let requestLine = lines.first else { return nil }
         lines.removeFirst()
@@ -189,7 +213,10 @@ public enum HTTPParser {
         let comps = URLComponents(string: target)
         var query: [String: String] = [:]
         for q in comps?.queryItems ?? [] { query[q.name] = q.value ?? "" }
-        return HubRouter.Request(method: method, path: comps?.path ?? target, query: query, headers: headers)
+        let declared = Int(headers.first { $0.key.lowercased() == "content-length" }?.value ?? "0") ?? 0
+        let body = data[sep.upperBound...]
+        guard body.count >= declared else { return nil }
+        return HubRouter.Request(method: method, path: comps?.path ?? target, query: query, headers: headers, body: Data(body.prefix(declared)))
     }
 
     public static func serialize(_ r: HubRouter.Response) -> Data {

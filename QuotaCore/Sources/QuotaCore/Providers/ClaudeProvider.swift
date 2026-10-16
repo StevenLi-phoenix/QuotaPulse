@@ -91,24 +91,28 @@ public struct ClaudeProvider: UsageProvider {
             guard let obj = root[k.key] as? [String: Any], let util = JSON.number(obj["utilization"]) else { continue }
             windows.append(UsageWindow(id: k.key, title: k.title, utilization: util,
                                        resetsAt: DateParsing.iso8601(obj["resets_at"] as? String),
-                                       duration: k.duration, note: k.note))
+                                       duration: k.duration, note: k.note, resetSemantics: .rollingFromFirstUse))
         }
         // Newer `limits` entries add scoped windows (e.g. a model-specific weekly cap).
         if let limits = root["limits"] as? [[String: Any]] {
             for (i, entry) in limits.enumerated() {
                 guard let pct = JSON.number(entry["percent"]) else { continue }
                 if let active = entry["is_active"] as? Bool, !active { continue }
-                let group = (entry["group"] as? String) ?? (entry["kind"] as? String) ?? "limit"
+                let kind = (entry["kind"] as? String) ?? ""
+                let group = (entry["group"] as? String) ?? kind
+                // `session` and `weekly_all` mirror the flat five_hour / seven_day windows above.
+                if kind == "session" || kind == "weekly_all", !windows.isEmpty { continue }
                 let model = ((entry["scope"] as? [String: Any])?["model"] as? [String: Any])?["display_name"] as? String
-                let id = "limit_\(group)_\(model ?? String(i))".lowercased().replacingOccurrences(of: " ", with: "_")
+                let id = "limit_\(group)_\(model ?? (kind.isEmpty ? String(i) : kind))".lowercased().replacingOccurrences(of: " ", with: "_")
                 if windows.contains(where: { $0.id == id }) { continue }
                 let duration: TimeInterval? = group.contains("week") ? 7 * 86400 : (group.contains("session") || group.contains("five") ? 5 * 3600 : nil)
-                let title = model.map { "\(group.capitalized) · \($0)" } ?? group.capitalized
+                let note = model ?? (kind.contains("scoped") ? "Model-scoped" : nil)
+                let title = note.map { "\(group.capitalized) · \($0)" } ?? group.capitalized
                 // Skip duplicates of the flat windows (same percent + reset).
                 if windows.contains(where: { abs($0.utilization - pct) < 0.01 && $0.resetsAt == DateParsing.iso8601(entry["resets_at"] as? String) }) { continue }
                 windows.append(UsageWindow(id: id, title: title, utilization: pct,
                                            resetsAt: DateParsing.iso8601(entry["resets_at"] as? String),
-                                           duration: duration, note: model))
+                                           duration: duration, note: note, resetSemantics: .rollingFromFirstUse))
             }
         }
         var extra: ExtraUsage?

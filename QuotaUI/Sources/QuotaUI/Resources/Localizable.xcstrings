@@ -91,6 +91,26 @@
         }
       }
     },
+    "Fresh": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已清零"
+          }
+        }
+      }
+    },
+    "Fresh · next window starts on first request": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "额度已清零 · 下次请求开始新窗口"
+          }
+        }
+      }
+    },
     "Halfway": {
       "localizations": {
         "zh-Hans": {
@@ -107,6 +127,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "空闲——本窗口暂无用量"
+          }
+        }
+      }
+    },
+    "In use · reset time pending": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中 · 重置时间待定"
           }
         }
       }
@@ -231,6 +261,16 @@
         }
       }
     },
+    "Pay-as-you-go credits beyond the included limits": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "超出套餐后按量计费的 credits"
+          }
+        }
+      }
+    },
     "Plenty left": {
       "localizations": {
         "zh-Hans": {
@@ -257,16 +297,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "\\(QuotaFormat.countdown(to: r, from: now)) 后重置"
-          }
-        }
-      }
-    },
-    "Resetting…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在重置…"
           }
         }
       }

@@ -182,6 +182,17 @@ public enum QuotaFormat {
         return String(format: "%.0f%%", value)
     }
 
+    /// Money or credits depending on the balance's currency.
+    public static func amount(_ value: Double, balance: Balance) -> String {
+        if balance.isCredits {
+            let n = NumberFormatter()
+            n.numberStyle = .decimal
+            n.maximumFractionDigits = 0
+            return (n.string(from: NSNumber(value: value)) ?? "\(Int(value))") + " credits"
+        }
+        return money(value, symbol: balance.symbol)
+    }
+
     public static func money(_ value: Double, symbol: String) -> String {
         if abs(value) >= 100 { return String(format: "%@%.0f", symbol, value) }
         return String(format: "%@%.2f", symbol, value)

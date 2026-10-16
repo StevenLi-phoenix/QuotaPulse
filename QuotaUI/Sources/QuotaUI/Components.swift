@@ -200,20 +200,30 @@ public struct WindowRow: View {
     }
 
     public var body: some View {
+        let used = window.currentUtilization(now: now)
+        let fresh: Bool = { if case .awaitingFirstUse = window.phase(now: now) { return true } else { return false } }()
         VStack(alignment: .leading, spacing: compact ? 3 : 5) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(window.title).font(compact ? .caption : .subheadline).fontWeight(.medium)
+                if let note = window.note, !compact, !window.title.contains(note) {
+                    Text(note).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+                }
                 Spacer(minLength: 4)
-                Text(QuotaFormat.percent(window.utilization))
+                Text(QuotaFormat.percent(used))
                     .font(.system(compact ? .caption : .subheadline, design: .rounded).weight(.semibold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                    .animation(QPDesign.quick, value: window.utilization)
-                    .foregroundStyle(UsageLevel(percent: window.utilization).color)
+                    .animation(QPDesign.quick, value: used)
+                    .foregroundStyle(UsageLevel(percent: used).color)
             }
-            UsageBar(percent: window.utilization, color: color, height: compact ? 5 : 7, projected: forecast?.projectedAtReset)
+            UsageBar(percent: used, color: color, height: compact ? 5 : 7, projected: fresh ? nil : forecast?.projectedAtReset)
             HStack(spacing: 6) {
-                Text(Present.resetText(window, now: now))
+                Label {
+                    Text(Present.resetText(window, now: now))
+                } icon: {
+                    if fresh { Image(systemName: "sparkles").foregroundStyle(UsageLevel.calm.color) }
+                }
+                .labelStyle(.titleAndIcon)
                 if let pace = Present.paceText(forecast) {
                     Text("·").foregroundStyle(.quaternary)
                     Text(pace.text).foregroundStyle(pace.isOver ? UsageLevel.hot.color : .secondary)
@@ -223,7 +233,7 @@ public struct WindowRow: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-            if !compact, let text = Present.forecastText(window: window, forecast: forecast, now: now) {
+            if !compact, !fresh, let text = Present.forecastText(window: window, forecast: forecast, now: now) {
                 let alarming = forecast?.willExhaustBeforeReset == true && forecast?.confidence != .low
                 Label(text, systemImage: alarming ? "exclamationmark.triangle.fill" : "chart.line.uptrend.xyaxis")
                     .font(.caption2)
@@ -250,7 +260,7 @@ public struct BalanceRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(L("Balance")).font(compact ? .caption : .subheadline).fontWeight(.medium)
                 Spacer()
-                Text(QuotaFormat.money(balance.total, symbol: balance.symbol))
+                Text(balance.formatted)
                     .font(.system(compact ? .subheadline : .title3, design: .rounded).weight(.semibold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -258,10 +268,12 @@ public struct BalanceRow: View {
             }
             if !balance.isAvailable {
                 Text(L("Balance unavailable for API calls")).font(.caption2).foregroundStyle(UsageLevel.critical.color)
+            } else if balance.isCredits {
+                Text(L("Pay-as-you-go credits beyond the included limits")).font(.caption2).foregroundStyle(.secondary)
             } else if let t = Present.balanceForecastText(balance: balance, forecast: forecast) {
                 Label(t, systemImage: "chart.line.downtrend.xyaxis").font(.caption2).foregroundStyle(.secondary).lineLimit(2)
             }
-            if !compact, let g = balance.granted, let tu = balance.toppedUp, g > 0 {
+            if !compact, !balance.isCredits, let g = balance.granted, let tu = balance.toppedUp, g > 0 {
                 Text(String(localized: "Paid \(QuotaFormat.money(tu, symbol: balance.symbol)) · Granted \(QuotaFormat.money(g, symbol: balance.symbol))", bundle: .module))
                     .font(.caption2).foregroundStyle(.tertiary)
             }

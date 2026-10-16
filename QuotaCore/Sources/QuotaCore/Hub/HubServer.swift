@@ -55,7 +55,7 @@ public final class HubServer: @unchecked Sendable {
             conn.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
                 guard let self else { return }
                 if let data { buffer.append(data) }
-                if buffer.count > 128 * 1024 { conn.cancel(); return }
+                if buffer.count > 4 * 1024 * 1024 + 64 * 1024 { conn.cancel(); return }
                 if let req = HTTPParser.parse(buffer) {
                     Task {
                         let resp = await self.router.handle(req)

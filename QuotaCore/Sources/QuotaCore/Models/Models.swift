@@ -85,6 +85,26 @@ public enum ProviderKind: String, Codable, Sendable {
 
 // MARK: - Usage windows & balances
 
+/// How a provider's window behaves when `resetsAt` passes.
+public enum ResetSemantics: String, Codable, Sendable, Hashable {
+    /// Claude: the window starts with the first request; at `resetsAt` the quota is cleared but no new
+    /// window begins until the next request (the API then reports utilization 0 and/or no reset time).
+    case rollingFromFirstUse
+    /// Codex: quota and cycle reset together at `resetsAt`; the next cycle starts immediately and
+    /// reset times advance by the fixed window length.
+    case fixedCadence
+}
+
+/// What a window is doing right now.
+public enum WindowPhase: Sendable, Hashable {
+    /// Counting down to `resetsAt` (already rolled forward for fixed-cadence windows).
+    case active(resetsAt: Date)
+    /// Rolling window whose reset passed: quota is fresh, the next window starts on the first request.
+    case awaitingFirstUse
+    /// No reset time known.
+    case unknown
+}
+
 public struct UsageWindow: Codable, Sendable, Identifiable, Hashable {
     /// Stable key, e.g. `five_hour`, `seven_day`, `seven_day_opus`.
     public var id: String
@@ -96,22 +116,71 @@ public struct UsageWindow: Codable, Sendable, Identifiable, Hashable {
     public var duration: TimeInterval?
     /// Optional scoping note ("Opus", "Sonnet", "GPT-5.3 Spark"…).
     public var note: String?
+    public var resetSemantics: ResetSemantics
 
-    public init(id: String, title: String, utilization: Double, resetsAt: Date?, duration: TimeInterval?, note: String? = nil) {
+    public init(id: String, title: String, utilization: Double, resetsAt: Date?, duration: TimeInterval?, note: String? = nil,
+                resetSemantics: ResetSemantics = .fixedCadence) {
         self.id = id
         self.title = title
         self.utilization = min(100, max(0, utilization))
         self.resetsAt = resetsAt
         self.duration = duration
         self.note = note
+        self.resetSemantics = resetSemantics
+    }
+
+    enum CodingKeys: String, CodingKey { case id, title, utilization, resetsAt, duration, note, resetSemantics }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        utilization = try c.decode(Double.self, forKey: .utilization)
+        resetsAt = try c.decodeIfPresent(Date.self, forKey: .resetsAt)
+        duration = try c.decodeIfPresent(TimeInterval.self, forKey: .duration)
+        note = try c.decodeIfPresent(String.self, forKey: .note)
+        resetSemantics = try c.decodeIfPresent(ResetSemantics.self, forKey: .resetSemantics) ?? .fixedCadence
     }
 
     public var remaining: Double { max(0, 100 - utilization) }
 
-    /// Window start when both reset and duration are known.
+    /// Raw window start (reset − duration), regardless of whether the reset already passed.
     public var startsAt: Date? {
         guard let resetsAt, let duration else { return nil }
         return resetsAt.addingTimeInterval(-duration)
+    }
+
+    /// The reset the countdown should target at `now`: fixed-cadence windows roll forward by whole
+    /// cycles once `resetsAt` passes; rolling windows have no next reset until a request starts one.
+    public func effectiveResetsAt(now: Date = Date()) -> Date? {
+        guard let resetsAt else { return nil }
+        if resetsAt > now { return resetsAt }
+        switch resetSemantics {
+        case .rollingFromFirstUse:
+            return nil
+        case .fixedCadence:
+            guard let duration, duration > 0 else { return nil }
+            let cycles = floor(now.timeIntervalSince(resetsAt) / duration) + 1
+            return resetsAt.addingTimeInterval(cycles * duration)
+        }
+    }
+
+    /// Start of the cycle that contains `now` (for pace and forecasting).
+    public func cycleStart(now: Date = Date()) -> Date? {
+        guard let duration, let reset = effectiveResetsAt(now: now) else { return nil }
+        return reset.addingTimeInterval(-duration)
+    }
+
+    public func phase(now: Date = Date()) -> WindowPhase {
+        if let r = effectiveResetsAt(now: now) { return .active(resetsAt: r) }
+        if resetSemantics == .rollingFromFirstUse, resetsAt != nil || utilization < 0.5 { return .awaitingFirstUse }
+        return .unknown
+    }
+
+    /// Utilization as it stands now: a rolling window past its reset has been cleared.
+    public func currentUtilization(now: Date = Date()) -> Double {
+        if case .awaitingFirstUse = phase(now: now) { return 0 }
+        return utilization
     }
 }
 
@@ -135,9 +204,16 @@ public struct Balance: Codable, Sendable, Hashable {
         case "CNY", "RMB": "¥"
         case "EUR": "€"
         case "GBP": "£"
+        case "CREDITS": ""
         default: "$"
         }
     }
+
+    /// True for non-monetary balances (Codex credits).
+    public var isCredits: Bool { currency.uppercased() == "CREDITS" }
+
+    /// "¥23.45" / "$1,234" / "62,484 credits".
+    public var formatted: String { QuotaFormat.amount(total, balance: self) }
 }
 
 public struct ExtraUsage: Codable, Sendable, Hashable {
@@ -246,12 +322,13 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
 
     /// The window that is closest to running out (highest utilization), used for the menu bar label.
     public var primaryWindow: UsageWindow? {
-        windows.max(by: { $0.utilization < $1.utilization })
+        let now = Date()
+        return windows.max(by: { $0.currentUtilization(now: now) < $1.currentUtilization(now: now) })
     }
 
     /// Head-line percentage: highest window utilization, or balance-derived "pressure" (nil when unknown).
     public var headlinePercent: Double? {
-        if let w = primaryWindow { return w.utilization }
+        if let w = primaryWindow { return w.currentUtilization() }
         return nil
     }
 
@@ -283,9 +360,10 @@ public struct QuotaSnapshot: Codable, Sendable, Hashable {
     /// The provider/window pair under the most pressure, for the menu bar glyph.
     public var mostConstrained: (provider: ProviderSnapshot, window: UsageWindow)? {
         var best: (ProviderSnapshot, UsageWindow)?
+        let now = Date()
         for p in providers where p.status.isOK {
             for w in p.windows {
-                if best == nil || w.utilization > best!.1.utilization { best = (p, w) }
+                if best == nil || w.currentUtilization(now: now) > best!.1.currentUtilization(now: now) { best = (p, w) }
             }
         }
         return best

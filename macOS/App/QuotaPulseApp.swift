@@ -6,6 +6,7 @@ import QuotaUI
 struct QuotaPulseApp: App {
     @State private var model = AppModel()
     @Environment(\.openWindow) private var openWindow
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     var body: some Scene {
         MenuBarExtra {
@@ -41,6 +42,26 @@ struct QuotaPulseApp: App {
     }
 }
 
+/// Opens the main window on first launch (menu-bar-only apps are easy to lose) and applies the Dock setting.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let defaults = UserDefaults.standard
+        AppModel.applyActivationPolicy(showInDock: defaults.bool(forKey: "showInDock"))
+        if !defaults.bool(forKey: "launched.before") {
+            defaults.set(true, forKey: "launched.before")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                NSWorkspace.shared.open(URL(string: "quotapulse://open")!)
+            }
+        }
+    }
+
+    /// Clicking the Dock icon (when shown) or reopening from Finder brings the main window back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { NSWorkspace.shared.open(URL(string: "quotapulse://open")!) }
+        return true
+    }
+}
+
 /// Menu bar glyph: a tiny ring for the most constrained window plus its percentage.
 extension QuotaPulseApp {
     /// `quotapulse://open` shows the main window; `quotapulse://panel` the dropdown preview.
@@ -59,7 +80,7 @@ struct MenuBarLabel: View {
 
     var body: some View {
         let focus = model.snapshot.mostConstrained
-        let percent = focus?.window.utilization
+        let percent = focus?.window.currentUtilization(now: model.ticker.now)
         HStack(spacing: 4) {
             if model.settings.menuBarStyle != "percent" {
                 Image(nsImage: MenuBarIcon.ring(percent: percent ?? 0, hasData: percent != nil, refreshing: model.isRefreshing))
@@ -70,7 +91,7 @@ struct MenuBarLabel: View {
                 Text("—")
             }
         }
-        .accessibilityLabel(Text(focus.map { "\($0.provider.id.displayName) \(QuotaFormat.percent($0.window.utilization))" } ?? "QuotaPulse"))
+        .accessibilityLabel(Text(focus.map { "\($0.provider.id.displayName) \(QuotaFormat.percent($0.window.currentUtilization()))" } ?? "QuotaPulse"))
     }
 }
 
