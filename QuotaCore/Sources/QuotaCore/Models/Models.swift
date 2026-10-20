@@ -336,9 +336,11 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
     }
 
     /// The window that is closest to running out (highest utilization), used for the menu bar label.
-    public var primaryWindow: UsageWindow? {
-        let now = Date()
-        return reportedWindows.max(by: { $0.currentUtilization(now: now) < $1.currentUtilization(now: now) })
+    public var primaryWindow: UsageWindow? { primaryWindow(now: Date()) }
+
+    /// Same as `primaryWindow`, evaluated at `now` (tests pass a fixed clock so fixture reset dates never rot).
+    public func primaryWindow(now: Date) -> UsageWindow? {
+        reportedWindows.max(by: { $0.currentUtilization(now: now) < $1.currentUtilization(now: now) })
     }
 
     /// Windows that carry real numbers (placeholders excluded).

@@ -203,7 +203,7 @@ import Testing
         #expect(snap.windows[0].duration == TimeInterval(18000))
         #expect(snap.windows[1].availability == .reported)
         #expect(snap.windows[1].note == nil)
-        #expect(snap.primaryWindow?.title == "Weekly")
+        #expect(snap.primaryWindow(now: now)?.title == "Weekly")
         #expect(snap.reportedWindows.count == 1)
         #expect(snap.windows[1].resetSemantics == .fixedCadence)
         #expect(snap.balance?.isCredits == true)

@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- `ClaudeParsing.parsesKnownWindowsAndLimits` started failing on 2026-10-20: `ProviderSnapshot.primaryWindow` evaluated utilization at the real wall clock, so once the fixture's `seven_day` reset date passed both windows read 0 % and the first one won. Added `primaryWindow(now:)`; the tests pass their fixed clock.
+
 ## [0.2.1] - 2026-10-20
 
 ### Fixed

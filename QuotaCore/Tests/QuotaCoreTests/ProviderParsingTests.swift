@@ -21,7 +21,7 @@ let t0 = Date(timeIntervalSince1970: 1_792_120_000) // 2026-10-16T03:06:40Z
         #expect(five.startsAt == DateParsing.iso8601("2026-10-16T07:00:00Z"))
         #expect(snap.extraUsage?.monthlyLimit == 50)
         #expect(snap.windows[3].note == "Fable")
-        #expect(snap.primaryWindow?.id == "seven_day")
+        #expect(snap.primaryWindow(now: t0)?.id == "seven_day")
     }
 
     @Test func rejectsEmptyPayload() {
