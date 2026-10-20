@@ -4,7 +4,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 XCODEGEN="../tools/xcodegen/bin/xcodegen"
 [ -x "$XCODEGEN" ] && "$XCODEGEN" generate >/dev/null
-xcodebuild -project QuotaPulse.xcodeproj -scheme QuotaPulse-macOS -configuration Release -destination 'platform=macOS' -derivedDataPath build/DerivedData build | grep -E 'error:|BUILD' || true
+LOG="build/xcodebuild-release.log"
+mkdir -p build
+# A failed build must stop here: the steps below delete the installed app before copying the new one.
+if ! xcodebuild -project QuotaPulse.xcodeproj -scheme QuotaPulse-macOS -configuration Release -destination 'platform=macOS' -derivedDataPath build/DerivedData build >"$LOG" 2>&1; then
+  grep -E 'error:|errSec' "$LOG" >&2 || true
+  grep -q errSecInternalComponent "$LOG" && echo "codesign can't reach the login keychain (SSH session?): run 'security unlock-keychain ~/Library/Keychains/login.keychain-db' first, or build from a GUI terminal." >&2
+  echo "BUILD FAILED — installed app left untouched (log: $LOG)" >&2
+  exit 1
+fi
+echo "** BUILD SUCCEEDED **"
 SRC="build/DerivedData/Build/Products/Release/QuotaPulse.app"
 DST="$HOME/Applications/QuotaPulse.app"
 mkdir -p "$HOME/Applications"

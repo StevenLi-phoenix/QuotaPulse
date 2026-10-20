@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 - macOS app crashed (`EXC_BREAKPOINT`, "Double value cannot be converted to Int") when the History tab showed a balance that had stopped moving, e.g. Codex credits after a top-up. The least-squares slope of a flat series is rounding noise (~1e-26/s), which became a "days remaining" of ~1e25. A balance now counts as spending only when the fitted line falls by more than 0.01 over the observed span, and every days-left label goes through the clamped `QuotaFormat.wholeDays`.
+- `scripts/install.sh` swallowed a failed `xcodebuild` (`| grep … || true`) and went on to delete the installed app and copy an incomplete bundle over it. It now stops on a failed build, leaves the installed app untouched, and points at `security unlock-keychain` when codesign fails with `errSecInternalComponent` (typical over SSH).
 
 ## [0.2.0] - 2026-10-16
 
