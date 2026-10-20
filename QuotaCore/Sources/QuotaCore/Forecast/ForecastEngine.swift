@@ -104,7 +104,9 @@ public enum ForecastEngine {
         }
         let span = last.at.timeIntervalSince(first.at)
         let slopePerSec = Regression.slope(segment.map { ($0.at.timeIntervalSince1970, $0.value) })
-        let burnPerDay = max(0, -slopePerSec * 86400)
+        // A flat series still yields a rounding-noise slope (~1e-26/s); count it as spend only when the
+        // fitted line falls by more than the top-up tolerance over the observed span.
+        let burnPerDay = -slopePerSec * span > 0.01 ? -slopePerSec * 86400 : 0
         let days: Double? = burnPerDay > 0 ? balance.total / burnPerDay : nil
         let exhaustion = days.map { now.addingTimeInterval($0 * 86400) }
         let confidence: Forecast.Confidence = span >= 2 * 86400 && segment.count >= 10 ? .high

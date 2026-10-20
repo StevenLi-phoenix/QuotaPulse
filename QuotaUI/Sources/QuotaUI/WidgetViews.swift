@@ -63,7 +63,7 @@ public struct WidgetSmallView: View {
                             Text(b.formatted).font(.system(b.isCredits ? .headline : .title2, design: .rounded).weight(.bold)).monospacedDigit().minimumScaleFactor(0.6)
                             Text(L("Balance")).font(.caption2).foregroundStyle(.secondary)
                             if let d = p.forecasts[Sample.balanceWindowID]?.daysRemaining {
-                                Text(String(localized: "~\(Int(d.rounded()))d left", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
+                                Text(String(localized: "~\(QuotaFormat.wholeDays(d))d left", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -105,7 +105,7 @@ public struct WidgetMediumView: View {
                             Text(b.formatted).font(.caption.monospacedDigit().weight(.semibold))
                             Spacer()
                             if let d = p.forecasts[Sample.balanceWindowID]?.daysRemaining {
-                                Text(String(localized: "~\(Int(d.rounded()))d", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
+                                Text(String(localized: "~\(QuotaFormat.wholeDays(d))d", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
                             }
                         } else {
                             ForEach(p.displayWindows.prefix(2)) { w in

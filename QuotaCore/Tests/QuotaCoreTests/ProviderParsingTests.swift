@@ -216,5 +216,10 @@ let t0 = Date(timeIntervalSince1970: 1_792_120_000) // 2026-10-16T03:06:40Z
         #expect(QuotaFormat.countdown(to: t0.addingTimeInterval(-5), from: t0) == "now")
         #expect(QuotaFormat.money(3.456, symbol: "$") == "$3.46")
         #expect(QuotaFormat.money(1234, symbol: "¥") == "¥1234")
+        #expect(QuotaFormat.wholeDays(19.5) == 20)
+        #expect(QuotaFormat.wholeDays(6.96e25) == QuotaFormat.maxWholeDays)
+        #expect(QuotaFormat.wholeDays(.infinity) == QuotaFormat.maxWholeDays)
+        #expect(QuotaFormat.wholeDays(.nan) == 0)
+        #expect(QuotaFormat.wholeDays(-3) == 0)
     }
 }

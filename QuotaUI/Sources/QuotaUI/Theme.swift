@@ -147,7 +147,7 @@ public enum Present {
         let perDay = QuotaFormat.money(f.rate, symbol: balance.symbol)
         if days < 1 { return String(localized: "\(perDay)/day — less than a day left", bundle: .module) }
         if days > 365 { return String(localized: "\(perDay)/day — over a year left", bundle: .module) }
-        return String(localized: "\(perDay)/day — about \(Int(days.rounded())) days left", bundle: .module)
+        return String(localized: "\(perDay)/day — about \(QuotaFormat.wholeDays(days)) days left", bundle: .module)
     }
 
     public static func updatedText(_ date: Date, now: Date = Date()) -> String {

@@ -92,6 +92,19 @@ import Testing
         #expect(f.sampleCount == 3)
     }
 
+    @Test func flatBalanceHasNoBurn() {
+        // Codex credits after a top-up, unchanged for hours. With fractional-second timestamps the OLS
+        // slope of a constant series is rounding noise (-4.6e-26/s for this input), which used to become
+        // daysRemaining ≈ 1.9e25 and trap in Int().
+        let b = Balance(currency: "credits", total: 74984.431055)
+        let s = (0..<76).map { Sample(provider: .codex, window: "balance", at: now.addingTimeInterval(-Double($0) * 303.137), value: 74984.431055) }
+        let f = ForecastEngine.forecast(balance: b, samples: s, now: now)
+        #expect(f.confidence != .insufficient)
+        #expect(f.rate == 0)
+        #expect(f.daysRemaining == nil)
+        #expect(f.exhaustionAt == nil)
+    }
+
     @Test func regressionAndDownsample() {
         #expect(Regression.slope([(0, 0), (1, 2), (2, 4)]) == 2)
         #expect(Regression.slope([(1, 5), (1, 7)]) == 0)

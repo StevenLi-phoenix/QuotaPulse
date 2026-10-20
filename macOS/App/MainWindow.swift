@@ -201,7 +201,7 @@ struct ForecastTable: View {
                         Text(L("Balance"))
                         Text(b.formatted).monospacedDigit()
                         Text(f.map { "\(QuotaFormat.money($0.rate, symbol: b.symbol))/d" } ?? "—").monospacedDigit()
-                        Text(f?.daysRemaining.map { String(localized: "\(Int($0.rounded())) days") } ?? "—")
+                        Text(f?.daysRemaining.map { String(localized: "\(QuotaFormat.wholeDays($0)) days") } ?? "—")
                         Text(confidence(f))
                     }
                     .font(.callout)

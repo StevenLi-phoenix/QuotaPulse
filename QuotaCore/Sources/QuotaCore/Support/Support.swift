@@ -198,6 +198,14 @@ public enum QuotaFormat {
         return String(format: "%@%.2f", symbol, value)
     }
 
+    public static let maxWholeDays = 99_999
+
+    /// Days rounded for display, clamped so a degenerate forecast can never trap in `Int(_:)`.
+    public static func wholeDays(_ days: Double) -> Int {
+        guard days.isFinite else { return days > 0 ? maxWholeDays : 0 }
+        return Int(min(max(days, 0), Double(maxWholeDays)).rounded())
+    }
+
     /// "2h 14m", "38m", "< 1m"
     public static func countdown(to date: Date, from now: Date = Date()) -> String {
         let seconds = Int(date.timeIntervalSince(now).rounded())
