@@ -163,6 +163,32 @@ let t0 = Date(timeIntervalSince1970: 1_792_120_000) // 2026-10-16T03:06:40Z
         #expect(snap.windows.isEmpty)
     }
 
+    @Test(arguments: [
+        #"[{"currency":"USD","total_balance":"0.00","granted_balance":"0.00","topped_up_balance":"0.00"},{"currency":"CNY","total_balance":"297.92","granted_balance":"1.50","topped_up_balance":"296.42"}]"#,
+        #"[{"currency":"CNY","total_balance":"297.92","granted_balance":"1.50","topped_up_balance":"296.42"},{"currency":"USD","total_balance":"0.00","granted_balance":"0.00","topped_up_balance":"0.00"}]"#,
+    ])
+    func deepseekPicksFundedWalletInAnyOrder(infos: String) throws {
+        let json = #"{"is_available":true,"balance_infos":\#(infos)}"#
+        let snap = try DeepSeekProvider.parse(Data(json.utf8), now: t0)
+        #expect(snap.balance?.currency == "CNY")
+        #expect(snap.balance?.total == 297.92)
+        #expect(snap.balance?.granted == 1.5)
+        #expect(snap.balance?.toppedUp == 296.42)
+    }
+
+    @Test func deepseekAllEmptyWalletsKeepsFirst() throws {
+        let json = #"{"is_available":false,"balance_infos":[{"currency":"USD","total_balance":"0.00"},{"currency":"CNY","total_balance":"0.00"}]}"#
+        let snap = try DeepSeekProvider.parse(Data(json.utf8), now: t0)
+        #expect(snap.balance?.currency == "USD")
+        #expect(snap.balance?.total == 0)
+        #expect(snap.balance?.isAvailable == false)
+    }
+
+    @Test func deepseekEmptyWalletListIsMalformed() {
+        let json = #"{"is_available":true,"balance_infos":[]}"#
+        #expect(throws: ProviderError.self) { try DeepSeekProvider.parse(Data(json.utf8), now: t0) }
+    }
+
     @Test func deepseekNeedsKey() async {
         let ctx = FetchContext(transport: StubTransport(status: 200, json: "{}"), secrets: InMemorySecretStore(), environment: [:], now: t0)
         do { _ = try await DeepSeekProvider().fetch(ctx); Issue.record("expected throw") }

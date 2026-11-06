@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-11-06
+
+### Fixed
+- DeepSeek showed `$0.00` when the API listed an empty USD wallet ahead of the funded one: the balance now comes from the fullest wallet in `balance_infos`, and every wallet is logged.
+
 ## [0.3.0] - 2026-11-05
 
 ### Added

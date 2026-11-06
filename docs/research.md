@@ -31,7 +31,7 @@
 
 ### DeepSeek
 - 凭据：API key（env `DEEPSEEK_API_KEY` / `DEEPSEEK_KEY` 或设置里手填，存自家 Keychain）。
-- 余额：`GET https://api.deepseek.com/user/balance` `Authorization: Bearer <key>` → `{is_available, balance_infos:[{currency:"CNY"|"USD", total_balance:"12.34", granted_balance, topped_up_balance}]}`（金额是字符串）。
+- 余额：`GET https://api.deepseek.com/user/balance` `Authorization: Bearer <key>` → `{is_available, balance_infos:[{currency:"CNY"|"USD", total_balance:"12.34", granted_balance, topped_up_balance}]}`（金额是字符串）。一个币种一项，顺序不固定，可能含余额为 0 的币种，App 取余额最大的一项。
 - 用量明细需要 platform.deepseek.com 的 web session（`/api/v0/usage/amount`），不做。
 
 ### OpenCode（Zen / Go）

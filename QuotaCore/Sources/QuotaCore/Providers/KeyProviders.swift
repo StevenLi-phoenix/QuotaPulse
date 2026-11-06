@@ -30,9 +30,15 @@ public struct DeepSeekProvider: UsageProvider {
 
     public static func parse(_ data: Data, now: Date) throws -> ProviderSnapshot {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let infos = root["balance_infos"] as? [[String: Any]], let info = infos.first else {
+              let infos = root["balance_infos"] as? [[String: Any]], var info = infos.first else {
             throw ProviderError.decoding("DeepSeek balance response malformed")
         }
+        // One entry per currency wallet, in no fixed order and including empty ones: use the fullest.
+        for candidate in infos.dropFirst() where (JSON.number(candidate["total_balance"]) ?? 0) > (JSON.number(info["total_balance"]) ?? 0) {
+            info = candidate
+        }
+        let wallets = infos.map { "\($0["currency"] as? String ?? "?") \(JSON.number($0["total_balance"]) ?? 0)" }.joined(separator: ", ")
+        QPLog.providers.notice("DeepSeek wallets: \(wallets, privacy: .public)")
         let available = root["is_available"] as? Bool ?? true
         let currency = (info["currency"] as? String) ?? "USD"
         let balance = Balance(currency: currency,
