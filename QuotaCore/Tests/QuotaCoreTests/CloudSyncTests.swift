@@ -13,16 +13,23 @@ final class FakeCloudStore: CloudRecordStore, @unchecked Sendable {
     private var _prepares = 0
     private var _subscribes = 0
     private let fetchDelay: Duration?
+    private let firstSaveDelay: Duration?
+    private var _delayedFirstSave = false
+    private var _savedSnapshotTimes: [Date] = []
+    private var _events: [String] = []
 
-    init(account: CloudAccountState = .available, fetchDelay: Duration? = nil) {
+    init(account: CloudAccountState = .available, fetchDelay: Duration? = nil, firstSaveDelay: Duration? = nil) {
         _account = account
         self.fetchDelay = fetchDelay
+        self.firstSaveDelay = firstSaveDelay
     }
 
     var records: [String: CloudRecord] { lock.withLock { _records } }
     var saves: [[String]] { lock.withLock { _saves } }
     var prepares: Int { lock.withLock { _prepares } }
     var subscribes: Int { lock.withLock { _subscribes } }
+    var savedSnapshotTimes: [Date] { lock.withLock { _savedSnapshotTimes } }
+    var events: [String] { lock.withLock { _events } }
     func failSaves(with e: CloudError?) { lock.withLock { _saveError = e } }
     func failFetches(with e: CloudError?) { lock.withLock { _fetchError = e } }
     func setAccount(_ a: CloudAccountState) { lock.withLock { _account = a } }
@@ -32,10 +39,19 @@ final class FakeCloudStore: CloudRecordStore, @unchecked Sendable {
     func accountID() async -> String? { "abc123" }
     func prepare() async throws { lock.withLock { _prepares += 1 } }
     func save(_ records: [CloudRecord]) async throws {
+        let delay: Duration? = lock.withLock {
+            defer { _delayedFirstSave = true }
+            return _delayedFirstSave ? nil : firstSaveDelay
+        }
+        if let delay { try await Task.sleep(for: delay) }
         try lock.withLock {
             if let e = _saveError { throw e }
             _saves.append(records.map(\.name).sorted())
-            for r in records { _records[r.name] = r }
+            _events.append("save")
+            for r in records {
+                _records[r.name] = r
+                if r.name == CloudPayload.snapshotRecord { _savedSnapshotTimes.append(r.generatedAt) }
+            }
         }
     }
     func fetch(_ names: [String]) async throws -> [String: CloudRecord] {
@@ -46,7 +62,12 @@ final class FakeCloudStore: CloudRecordStore, @unchecked Sendable {
         }
     }
     func subscribeToChanges() async throws { lock.withLock { _subscribes += 1 } }
-    func removeAll() async throws { lock.withLock { _records = [:] } }
+    func removeAll() async throws {
+        lock.withLock {
+            _records = [:]
+            _events.append("removeAll")
+        }
+    }
 }
 
 private let now = Date(timeIntervalSince1970: 1_760_600_000)
@@ -134,6 +155,37 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
 }
 
 @Suite struct CloudPublisherTests {
+    /// The refresh loop fires two publishes a second apart at launch; the first save is still on the network when the second arrives.
+    @Test func overlappingPublishesWriteHistoryOnceAndLeaveTheNewestSnapshot() async throws {
+        let store = FakeCloudStore(firstSaveDelay: .milliseconds(200))
+        let pub = publisher(store)
+        let older = snapshot(at: now)
+        let newer = snapshot(at: now.addingTimeInterval(1), util: 99)
+
+        async let first = pub.publish(older, now: now)
+        try await Task.sleep(for: .milliseconds(50))
+        async let second = pub.publish(newer, now: now.addingTimeInterval(1))
+        _ = await (first, second)
+
+        #expect(store.saves == [["history.claude", "snapshot"], ["snapshot"]])
+        #expect(store.savedSnapshotTimes == [now, now.addingTimeInterval(1)])
+        #expect(try #require(store.records["snapshot"]).generatedAt == now.addingTimeInterval(1))
+    }
+
+    /// Otherwise a save still on the network brings back what the user just deleted.
+    @Test func removeAllWaitsForAPublishInFlight() async throws {
+        let store = FakeCloudStore(firstSaveDelay: .milliseconds(200))
+        let pub = publisher(store)
+
+        async let publishing = pub.publish(snapshot(), now: now)
+        try await Task.sleep(for: .milliseconds(50))
+        try await pub.removeAll()
+        _ = await publishing
+
+        #expect(store.events == ["save", "removeAll"])
+        #expect(store.records.isEmpty)
+    }
+
     @Test func firstPublishWritesSnapshotAndHistoryAndCreatesTheZone() async throws {
         let store = FakeCloudStore()
         let samples = [Sample(provider: .claude, window: "five_hour", at: now.addingTimeInterval(-60), value: 12)]

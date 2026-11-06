@@ -20,6 +20,7 @@ public actor CloudPublisher {
     private var prepared = false
     private var lastFingerprint: [String]?
     private var retryNotBefore: Date?
+    private var tail: Task<Void, Never>?
 
     /// `history` returns raw samples for a provider since a date.
     public init(store: any CloudRecordStore, history: @escaping @Sendable (ProviderID, Date) async -> [Sample], policy: CloudSyncPolicy = .standard) {
@@ -31,6 +32,36 @@ public actor CloudPublisher {
     /// `force` writes everything now: sync was just turned on, or history was deleted and must disappear from iCloud too.
     @discardableResult
     public func publish(_ snapshot: QuotaSnapshot, force: Bool = false, now: Date = Date()) async -> CloudPublishStatus {
+        await inOrder { await $0.publishNow(snapshot, force: force, now: now) }
+    }
+
+    /// Deletes everything QuotaPulse keeps in iCloud. The zone comes back on the next publish.
+    public func removeAll() async throws {
+        let result: Result<Void, Error> = await inOrder { publisher in
+            do {
+                try await publisher.removeAllNow()
+                return .success(())
+            } catch {
+                return .failure(error)
+            }
+        }
+        try result.get()
+    }
+
+    /// An actor only protects its state between suspension points, so work here runs one at a time: overlapping
+    /// publishes would both write history and could land the older snapshot last, and a save still on the
+    /// network would bring back what `removeAll` just deleted.
+    private func inOrder<T: Sendable>(_ work: @escaping @Sendable (isolated CloudPublisher) async -> T) async -> T {
+        let previous = tail
+        let task = Task {
+            await previous?.value
+            return await work(self)
+        }
+        tail = Task { _ = await task.value }
+        return await task.value
+    }
+
+    private func publishNow(_ snapshot: QuotaSnapshot, force: Bool, now: Date) async -> CloudPublishStatus {
         guard snapshot.generatedAt != .distantPast, !snapshot.providers.isEmpty else { return status }
         if !force, let retryNotBefore, retryNotBefore > now {
             QPLog.cloud.debug("publish skipped: retry not before \(retryNotBefore, privacy: .public)")
@@ -67,8 +98,7 @@ public actor CloudPublisher {
         return status
     }
 
-    /// Deletes everything QuotaPulse keeps in iCloud. The zone comes back on the next publish.
-    public func removeAll() async throws {
+    private func removeAllNow() async throws {
         do {
             try await store.removeAll()
             prepared = false
