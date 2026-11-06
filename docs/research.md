@@ -57,6 +57,7 @@
    - 全部是 Apple Development 签名，走 Development 环境，schema 首次写入时自动创建。
    - 没用 `encryptedValues`：它依赖 iCloud Keychain，没开的设备会读不到。
    - 无 entitlement 时 `CKContainer(identifier:)` 直接 SIGTRAP（实测退出码 133），所以 `CloudKitRecordStore.standard()` 先用 SecTask 检查 entitlement，缺失返回 nil，未签名构建和 `swift test` 不会崩。
+   - App ID 刚关联容器后，服务器可能返回 `Invalid bundle ID for container`（CKError permissionFailure 一类），同一秒内有的请求成功、有的失败。iPhone 实测（UTC，2026-11-06）：profile 00:39:46 生成；00:44–00:47 大多失败；00:52 起 11 次 snapshot、9 次 history 全部成功。Apple 没有说明原因，时间线符合服务端逐步生效。Mac 的 App ID 从未出现。`CloudError.rejected` 把它转成人话，App 在前台每 30 秒重试。
    - Mac 停止发布不会产生任何错误，所以 snapshot 超过 30 分钟时界面显示过期横幅。
 
 ## Reset 语义实测（2026-10-16 12:23Z，本机真实账号）

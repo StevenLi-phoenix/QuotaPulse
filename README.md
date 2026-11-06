@@ -110,7 +110,7 @@ The iPhone and Watch apps keep a JSON Lines log (`Documents/Logs/quotapulse-YYYY
 ## Development
 
 ```bash
-cd QuotaCore && swift test                 # 88 unit tests: parsing, forecasting, store, hub, iCloud sync
+cd QuotaCore && swift test                 # 89 unit tests: parsing, forecasting, store, hub, iCloud sync
 ../tools/xcodegen/bin/xcodegen generate    # project.yml → QuotaPulse.xcodeproj
 xcodebuild -scheme QuotaPulse-macOS -destination 'platform=macOS' build
 xcodebuild -scheme QuotaPulse-iOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
@@ -135,6 +135,7 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 - Claude tokens are refreshed by Claude Code itself (opening it once is enough); QuotaPulse's own refresher is off by default to avoid rotating Claude Code's refresh token.
 - OpenCode pay-as-you-go spend and DeepSeek per-model usage require web-session cookies and are not supported.
 - Widgets on a real iPhone/Watch need the App Group capability on your team; the simulator doesn't check it.
+- Right after an App ID first gets the iCloud container, CloudKit can answer `Invalid bundle ID for container`, sometimes for only some requests. On our first iPhone install it lasted about 8 minutes and then stopped. The apps say so and retry every 30 seconds while open.
 - Apple Development builds use CloudKit's Development environment, whose schema is created on first write. A TestFlight or App Store build reads Production and needs the schema deployed in CloudKit Console first.
 - iCloud assumes one publishing Mac per account: with two, the last write wins.
 - The watch doesn't get silent pushes. It refreshes when opened and on its widget timeline, about every 15 minutes at best.
