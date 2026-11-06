@@ -81,6 +81,16 @@ Build the `QuotaPulse-iOS` scheme in Xcode with your own team selected (App Grou
 
 Direct connection (optional): **Hub & Devices → scan the QR** on the Mac, from **Settings → Direct connection** on the phone. It works on your local network, or through a mesh VPN such as Tailscale (the Mac's `100.x.x.x` address comes first in the pairing picker). It is what sends device logs to the Mac.
 
+## Gateway hub (optional)
+
+Instead of holding the OpenCode and DeepSeek keys on the Mac, point QuotaPulse at a gateway that speaks the hub protocol under a path prefix (default `https://llm.lishuyu.app/llm/hub`). Create `gateway.json` (0600) next to `pairing.json`:
+
+```json
+{"baseURL": "https://llm.lishuyu.app/llm/hub", "token": "<gateway key>"}
+```
+
+`baseURL` is optional. With the file present, OpenCode and DeepSeek are read from `GET /v1/snapshot` (one request per refresh, shared by both) and the Mac reports Claude, Codex and GLM readings, plus the forecasts it computes for OpenCode and DeepSeek, to `POST /v1/report` (`{providers: [...]}`, no credentials, `account.label` stripped). A failed report is only logged and not retried for 5 minutes. Delete the file to go back to local keys. On the iPhone, **Settings → Direct connection** is pre-filled with the gateway URL; it reads from the gateway but doesn't upload device logs there (it has no telemetry route).
+
 ## iCloud sync
 
 On by default. **Hub & Devices → iCloud** on the Mac shows the account and last publish, turns sync off, and deletes what's stored.
@@ -99,6 +109,7 @@ Optional: iCloud sync doesn't use it. Local scripts and paired devices do.
 | `GET /v1/health` | `{ok, version, hubName, generatedAt}` |
 | `GET /v1/snapshot` | the full `QuotaSnapshot` (providers, windows, balances, forecasts) |
 | `GET /v1/history?provider=claude&hours=24` | down-sampled samples |
+| `POST /v1/report` (gateway only, `{providers: [...]}`) | stores Claude / Codex / GLM readings and OpenCode / DeepSeek forecasts, returns `{accepted}` |
 | `POST /v1/telemetry` (`application/x-ndjson`, `X-Device-Name` / `X-App-Version` / `X-Platform`) | stores device logs, returns `{accepted}` |
 
 All need `Authorization: Bearer <token>`. The token lives in the Mac's Keychain and in `pairing.json`; **New token** in settings rotates it.
@@ -110,7 +121,7 @@ The iPhone and Watch apps keep a JSON Lines log (`Documents/Logs/quotapulse-YYYY
 ## Development
 
 ```bash
-cd QuotaCore && swift test                 # 89 unit tests: parsing, forecasting, store, hub, iCloud sync
+cd QuotaCore && swift test                 # 113 unit tests: parsing, forecasting, store, hub, gateway, iCloud sync
 ../tools/xcodegen/bin/xcodegen generate    # project.yml → QuotaPulse.xcodeproj
 xcodebuild -scheme QuotaPulse-macOS -destination 'platform=macOS' build
 xcodebuild -scheme QuotaPulse-iOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
@@ -118,7 +129,7 @@ python3 scripts/gen-strings.py             # regenerate en / zh-Hans string cata
 cd QuotaUI && swift run WidgetRender ../docs/screenshots   # widget PNGs from the real views
 ```
 
-Layout: `QuotaCore` (models, providers, credentials, forecasting, store, hub, iCloud sync) · `QuotaUI` (shared SwiftUI) · `macOS/`, `iOS/`, `watchOS/` (apps + widget extensions) · `docs/research.md` (provider endpoints and design decisions).
+Layout: `QuotaCore` (models, providers, credentials, forecasting, store, hub, gateway, iCloud sync) · `QuotaUI` (shared SwiftUI) · `macOS/`, `iOS/`, `watchOS/` (apps + widget extensions) · `docs/research.md` (provider endpoints and design decisions).
 
 Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets are always redacted (`sk-ant…(len 108)`).
 

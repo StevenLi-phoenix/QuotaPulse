@@ -113,9 +113,9 @@ struct ProviderDetailView: View {
 struct PairView: View {
     @Environment(ClientModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var urlText = "http://100.64.0.1:48422"
+    @State private var urlText = "https://llm.lishuyu.app/llm/hub"
     @State private var token = ""
-    @State private var name = "Mac"
+    @State private var name = "llmgateway"
     @State private var testing = false
     @State private var error: String?
     @State private var showScanner = false

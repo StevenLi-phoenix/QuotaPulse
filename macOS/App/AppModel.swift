@@ -19,6 +19,8 @@ final class AppModel {
     private(set) var pairing: HubPairing?
     private(set) var hubAddresses: [String] = []
     private(set) var apiKeyPresence: [ProviderID: Bool] = [:]
+    /// `gateway.json` exists: DeepSeek and OpenCode come from the gateway, so no key is asked for.
+    private(set) var gatewayActive = false
     private(set) var devices: [TelemetryStore.DeviceRecord] = []
     private(set) var lastRefreshAt: Date?
     private(set) var sampleCount = 0
@@ -73,6 +75,7 @@ final class AppModel {
         settings = await engine.settings
         snapshot = await engine.snapshot
         refreshAPIKeyPresence()
+        refreshGatewayState()
         await engine.setOnUpdate { [weak self] snap in
             Task { @MainActor in self?.apply(snap) }
         }
@@ -81,7 +84,13 @@ final class AppModel {
         QPLog.ui.info("app bootstrapped")
     }
 
+    private func refreshGatewayState() {
+        gatewayActive = GatewayConfig.load(from: location.gatewayURL) != nil
+    }
+
     private func apply(_ snap: QuotaSnapshot) {
+        refreshGatewayState()
+        Task { settings = await engine.settings }
         snapshot = snap
         lastRefreshAt = snap.generatedAt == .distantPast ? nil : snap.generatedAt
         WidgetCenter.shared.reloadAllTimelines()

@@ -30,11 +30,13 @@
 - Refresh：`POST https://auth.openai.com/oauth/token` JSON `{client_id:"app_EMoamEEZ73f0CkXaXp7hrann", grant_type:"refresh_token", refresh_token}` → `{access_token, refresh_token?, id_token?}`；错误码 `refresh_token_expired`/`refresh_token_reused`/`invalid_grant`。CodexBar 刷新后把新 token 写回 auth.json（保留其他键、更新 `last_refresh`）。QuotaPulse 同样做（默认开，可关）。
 
 ### DeepSeek
+- 有 `gateway.json` 时改走网关（架构决定第 8 条），下面是无网关时的直连方式。
 - 凭据：API key（env `DEEPSEEK_API_KEY` / `DEEPSEEK_KEY` 或设置里手填，存自家 Keychain）。
 - 余额：`GET https://api.deepseek.com/user/balance` `Authorization: Bearer <key>` → `{is_available, balance_infos:[{currency:"CNY"|"USD", total_balance:"12.34", granted_balance, topped_up_balance}]}`（金额是字符串）。一个币种一项，顺序不固定，可能含余额为 0 的币种，App 取余额最大的一项。
 - 用量明细需要 platform.deepseek.com 的 web session（`/api/v0/usage/amount`），不做。
 
 ### OpenCode（Zen / Go）
+- 有 `gateway.json` 时改走网关（架构决定第 8 条），下面是无网关时的直连方式。
 - 凭据：API key（`opencode-go` 条目，本地在 `~/.local/share/opencode/auth.json` → `{"opencode-go":{"key":"…"}}`，本机不存在）或设置手填。
 - Go 订阅用量：`GET https://opencode.ai/zen/go/v1/usage` `Authorization: Bearer <key>` → `{usage:{rolling:{usagePercent|usedPercent|…, resetInSec|resetAt…}, weekly:{…}, monthly:{…}}, renewAt?}`。键名不稳定，解析时按候选列表取（percentKeys / resetInKeys / resetAtKeys）。
 - PAYG 余额/月度花费只有 console cookie 接口（`/console/api/billing/status`、`/console/api/usage/summary`），需要浏览器 cookie，不做。
@@ -59,6 +61,8 @@
    - 无 entitlement 时 `CKContainer(identifier:)` 直接 SIGTRAP（实测退出码 133），所以 `CloudKitRecordStore.standard()` 先用 SecTask 检查 entitlement，缺失返回 nil，未签名构建和 `swift test` 不会崩。
    - App ID 刚关联容器后，服务器可能返回 `Invalid bundle ID for container`（CKError permissionFailure 一类），同一秒内有的请求成功、有的失败。iPhone 实测（UTC，2026-11-06）：profile 00:39:46 生成；00:44–00:47 大多失败；00:52 起 11 次 snapshot、9 次 history 全部成功。Apple 没有说明原因，时间线符合服务端逐步生效。Mac 的 App ID 从未出现。`CloudError.rejected` 把它转成人话，App 在前台每 30 秒重试。
    - Mac 停止发布不会产生任何错误，所以 snapshot 超过 30 分钟时界面显示过期横幅。
+
+8. **网关 hub（可选）**：Mac 的 `QuotaPulse/gateway.json`（0600，`{baseURL, token}`，baseURL 默认 `https://llm.lishuyu.app/llm/hub`）存在时，OpenCode、DeepSeek 不再用本机上游 key（也不读 `opencode/auth.json`），改为 `GET <base>/v1/snapshot` 取对应 provider；一轮刷新只请求一次（`GatewaySnapshotCache` 按本轮 `now` 共享）。401/403 → unauthorized，网络错误 → network，429 → rateLimited，snapshot 缺该 provider → notConfigured，provider 自带的错误 status 原样返回。刷新结束后 `POST <base>/v1/report` 上报 claude、codex、zai 的快照（去掉 `account.label`）和 opencode、deepseek 的 `forecasts`；失败只记 `QPLog.hub`，5 分钟内不重试。日期是不带小数秒的 ISO-8601（`2026-11-06T20:33:35Z`），`ProviderStatus` 用 Swift 合成的枚举编码（`{"ok":{}}`、`{"server":{"code":500,"_1":"msg"}}`）。没有 `gateway.json` 时行为与之前完全一致，这是回滚路径。有 base path 的 hub 不接 `/v1/telemetry`，iOS 跳过日志上传。接口约定见网关仓库。
 
 ## Reset 语义实测（2026-10-16 12:23Z，本机真实账号）
 

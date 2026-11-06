@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Gateway hub: with `gateway.json` in the group container (`{baseURL, token}`, 0600), the Mac reads OpenCode and DeepSeek from `https://llm.lishuyu.app/llm/hub/v1/snapshot` (one request per refresh) instead of using their upstream keys, and reports Claude, Codex, GLM readings plus OpenCode and DeepSeek forecasts to `POST /v1/report`.
+- With a gateway link, DeepSeek and OpenCode are switched on once (later toggles are kept) and Settings says "Provided by your gateway" instead of asking for a key; report failures only log and cool down for 5 minutes.
+- iPhone pairing defaults to the gateway (`https://llm.lishuyu.app/llm/hub`, name `llmgateway`).
+
+### Changed
+- `HubClient` keeps the path of the hub URL (`…/llm/hub` + `/v1/snapshot`), so a hub behind a path prefix works; plain `http://host:48422` is unchanged.
+- Device log upload is skipped for a hub behind a path prefix (the gateway has no telemetry route) instead of failing on every refresh.
+- Removing `gateway.json` restores the old behaviour: upstream keys, `opencode/auth.json`, nothing reported.
+
 ## [0.3.1] - 2026-11-06
 
 ### Fixed

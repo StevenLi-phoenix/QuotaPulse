@@ -82,6 +82,7 @@
   "Save": "保存",
   "A key is stored in your Keychain.": "密钥已保存在钥匙串中。",
   "No key stored. Environment variables also work.": "未保存密钥。也可以用环境变量。",
+  "Provided by your gateway. No API key is needed on this Mac.": "由你的网关提供，这台 Mac 不需要 API 密钥。",
   "Remove key": "移除密钥",
   "Get a key": "获取密钥",
   "Region": "区域",

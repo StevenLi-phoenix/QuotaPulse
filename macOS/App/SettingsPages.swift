@@ -58,6 +58,11 @@ struct ProviderSettingsRow: View {
             }
             Toggle(L("Auto-refresh expired session"), isOn: Binding(get: { model.settings.options(id)[CodexProvider.optionAllowRefresh] != "false" },
                                                                    set: { model.setOption(id, key: CodexProvider.optionAllowRefresh, value: $0 ? nil : "false") }))
+        case .deepseek where model.gatewayActive, .opencode where model.gatewayActive:
+            LabeledContent(L("Credentials")) {
+                Text(L("Provided by your gateway. No API key is needed on this Mac."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         case .deepseek, .opencode, .zai:
             HStack {
                 Group {
