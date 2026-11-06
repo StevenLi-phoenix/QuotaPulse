@@ -209,7 +209,7 @@ struct CloudSyncSection: View {
                 Button(L("Remove QuotaPulse data from iCloud"), role: .destructive) { model.removeCloudData() }
             }
         } header: { Text(L("iCloud")) } footer: {
-            Text(L("Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers and plan names go to your private iCloud database. API keys and tokens never leave this Mac."))
+            Text(L("Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers, plan names and this Mac's name go to your private iCloud database. API keys and tokens never leave this Mac."))
         }
     }
 

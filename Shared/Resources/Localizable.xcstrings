@@ -1441,12 +1441,12 @@
         }
       }
     },
-    "Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers and plan names go to your private iCloud database. API keys and tokens never leave this Mac.": {
+    "Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers, plan names and this Mac's name go to your private iCloud database. API keys and tokens never leave this Mac.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhone 和 Apple Watch 登录同一 iCloud 账号后，无需配对，在任何地方都能看到这些数字。写入你私有 iCloud 数据库的只有用量数字和套餐名称，API key 和 token 绝不会离开这台 Mac。"
+            "value": "iPhone 和 Apple Watch 登录同一 iCloud 账号后，无需配对，在任何地方都能看到这些数字。写入你私有 iCloud 数据库的只有用量数字、套餐名称和这台 Mac 的名字，API key 和 token 绝不会离开这台 Mac。"
           }
         }
       }

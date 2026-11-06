@@ -10,7 +10,9 @@ QuotaPulse watches the rate-limit windows and balances of the AI providers you a
 - *"9 pts ahead of budget"* / *"On pace"*
 - *"¥1.20/day — about 20 days left"*
 
-Everything runs on your own machines. Your Mac is the **hub**: it reads the credentials your CLIs already keep locally, polls the providers, stores the history and serves a tiny authenticated JSON API over LAN / Tailscale. The iPhone and Apple Watch apps only ever see those numbers — never a token.
+Install it on your Mac, and your iPhone and Apple Watch have the numbers wherever you are: no pairing, no VPN, nothing to keep reachable. The Mac reads the credentials your CLIs already keep locally, polls the providers, stores the history and publishes the results to your private iCloud database. Your other devices only ever see those numbers — never a token.
+
+Prefer to stay off iCloud, or want local scripts to read the numbers? The Mac also serves a small authenticated JSON API over your network, and devices can pair with it directly.
 
 | macOS menu bar | macOS main window | History & forecast |
 |---|---|---|
@@ -50,11 +52,11 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 
 **Forecasts** — a least-squares burn rate over the current window (resets and top-ups start a new cycle automatically) gives projected usage at reset, the exhaustion time if you'll hit 100 % early, and a pace indicator against a linear budget. Balances get a per-day burn and days-remaining. Confidence grows with sample count and span.
 
-**macOS** — menu-bar ring + percent for the most constrained window; instant dropdown with per-provider cards, sparklines and reset countdowns; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
+**macOS** — menu-bar ring + percent for the most constrained window; instant dropdown with per-provider cards, sparklines and reset countdowns; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, iCloud sync, optional hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
 
-**iOS** — pair by scanning the QR code (or paste URL + token), provider cards, detail charts, pull-to-refresh, background refresh, home-screen and lock-screen widgets. Pushes data to the watch.
+**iOS** — open it and your numbers are there, delivered through iCloud on any network, with a silent push when the Mac publishes. Provider cards, detail charts, pull-to-refresh, background refresh, home-screen and lock-screen widgets. A banner tells you when the Mac has gone quiet. Pushes data to the watch. A direct connection (scan the QR code or paste URL + token) is optional.
 
-**watchOS** — list + detail, circular / corner / rectangular / inline complications. Fetches from the hub directly when it can, otherwise from the iPhone.
+**watchOS** — list + detail, circular / corner / rectangular / inline complications. Reads iCloud on its own, then falls back to a paired hub and the iPhone.
 
 ## Install (macOS)
 
@@ -64,7 +66,7 @@ git clone git@github.com:StevenLi-phoenix/QuotaPulse.git && cd QuotaPulse
 scripts/install.sh      # Release build → ~/Applications/QuotaPulse.app → launch
 ```
 
-Requirements: macOS 26+, Xcode 27.1, Swift 6.4. The app is signed with an Apple Development certificate (team `88U7V98QAC`); change `DEVELOPMENT_TEAM` in `project.yml` for your own.
+Requirements: macOS 26+, Xcode 27.1, Swift 6.4, and Xcode signed in to an Apple ID on a paid Apple Developer team (iCloud needs a provisioning profile; `install.sh` registers the Mac and fetches it). The app is signed with an Apple Development certificate (team `88U7V98QAC`). To build under your own team, change `DEVELOPMENT_TEAM` in `project.yml`, and rename the iCloud container in `project.yml` and `CloudKitRecordStore.containerID`, since container IDs are global.
 
 First launch: Claude and Codex are enabled by default and read your CLI sign-ins — if Claude Code is signed in you'll see numbers within seconds. Add API keys for DeepSeek / OpenCode / GLM under **Providers**. QuotaPulse is a menu-bar app: look for the ring + percentage top right (the first launch also opens the main window; *Show in Dock* is under General). The hub starts on port 48422 and writes `pairing.json` (0600) in the app's group container so local scripts can use it:
 
@@ -75,11 +77,22 @@ curl -H "Authorization: Bearer $(jq -r .token "$P")" "$(jq -r .baseURL "$P")/v1/
 
 ## Install (iPhone / Apple Watch)
 
-Build the `QuotaPulse-iOS` scheme in Xcode with your own team selected (App Group `group.app.lishuyu.quotapulse` must exist in your developer account for widgets on a real device), run on your phone, then **Hub & Devices → scan the QR** on the Mac. The watch app is embedded and installs with the iPhone app; complications appear once the phone has synced a snapshot.
+Build the `QuotaPulse-iOS` scheme in Xcode with your own team selected (App Group `group.app.lishuyu.quotapulse` must exist in your developer account for widgets on a real device) and run it on your phone. If the phone is signed in to the same iCloud account as the Mac, that's all: the numbers appear on their own. The watch app is embedded and installs with the iPhone app; complications appear once it has a snapshot.
 
-Over Tailscale: the Mac's `100.x.x.x` address is the first choice in the pairing picker, so the phone works from anywhere your tailnet reaches.
+Direct connection (optional): **Hub & Devices → scan the QR** on the Mac, from **Settings → Direct connection** on the phone. It works on your local network, or through a mesh VPN such as Tailscale (the Mac's `100.x.x.x` address comes first in the pairing picker). It is what sends device logs to the Mac.
+
+## iCloud sync
+
+On by default. **Hub & Devices → iCloud** on the Mac shows the account and last publish, turns sync off, and deletes what's stored.
+
+- The Mac writes as soon as a number changes, and otherwise every 15 minutes so your devices can tell it's alive. History (7 days, down-sampled) follows every 30 minutes.
+- iPhone and Watch read iCloud first and ask a paired hub only when the iCloud copy is over 20 minutes old. Whichever snapshot is newest wins.
+- After 30 minutes without a new snapshot, the apps say when they last heard from the Mac. Something has to run there: if it's off or asleep, the numbers wait.
+- If nothing arrives, compare **iCloud account ID** on the Mac and phone. A mismatch means they're on different iCloud accounts.
 
 ## Hub API
+
+Optional: iCloud sync doesn't use it. Local scripts and paired devices do.
 
 | Endpoint | Returns |
 |---|---|
@@ -92,12 +105,12 @@ All need `Authorization: Bearer <token>`. The token lives in the Mac's Keychain 
 
 ## Telemetry & diagnostics
 
-The iPhone and Watch apps keep a JSON Lines log (`Documents/Logs/quotapulse-YYYY-MM-DD.log`, 10 MB cap, visible in the Files app) with pairing, hub fetch latency/status, background refresh, WatchConnectivity, widget reloads and forecast summaries, plus MetricKit crash/hang payloads under `Documents/Diagnostics`. On every refresh the unsent lines are pushed to the hub (`POST /v1/telemetry`, same bearer token); the Mac stores them under `…/QuotaPulse/telemetry/<device>/YYYY-MM-DD.log` and shows every device's last heartbeat, version and last error under **Hub & Devices → Devices**. iOS **Settings → Diagnostics** can also export everything as a zip.
+The iPhone and Watch apps keep a JSON Lines log (`Documents/Logs/quotapulse-YYYY-MM-DD.log`, 10 MB cap, visible in the Files app) with pairing, hub fetch latency/status, background refresh, WatchConnectivity, widget reloads and forecast summaries, plus MetricKit crash/hang payloads under `Documents/Diagnostics`. On a device with a direct connection, every refresh pushes the unsent lines to the hub (`POST /v1/telemetry`, same bearer token); logs don't go through iCloud, and without a direct connection they stay on the device. The Mac stores them under `…/QuotaPulse/telemetry/<device>/YYYY-MM-DD.log` and shows every device's last heartbeat, version and last error under **Hub & Devices → Devices**. iOS **Settings → Diagnostics** can also export everything as a zip.
 
 ## Development
 
 ```bash
-cd QuotaCore && swift test                 # 35 unit tests: parsing, forecasting, store, hub
+cd QuotaCore && swift test                 # 88 unit tests: parsing, forecasting, store, hub, iCloud sync
 ../tools/xcodegen/bin/xcodegen generate    # project.yml → QuotaPulse.xcodeproj
 xcodebuild -scheme QuotaPulse-macOS -destination 'platform=macOS' build
 xcodebuild -scheme QuotaPulse-iOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
@@ -105,7 +118,7 @@ python3 scripts/gen-strings.py             # regenerate en / zh-Hans string cata
 cd QuotaUI && swift run WidgetRender ../docs/screenshots   # widget PNGs from the real views
 ```
 
-Layout: `QuotaCore` (models, providers, credentials, forecasting, store, hub) · `QuotaUI` (shared SwiftUI) · `macOS/`, `iOS/`, `watchOS/` (apps + widget extensions) · `docs/research.md` (provider endpoints and design decisions).
+Layout: `QuotaCore` (models, providers, credentials, forecasting, store, hub, iCloud sync) · `QuotaUI` (shared SwiftUI) · `macOS/`, `iOS/`, `watchOS/` (apps + widget extensions) · `docs/research.md` (provider endpoints and design decisions).
 
 Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets are always redacted (`sk-ant…(len 108)`).
 
@@ -113,7 +126,8 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 
 - Credentials are read from where your CLIs put them and sent only to that provider. Keys you type are stored in your own Keychain.
 - The hub binds to all interfaces by default so Tailscale works; turn off *Reachable from other devices* for loopback only. Requests without the bearer token get 401.
-- No analytics, no cloud, no Apple paid services.
+- iCloud sync stores the snapshot and history in your own private CloudKit database: usage numbers, plan names, where a credential was read from (`keychain` or `file`) and the Mac's name. Provider credentials are never uploaded. Apple's standard iCloud encryption applies, so these fields are not end-to-end encrypted.
+- No analytics, and no servers besides the providers themselves and your iCloud.
 
 ## Known limits
 
@@ -121,3 +135,7 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 - Claude tokens are refreshed by Claude Code itself (opening it once is enough); QuotaPulse's own refresher is off by default to avoid rotating Claude Code's refresh token.
 - OpenCode pay-as-you-go spend and DeepSeek per-model usage require web-session cookies and are not supported.
 - Widgets on a real iPhone/Watch need the App Group capability on your team; the simulator doesn't check it.
+- Apple Development builds use CloudKit's Development environment, whose schema is created on first write. A TestFlight or App Store build reads Production and needs the schema deployed in CloudKit Console first.
+- iCloud assumes one publishing Mac per account: with two, the last write wins.
+- The watch doesn't get silent pushes. It refreshes when opened and on its widget timeline, about every 15 minutes at best.
+- Unsigned dev builds have no iCloud entitlement, so sync is off and the setting explains why.

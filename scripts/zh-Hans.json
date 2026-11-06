@@ -185,7 +185,6 @@
   "iCloud account ID": "iCloud 账号标识",
   "Remove QuotaPulse data from iCloud": "从 iCloud 移除 QuotaPulse 数据",
   "iCloud": "iCloud",
-  "Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers and plan names go to your private iCloud database. API keys and tokens never leave this Mac.": "iPhone 和 Apple Watch 登录同一 iCloud 账号后，无需配对，在任何地方都能看到这些数字。写入你私有 iCloud 数据库的只有用量数字和套餐名称，API key 和 token 绝不会离开这台 Mac。",
   "Your Mac hasn't published anything recently. Check that QuotaPulse is running there and has internet access.": "你的 Mac 最近没有发布新数据。请确认那边的 QuotaPulse 正在运行且能联网。",
   "Waiting for your Mac": "正在等待你的 Mac",
   "Run QuotaPulse on a Mac signed in to this iCloud account. Your numbers appear here as soon as it publishes.": "请在登录了同一 iCloud 账号的 Mac 上运行 QuotaPulse。它一发布，数字就会出现在这里。",
@@ -206,5 +205,6 @@
   "\\(QuotaFormat.wholeDays($0)) days": "\\(QuotaFormat.wholeDays($0)) 天",
   "\\(perDay)/day — about \\(QuotaFormat.wholeDays(days)) days left": "\\(perDay)/天 —— 约可用 \\(QuotaFormat.wholeDays(days)) 天",
   "~\\(QuotaFormat.wholeDays(d))d": "约 \\(QuotaFormat.wholeDays(d)) 天",
-  "~\\(QuotaFormat.wholeDays(d))d left": "约剩 \\(QuotaFormat.wholeDays(d)) 天"
+  "~\\(QuotaFormat.wholeDays(d))d left": "约剩 \\(QuotaFormat.wholeDays(d)) 天",
+  "Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers, plan names and this Mac's name go to your private iCloud database. API keys and tokens never leave this Mac.": "iPhone 和 Apple Watch 登录同一 iCloud 账号后，无需配对，在任何地方都能看到这些数字。写入你私有 iCloud 数据库的只有用量数字、套餐名称和这台 Mac 的名字，API key 和 token 绝不会离开这台 Mac。"
 }

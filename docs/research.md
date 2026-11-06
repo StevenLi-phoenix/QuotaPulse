@@ -44,12 +44,20 @@
 
 ## 架构决定
 
-1. **Mac 是 hub**：Mac Mini 常开、在 Tailscale 上。菜单栏 App 持凭据、轮询、存样本、算预测，并用 `NWListener` 提供 `GET /v1/health|snapshot|history`（Bearer token）。iOS/watch 只消费 JSON，不碰任何供应商凭据，也不需要 Apple 付费能力（无 CloudKit/Push）。
+1. **Mac 是 hub**：Mac Mini 常开、在 Tailscale 上。菜单栏 App 持凭据、轮询、存样本、算预测，并用 `NWListener` 提供 `GET /v1/health|snapshot|history`（Bearer token）。iOS/watch 只消费 JSON，不碰任何供应商凭据。hub 现在是可选直连，本地脚本和设备日志上传走它；数据同步默认走第 7 条的 iCloud。
 2. **预测**在 `QuotaCore.ForecastEngine`：对当前窗口（`resetsAt - windowDuration` 之后，或检测到 utilization 下跌即视为新窗口）内样本做最小二乘回归；输出 reset 时预计用量、打满时刻、pace（相对线性预算的偏差）。余额型对最近 7 天做回归得日均花费与剩余天数。样本不足 2 个或跨度 < 10 分钟 → `insufficient`。
-3. **macOS 不用 App Group**（本机 Xcode 没登录 Apple ID，profile 拿不到）：主 App 和 widget 都是 Manual 签名 "Apple Development" / team `88U7V98QAC`，无 sandbox，共享 `~/Library/Application Support/QuotaPulse/snapshot.json`。iOS/watchOS 用 App Group `group.app.lishuyu.quotapulse`（模拟器不校验，真机需在开发者账号开通）。
+3. **macOS 签名**：主 App 用 Automatic 签名（CloudKit 需要 provisioning profile），无 sandbox；widget 用 Manual 签名、有 sandbox、无 profile。两者共用团队前缀 App Group `88U7V98QAC.app.lishuyu.quotapulse`，数据在对应 Group Container 下。iOS/watchOS 用 App Group `group.app.lishuyu.quotapulse`（模拟器不校验，真机需在开发者账号开通）。
 4. **通知权限懒申请**：阈值告警默认关；打开时才 `requestAuthorization`，避免无人值守时弹系统对话框。
 5. **Keychain 读取走 `/usr/bin/security` 子进程 + 3 秒超时**：Claude Code 自己用该 CLI 写入，ACL 已包含它，因此不会弹窗；万一弹窗，超时 kill 子进程即关闭对话框并退回文件读取。
 6. **不做浏览器 cookie 导入**：CodexBar 的 cookie 路线需要读 Chrome cookie 数据库（Keychain 弹窗 + 隐私面大），与"无人值守、不弹窗"冲突。
+
+7. **同步走 CloudKit 私有库**：Mac 发布、iPhone/Watch 读取，不再要求设备能连上 Mac。容器 `iCloud.app.lishuyu.quotapulse`，zone `QuotaPulse`，记录类型 `QuotaBlob`（`snapshot`、`history.<provider>`，payload 为 lzfse 压缩的 JSON）。
+   - 选 CloudKit 而不是另外两种：KVS 有写入节流，iCloud Documents 在手表上不可靠。
+   - 只有一台 Mac 发布，所以保存策略用 `.allKeys`（last writer wins），不处理冲突。发布在 `CloudPublisher` 内串行：actor 在 await 处可重入，并发的两次发布实测会重复写 history，较旧的 snapshot 也可能后落地。
+   - 全部是 Apple Development 签名，走 Development 环境，schema 首次写入时自动创建。
+   - 没用 `encryptedValues`：它依赖 iCloud Keychain，没开的设备会读不到。
+   - 无 entitlement 时 `CKContainer(identifier:)` 直接 SIGTRAP（实测退出码 133），所以 `CloudKitRecordStore.standard()` 先用 SecTask 检查 entitlement，缺失返回 nil，未签名构建和 `swift test` 不会崩。
+   - Mac 停止发布不会产生任何错误，所以 snapshot 超过 30 分钟时界面显示过期横幅。
 
 ## Reset 语义实测（2026-10-16 12:23Z，本机真实账号）
 

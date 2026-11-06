@@ -3,9 +3,22 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-05
+
+### Added
+- iCloud sync: the Mac publishes its snapshot and 7 days of history to a private CloudKit database, and iPhone, Apple Watch and their widgets read it from any network with nothing to pair.
+- macOS: **Hub & Devices → iCloud** shows account, last publish and errors, turns sync off and deletes the stored data; the menu panel shows an iCloud status icon.
+- iOS: silent push on every publish; the app opens straight to Home, with empty states for "Waiting for your Mac" and "Sign in to iCloud".
+- iPhone and Watch show a banner when the newest snapshot is over 30 minutes old, since a Mac that stopped publishing produces no error.
+- `iCloud account ID` (short hash) on Mac and iPhone to spot devices on different accounts.
+- 53 unit tests for payloads, down-sampled history, publishing, source selection, widget refresh, settings migration and the entitlement check.
+
+### Changed
+- The hub is now optional for iPhone and Watch: QR pairing moved under Settings → Direct connection, and a paired hub is asked only when the iCloud copy is over 20 minutes old. Local scripts and device-log upload keep using it.
+- macOS app uses Automatic signing because CloudKit needs a provisioning profile; `scripts/install.sh` passes `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`. The hub token, API keys and data folder are unchanged.
 
 ### Fixed
+- `gen-strings.py` failed on 4 missing translations left over from the `wholeDays` change.
 - `ClaudeParsing.parsesKnownWindowsAndLimits` started failing on 2026-10-20: `ProviderSnapshot.primaryWindow` evaluated utilization at the real wall clock, so once the fixture's `seven_day` reset date passed both windows read 0 % and the first one won. Added `primaryWindow(now:)`; the tests pass their fixed clock.
 
 ## [0.2.1] - 2026-10-20
