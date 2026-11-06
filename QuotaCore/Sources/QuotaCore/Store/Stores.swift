@@ -54,6 +54,8 @@ public struct DataLocation: Sendable {
     public var snapshotURL: URL { root.appendingPathComponent("snapshot.json") }
     public var samplesURL: URL { root.appendingPathComponent("samples.json") }
     public var hubPairingURL: URL { root.appendingPathComponent("pairing.json") }
+    /// Optional gateway link (0600): `{"baseURL": "...", "token": "..."}`. See `GatewayConfig`.
+    public var gatewayURL: URL { root.appendingPathComponent("gateway.json") }
     public var logURL: URL { root.appendingPathComponent("quotapulse.log") }
 }
 

@@ -54,10 +54,12 @@ public struct AppSettings: Codable, Sendable, Hashable {
     public var launchAtLogin: Bool
     /// Menu-bar label style: "percent" | "icon" | "both".
     public var menuBarStyle: String
+    /// The first refresh with a gateway link turned DeepSeek and OpenCode on; after that the user's toggles rule.
+    public var gatewaySeeded: Bool
 
     public init(providers: [ProviderID: ProviderSettings]? = nil, pollInterval: TimeInterval = 5 * 60,
                 hub: HubSettings = .init(), cloud: CloudSettings = .init(), alerts: AlertSettings = .init(), retentionDays: Int = 30,
-                launchAtLogin: Bool = false, menuBarStyle: String = "both") {
+                launchAtLogin: Bool = false, menuBarStyle: String = "both", gatewaySeeded: Bool = false) {
         self.providers = providers ?? Dictionary(uniqueKeysWithValues: ProviderID.allCases.map {
             ($0, ProviderSettings(enabled: $0.defaultEnabled))
         })
@@ -68,9 +70,10 @@ public struct AppSettings: Codable, Sendable, Hashable {
         self.retentionDays = retentionDays
         self.launchAtLogin = launchAtLogin
         self.menuBarStyle = menuBarStyle
+        self.gatewaySeeded = gatewaySeeded
     }
 
-    enum CodingKeys: String, CodingKey { case providers, pollInterval, hub, cloud, alerts, retentionDays, launchAtLogin, menuBarStyle }
+    enum CodingKeys: String, CodingKey { case providers, pollInterval, hub, cloud, alerts, retentionDays, launchAtLogin, menuBarStyle, gatewaySeeded }
 
     /// `cloud` arrived in 0.3: settings written before it must keep every other value.
     public init(from decoder: Decoder) throws {
@@ -83,6 +86,7 @@ public struct AppSettings: Codable, Sendable, Hashable {
         retentionDays = try c.decode(Int.self, forKey: .retentionDays)
         launchAtLogin = try c.decode(Bool.self, forKey: .launchAtLogin)
         menuBarStyle = try c.decode(String.self, forKey: .menuBarStyle)
+        gatewaySeeded = try c.decodeIfPresent(Bool.self, forKey: .gatewaySeeded) ?? false
     }
 
     public static let `default` = AppSettings()

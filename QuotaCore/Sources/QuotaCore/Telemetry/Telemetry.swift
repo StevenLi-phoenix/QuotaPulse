@@ -270,9 +270,7 @@ public extension HubClient {
     @discardableResult
     func uploadTelemetry(_ lines: [String], identity: DeviceIdentity) async throws -> Int {
         guard !lines.isEmpty else { return 0 }
-        var c = URLComponents(url: pairing.baseURL, resolvingAgainstBaseURL: false)!
-        c.path = HubProtocol.telemetryPath
-        var request = URLRequest(url: c.url!)
+        var request = URLRequest(url: Self.endpoint(base: pairing.baseURL, path: HubProtocol.telemetryPath))
         request.httpMethod = "POST"
         request.timeoutInterval = 15
         request.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
@@ -294,6 +292,8 @@ public extension HubClient {
 
     /// Convenience: upload everything pending in a logger and advance its cursor.
     func syncTelemetry(from logger: FileLogger) async -> (uploaded: Int, error: String?) {
+        // The gateway doesn't take telemetry; leave the lines on the device instead of failing on every refresh.
+        guard pairing.supportsTelemetry else { return (0, nil) }
         let pending = logger.pendingUpload()
         guard !pending.lines.isEmpty else { return (0, nil) }
         do {

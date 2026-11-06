@@ -39,15 +39,18 @@ public struct FetchContext: Sendable {
     public var now: Date
     /// Per-provider options from settings (e.g. "allowRefresh").
     public var options: [String: String]
+    /// Set when `gateway.json` exists: OpenCode and DeepSeek are read from the gateway instead of upstream.
+    public var gateway: GatewayLink?
 
     public init(transport: any HTTPTransport = URLSessionTransport(), secrets: any SecretStore,
                 environment: [String: String] = ProcessInfo.processInfo.environment,
-                now: Date = Date(), options: [String: String] = [:]) {
+                now: Date = Date(), options: [String: String] = [:], gateway: GatewayLink? = nil) {
         self.transport = transport
         self.secrets = secrets
         self.environment = environment
         self.now = now
         self.options = options
+        self.gateway = gateway
     }
 
     /// API key resolution: secret store first, then environment variables.

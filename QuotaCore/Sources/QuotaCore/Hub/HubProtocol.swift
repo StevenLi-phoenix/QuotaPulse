@@ -7,6 +7,7 @@ public enum HubProtocol {
     public static let snapshotPath = "/v1/snapshot"
     public static let historyPath = "/v1/history"
     public static let telemetryPath = "/v1/telemetry"
+    public static let reportPath = "/v1/report"
     public static let deviceHeader = "X-Device-Name"
     public static let appVersionHeader = "X-App-Version"
     public static let platformHeader = "X-Platform"
@@ -60,6 +61,11 @@ public struct HubPairing: Codable, Sendable, Equatable {
         return HubPairing(baseURL: base, token: token, hubName: q("name") ?? base.host ?? "Hub")
     }
 
+    /// A hub behind a path prefix is the gateway (`https://host/llm/hub`); it has no telemetry route.
+    public var supportsTelemetry: Bool {
+        baseURL.path.split(separator: "/").isEmpty
+    }
+
     public static func randomToken() -> String {
         let alphabet = Array("abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789")
         return String((0..<32).map { _ in alphabet.randomElement()! })
@@ -89,11 +95,18 @@ public struct HubClient: Sendable {
         }
     }
 
-    private func get<T: Decodable>(_ path: String, query: [URLQueryItem] = [], as: T.Type) async throws -> T {
-        var c = URLComponents(url: pairing.baseURL, resolvingAgainstBaseURL: false)!
-        c.path = path
+    /// `base` + `path`, keeping any path the base already has (`https://host/llm/hub` + `/v1/health`).
+    public static func endpoint(base: URL, path: String, query: [URLQueryItem] = []) -> URL {
+        var c = URLComponents(url: base, resolvingAgainstBaseURL: false)!
+        var prefix = c.path
+        while prefix.hasSuffix("/") { prefix.removeLast() }
+        c.path = prefix + (path.hasPrefix("/") ? path : "/" + path)
         if !query.isEmpty { c.queryItems = query }
-        var request = URLRequest(url: c.url!)
+        return c.url!
+    }
+
+    private func get<T: Decodable>(_ path: String, query: [URLQueryItem] = [], as: T.Type) async throws -> T {
+        var request = URLRequest(url: Self.endpoint(base: pairing.baseURL, path: path, query: query))
         request.timeoutInterval = 10
         request.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")

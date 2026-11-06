@@ -10,6 +10,7 @@ public struct DeepSeekProvider: UsageProvider {
     public init() {}
 
     public func fetch(_ ctx: FetchContext) async throws -> ProviderSnapshot {
+        if let gateway = ctx.gateway { return try await gateway.provider(.deepseek, transport: ctx.transport, now: ctx.now) }
         let key = try ctx.apiKey(for: .deepseek, envKeys: Self.envKeys)
         var request = URLRequest(url: Self.balanceURL)
         request.timeoutInterval = 20
@@ -60,6 +61,7 @@ public struct OpenCodeProvider: UsageProvider {
     public init() {}
 
     public func fetch(_ ctx: FetchContext) async throws -> ProviderSnapshot {
+        if let gateway = ctx.gateway { return try await gateway.provider(.opencode, transport: ctx.transport, now: ctx.now) }
         let key = try resolveKey(ctx)
         var request = URLRequest(url: Self.usageURL)
         request.timeoutInterval = 20

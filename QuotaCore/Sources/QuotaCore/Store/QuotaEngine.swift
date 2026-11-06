@@ -19,6 +19,10 @@ public actor QuotaEngine {
     private var onUpdate: (@Sendable (QuotaSnapshot) -> Void)?
     private var loopTask: Task<Void, Never>?
     private let hubName: String
+    private let gatewayCache = GatewaySnapshotCache()
+    private var reportBlockedUntil: Date?
+    /// After a failed report, wait this long before trying again (no retry storms).
+    static let reportCooldown: TimeInterval = 300
 
     public init(location: DataLocation = .standard(),
                 providers: [any UsageProvider] = ProviderRegistry.all(),
@@ -91,6 +95,18 @@ public actor QuotaEngine {
         defer { isRefreshing = false }
         QPLog.engine.info("refresh start (\(reason, privacy: .public), force=\(force))")
 
+        let gatewayConfig = GatewayConfig.load(from: location.gatewayURL)
+        let gateway = gatewayConfig.map { GatewayLink(config: $0, cache: gatewayCache) }
+        if gateway != nil, !settings.gatewaySeeded {
+            update {
+                for id in [ProviderID.deepseek, .opencode] where !$0.isEnabled(id) {
+                    $0.providers[id, default: ProviderSettings(enabled: true)].enabled = true
+                }
+                $0.gatewaySeeded = true
+            }
+            QPLog.engine.notice("gateway link found: DeepSeek and OpenCode enabled")
+        }
+
         let enabled = settings.enabledProviders
         let previous = snapshot
         var results: [ProviderSnapshot] = []
@@ -102,7 +118,7 @@ public actor QuotaEngine {
                     QPLog.engine.debug("\(id.rawValue, privacy: .public) skipped: backoff")
                     continue
                 }
-                let ctx = FetchContext(transport: transport, secrets: secrets, now: now, options: settings.options(id))
+                let ctx = FetchContext(transport: transport, secrets: secrets, now: now, options: settings.options(id), gateway: gateway)
                 group.addTask {
                     do {
                         return try await provider.fetch(ctx)
@@ -178,7 +194,26 @@ public actor QuotaEngine {
         }
         QPLog.engine.notice("refresh done: \(merged.map { "\($0.id.rawValue):\($0.status.shortLabel)" }.joined(separator: " "), privacy: .public)")
         onUpdate?(snap)
+        if let gatewayConfig { await report(merged, to: gatewayConfig, now: now) }
         return snap
+    }
+
+    /// Sends the Mac-only readings to the gateway. Failures are logged and cool down; the UI never sees them.
+    private func report(_ merged: [ProviderSnapshot], to config: GatewayConfig, now: Date) async {
+        if let until = reportBlockedUntil, now < until {
+            QPLog.hub.debug("gateway report skipped: cooling down")
+            return
+        }
+        let payload = GatewayReport.providers(from: merged)
+        guard !payload.isEmpty else { return }
+        do {
+            let n = try await GatewayClient(config: config, transport: transport).report(payload)
+            reportBlockedUntil = nil
+            QPLog.hub.info("gateway report ok: sent \(payload.count), accepted \(n)")
+        } catch {
+            reportBlockedUntil = now.addingTimeInterval(Self.reportCooldown)
+            QPLog.hub.error("gateway report failed: \(ProviderError.wrap(error).status.message, privacy: .public)")
+        }
     }
 
     // MARK: History access
