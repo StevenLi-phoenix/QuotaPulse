@@ -15,6 +15,7 @@ public struct CodexProvider: UsageProvider {
     }
 
     public func fetch(_ ctx: FetchContext) async throws -> ProviderSnapshot {
+        if let reading = await ctx.gateway?.reading(.codex, transport: ctx.transport, now: ctx.now) { return reading }
         var creds = try await credentials.load()
         let allowRefresh = ctx.options[Self.optionAllowRefresh] != "false"
         if creds.isExpired(now: ctx.now) {

@@ -64,6 +64,8 @@
 
 8. **网关 hub（可选）**：Mac 的 `QuotaPulse/gateway.json`（0600，`{baseURL, token}`，baseURL 默认 `https://llm.lishuyu.app/llm/hub`）存在时，OpenCode、DeepSeek 不再用本机上游 key（也不读 `opencode/auth.json`），改为 `GET <base>/v1/snapshot` 取对应 provider；一轮刷新只请求一次（`GatewaySnapshotCache` 按本轮 `now` 共享）。401/403 → unauthorized，网络错误 → network，429 → rateLimited，snapshot 缺该 provider → notConfigured，provider 自带的错误 status 原样返回。刷新结束后 `POST <base>/v1/report` 上报 claude、codex、zai 的快照（去掉 `account.label`）和 opencode、deepseek 的 `forecasts`；失败只记 `QPLog.hub`，5 分钟内不重试。日期是不带小数秒的 ISO-8601（`2026-11-06T20:33:35Z`），`ProviderStatus` 用 Swift 合成的枚举编码（`{"ok":{}}`、`{"server":{"code":500,"_1":"msg"}}`）。没有 `gateway.json` 时行为与之前完全一致，这是回滚路径。有 base path 的 hub 不接 `/v1/telemetry`，iOS 跳过日志上传。接口约定见网关仓库。
 
+9. **Claude、Codex、GLM 也由网关读，Mac 是回退**：phm 的 quota-reader 插件用单独的登录读 Claude、Codex（refresh token 会轮换，共用一份会把对方挤下线；Worker 读不了 Codex，`chatgpt.com` 对 Worker 返回 403，对 phm 和 mini 返回 200），Worker 读 GLM。有 `gateway.json` 时这三家先看 `GatewayLink.reading`：快照里的读数 `status` 是 ok、`fetchedAt` 在 30 分钟内、`source` 是 `reader` 或 `gateway` 就直接用，不碰本机凭据；否则走原来的本地读取，这就是自动回退。`source` 是 `mac` 的读数是自己上报的回声，不算，否则 Mac 会用自己 25 分钟前的读数骗自己。上报带 `source:"mac"`，网关给的读数只报 `forecasts`（条目带 `source`，网关看到就只取预测），预测仍然只在 Mac 上算，历史样本照常用读数累积。网关优先级：自己读的、reader、Mac，各自须是新鲜好读数；都不满足取最新的一份，所以 reader 过期时 App 能看到“要重新登录”。
+
 ## Reset 语义实测（2026-10-16 12:23Z，本机真实账号）
 
 | | Claude（Max 20x） | Codex（Plus） |

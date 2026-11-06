@@ -279,9 +279,9 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
         let s1 = await e.refresh(reason: "t1", now: now)
         #expect(s1.provider(.claude)?.status == .ok)
         _ = await e.refresh(reason: "t2", force: true, now: now.addingTimeInterval(30))
-        #expect(transport.requests.count == 1, "no retry within the cool-down")
+        #expect(transport.requests.filter { $0.httpMethod == "POST" }.count == 1, "no retry within the cool-down")
         _ = await e.refresh(reason: "t3", force: true, now: now.addingTimeInterval(400))
-        #expect(transport.requests.count == 2)
+        #expect(transport.requests.filter { $0.httpMethod == "POST" }.count == 2)
     }
 
     @Test func noGatewayFileMeansNoReportAndNoSeeding() async throws {

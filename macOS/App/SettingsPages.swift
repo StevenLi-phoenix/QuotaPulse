@@ -37,6 +37,13 @@ struct ProviderSettingsRow: View {
     var body: some View {
         Toggle(L("Enabled"), isOn: Binding(get: { model.settings.isEnabled(id) }, set: { model.setEnabled(id, $0) }))
 
+        if model.gatewayActive, [ProviderID.claude, .codex, .zai].contains(id) {
+            LabeledContent(L("Gateway")) {
+                Text(L("Your gateway's reading is used while it is fresh. The credentials below are the fallback."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
         switch id {
         case .claude:
             LabeledContent(L("Credentials")) {

@@ -146,6 +146,7 @@ public struct ZaiProvider: UsageProvider {
     }
 
     public func fetch(_ ctx: FetchContext) async throws -> ProviderSnapshot {
+        if let reading = await ctx.gateway?.reading(.zai, transport: ctx.transport, now: ctx.now) { return reading }
         let key = try ctx.apiKey(for: .zai, envKeys: Self.envKeys)
         var request = URLRequest(url: Self.quotaURL(region: ctx.options[Self.optionRegion]))
         request.timeoutInterval = 20

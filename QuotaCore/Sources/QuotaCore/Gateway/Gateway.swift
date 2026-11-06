@@ -2,7 +2,8 @@ import Foundation
 
 // MARK: - Config
 
-/// Where the Mac reads OpenCode and DeepSeek from, and where it reports Claude / Codex / GLM readings.
+/// Where the Mac reads OpenCode and DeepSeek from, where it looks for someone else's Claude / Codex / GLM reading first,
+/// and where it reports the readings it took itself.
 /// Lives in `gateway.json` (0600) next to `pairing.json`: `{"baseURL": "...", "token": "..."}`.
 /// No file means the Mac talks to the upstream providers itself, exactly as before.
 public struct GatewayConfig: Codable, Sendable, Equatable {
@@ -123,6 +124,30 @@ public struct GatewayLink: Sendable {
         self.cache = cache
     }
 
+    /// How old a reading may be before the Mac reads for itself. The gateway hub prefers a reading on the same terms.
+    public static let readingFreshness: TimeInterval = 30 * 60
+
+    /// Someone else's reading of a provider whose credentials this Mac may also hold, or nil, which means "read it yourself": the gateway
+    /// is unreachable or refuses, it has nothing, the reading failed or is old, or it is this Mac's own report coming back.
+    public func reading(_ id: ProviderID, transport: any HTTPTransport, now: Date) async -> ProviderSnapshot? {
+        switch await cache.snapshot(client: GatewayClient(config: config, transport: transport), now: now) {
+        case let .failure(e):
+            QPLog.providers.notice("gateway unavailable, reading \(id.rawValue, privacy: .public) locally: \(e.status.message, privacy: .public)")
+            return nil
+        case let .success(snap):
+            guard let p = snap.provider(id), let source = p.source, source != "mac" else {
+                QPLog.providers.info("gateway has no outside reading of \(id.rawValue, privacy: .public), reading locally")
+                return nil
+            }
+            guard p.status.isOK, now.timeIntervalSince(p.fetchedAt) <= Self.readingFreshness else {
+                QPLog.providers.notice("gateway reading of \(id.rawValue, privacy: .public) from \(source, privacy: .public) not usable (\(p.status.shortLabel, privacy: .public), fetched \(p.fetchedAt, privacy: .public)), reading locally")
+                return nil
+            }
+            QPLog.providers.info("\(id.rawValue, privacy: .public) read by \(source, privacy: .public)")
+            return p
+        }
+    }
+
     /// The gateway's reading of one provider. A provider the gateway lacks is `notConfigured`; an error status
     /// the gateway reports comes back unchanged inside the snapshot.
     public func provider(_ id: ProviderID, transport: any HTTPTransport, now: Date) async throws -> ProviderSnapshot {
@@ -143,7 +168,7 @@ public struct GatewayLink: Sendable {
 // MARK: - Report
 
 public enum GatewayReport {
-    /// Providers whose readings only the Mac can take (their credentials stay here).
+    /// Providers the Mac can read itself when no one else has (their credentials stay here).
     static let reported: Set<ProviderID> = [.claude, .codex, .zai]
     /// Providers the gateway reads itself; the Mac contributes only its forecasts.
     static let forecastOnly: Set<ProviderID> = [.opencode, .deepseek]
@@ -153,6 +178,12 @@ public enum GatewayReport {
         var out: [ProviderSnapshot] = []
         for p in merged {
             if reported.contains(p.id) {
+                // A reading the gateway gave this Mac goes back as forecasts alone: the numbers are already there, and sending them
+                // again would dress an old reading up as the Mac's own.
+                if let source = p.source {
+                    if !p.forecasts.isEmpty { out.append(ProviderSnapshot(id: p.id, fetchedAt: p.fetchedAt, status: .ok, forecasts: p.forecasts, source: source)) }
+                    continue
+                }
                 if case .notConfigured = p.status { continue }
                 var copy = p
                 copy.account?.label = nil
@@ -165,7 +196,7 @@ public enum GatewayReport {
     }
 
     public static func body(_ providers: [ProviderSnapshot]) -> Data {
-        struct Body: Encodable { var providers: [ProviderSnapshot] }
+        struct Body: Encodable { var providers: [ProviderSnapshot]; var source = "mac" }
         return (try? JSON.encoder.encode(Body(providers: providers))) ?? Data("{\"providers\":[]}".utf8)
     }
 }

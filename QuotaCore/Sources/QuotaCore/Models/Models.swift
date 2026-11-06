@@ -320,10 +320,13 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
     public var forecasts: [String: Forecast]
     /// Last time this provider was fetched successfully (survives errors).
     public var lastSuccessAt: Date?
+    /// Who took this reading, set only by the gateway hub: `reader` (phm), `gateway` (the Worker), `mac` (this app's own report coming back).
+    /// nil is a reading this app took itself.
+    public var source: String?
 
     public init(id: ProviderID, fetchedAt: Date, status: ProviderStatus = .ok, account: AccountInfo? = nil,
                 windows: [UsageWindow] = [], balance: Balance? = nil, extraUsage: ExtraUsage? = nil,
-                forecasts: [String: Forecast] = [:], lastSuccessAt: Date? = nil) {
+                forecasts: [String: Forecast] = [:], lastSuccessAt: Date? = nil, source: String? = nil) {
         self.id = id
         self.fetchedAt = fetchedAt
         self.status = status
@@ -333,6 +336,7 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
         self.extraUsage = extraUsage
         self.forecasts = forecasts
         self.lastSuccessAt = lastSuccessAt ?? (status.isOK ? fetchedAt : nil)
+        self.source = source
     }
 
     /// The window that is closest to running out (highest utilization), used for the menu bar label.

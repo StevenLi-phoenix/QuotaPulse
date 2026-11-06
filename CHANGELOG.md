@@ -9,11 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Gateway hub: with `gateway.json` in the group container (`{baseURL, token}`, 0600), the Mac reads OpenCode and DeepSeek from `https://llm.lishuyu.app/llm/hub/v1/snapshot` (one request per refresh) instead of using their upstream keys, and reports Claude, Codex, GLM readings plus OpenCode and DeepSeek forecasts to `POST /v1/report`.
 - With a gateway link, DeepSeek and OpenCode are switched on once (later toggles are kept) and Settings says "Provided by your gateway" instead of asking for a key; report failures only log and cool down for 5 minutes.
 - iPhone pairing defaults to the gateway (`https://llm.lishuyu.app/llm/hub`, name `llmgateway`).
+- With a gateway link, Claude, Codex and GLM use the gateway's reading while it is good and under 30 minutes old (phm reads Claude and Codex with logins of its own, the Worker reads GLM), and read locally otherwise. So the Mac's credentials are the automatic fallback, and these readings no longer need the Mac.
+- GLM is switched on once when the gateway starts reading it (later toggles are kept); Settings says the gateway's reading comes first.
 
 ### Changed
 - `HubClient` keeps the path of the hub URL (`…/llm/hub` + `/v1/snapshot`), so a hub behind a path prefix works; plain `http://host:48422` is unchanged.
 - Device log upload is skipped for a hub behind a path prefix (the gateway has no telemetry route) instead of failing on every refresh.
 - Removing `gateway.json` restores the old behaviour: upstream keys, `opencode/auth.json`, nothing reported.
+- Reports to the gateway say `source: "mac"`, and a reading the gateway gave this Mac goes back as forecasts alone.
 
 ## [0.3.1] - 2026-11-06
 

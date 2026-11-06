@@ -132,6 +132,16 @@ public actor QuotaEngine {
             for await r in group { if let r { results.append(r) } }
         }
 
+        // The gateway started reading GLM: show it, once. A provider that is off is never fetched, so this is the only place that can notice.
+        if let gateway, !settings.gatewayZaiSeeded, !settings.isEnabled(.zai),
+           await gateway.reading(.zai, transport: transport, now: now) != nil {
+            update {
+                $0.providers[.zai, default: ProviderSettings(enabled: true)].enabled = true
+                $0.gatewayZaiSeeded = true
+            }
+            QPLog.engine.notice("gateway reads GLM: enabled")
+        }
+
         // Merge: providers that were skipped keep their previous snapshot; failures keep last-good data.
         var merged: [ProviderSnapshot] = []
         var newSamples: [Sample] = []
@@ -198,7 +208,7 @@ public actor QuotaEngine {
         return snap
     }
 
-    /// Sends the Mac-only readings to the gateway. Failures are logged and cool down; the UI never sees them.
+    /// Sends the readings this Mac took, and its forecasts, to the gateway. Failures are logged and cool down; the UI never sees them.
     private func report(_ merged: [ProviderSnapshot], to config: GatewayConfig, now: Date) async {
         if let until = reportBlockedUntil, now < until {
             QPLog.hub.debug("gateway report skipped: cooling down")

@@ -39,7 +39,8 @@ public struct FetchContext: Sendable {
     public var now: Date
     /// Per-provider options from settings (e.g. "allowRefresh").
     public var options: [String: String]
-    /// Set when `gateway.json` exists: OpenCode and DeepSeek are read from the gateway instead of upstream.
+    /// Set when `gateway.json` exists: OpenCode and DeepSeek are read from the gateway instead of upstream, and Claude, Codex and GLM
+    /// use the gateway's reading while it is good and fresh, reading upstream only when it is not.
     public var gateway: GatewayLink?
 
     public init(transport: any HTTPTransport = URLSessionTransport(), secrets: any SecretStore,

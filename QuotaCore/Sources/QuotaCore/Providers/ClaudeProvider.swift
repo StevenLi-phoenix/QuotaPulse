@@ -16,6 +16,7 @@ public struct ClaudeProvider: UsageProvider {
     }
 
     public func fetch(_ ctx: FetchContext) async throws -> ProviderSnapshot {
+        if let reading = await ctx.gateway?.reading(.claude, transport: ctx.transport, now: ctx.now) { return reading }
         let record = try await credentials.load()
         var creds = record.credentials
         if creds.isExpired(now: ctx.now) {

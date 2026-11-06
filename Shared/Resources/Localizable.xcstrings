@@ -461,6 +461,16 @@
         }
       }
     },
+    "Gateway": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网关"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "zh-Hans": {
@@ -1447,6 +1457,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mac 把数据发布到你私有的 iCloud 数据库，这台设备在任何地方都能读取。如果一直没有数据，请核对这里的账号标识是否与 Mac 上显示的一致。"
+          }
+        }
+      }
+    },
+    "Your gateway's reading is used while it is fresh. The credentials below are the fallback.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网关的读数在新鲜时优先使用，下面的凭据用作回退。"
           }
         }
       }
