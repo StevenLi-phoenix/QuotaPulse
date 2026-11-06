@@ -16,7 +16,7 @@ settings:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
     DEVELOPMENT_TEAM: 88U7V98QAC
-    MARKETING_VERSION: 0.2.1
+    MARKETING_VERSION: 0.3.0
     CURRENT_PROJECT_VERSION: 1
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
@@ -28,6 +28,10 @@ settingGroups:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Apple Development"
     PROVISIONING_PROFILE_SPECIFIER: ""
+    ENABLE_HARDENED_RUNTIME: NO
+  macAppSigning:
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "Apple Development"
     ENABLE_HARDENED_RUNTIME: NO
   simSigning:
     CODE_SIGN_STYLE: Automatic
@@ -49,7 +53,7 @@ targets:
       - package: QuotaUI
       - target: QuotaPulseWidget
     settings:
-      groups: [macSigning]
+      groups: [macAppSigning]
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lishuyu.quotapulse
         PRODUCT_NAME: QuotaPulse
@@ -61,6 +65,8 @@ targets:
       path: macOS/App/QuotaPulse.entitlements
       properties:
         com.apple.security.application-groups: [88U7V98QAC.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
     info:
       path: macOS/App/Info.plist
       properties:
@@ -131,7 +137,7 @@ targets:
       path: iOS/App/Info.plist
       properties:
         CFBundleDisplayName: QuotaPulse
-        UIBackgroundModes: [fetch]
+        UIBackgroundModes: [fetch, remote-notification]
         BGTaskSchedulerPermittedIdentifiers: [app.lishuyu.quotapulse.refresh]
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
@@ -149,6 +155,9 @@ targets:
       path: iOS/App/QuotaPulse.entitlements
       properties:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+        aps-environment: development
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
   QuotaPulseWidget-iOS:
     type: app-extension
     platform: iOS
@@ -174,6 +183,8 @@ targets:
       path: iOS/Widget/QuotaPulseWidget.entitlements
       properties:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
   QuotaPulseUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -219,6 +230,8 @@ targets:
       path: watchOS/App/QuotaPulseWatch.entitlements
       properties:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
   QuotaPulseWidget-watchOS:
     type: app-extension
     platform: watchOS
@@ -243,6 +256,8 @@ targets:
       path: watchOS/Widget/QuotaPulseWatchWidget.entitlements
       properties:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
 schemes:
   QuotaPulse-macOS:
     build:
