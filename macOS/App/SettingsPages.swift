@@ -97,8 +97,10 @@ struct HubPage: View {
 
     var body: some View {
         Form {
+            CloudSyncSection()
+
             Section {
-                Toggle(L("Serve usage to iPhone & Apple Watch"), isOn: Binding(get: { model.settings.hub.enabled }, set: { model.setHub(enabled: $0) }))
+                Toggle(L("Serve usage over the network"), isOn: Binding(get: { model.settings.hub.enabled }, set: { model.setHub(enabled: $0) }))
                 Toggle(L("Reachable from other devices (Tailscale / LAN)"), isOn: Binding(get: { model.settings.hub.exposeOnNetwork }, set: { model.setHub(expose: $0) }))
                     .disabled(!model.settings.hub.enabled)
                 HStack {
@@ -110,7 +112,7 @@ struct HubPage: View {
                         .foregroundStyle(model.hubState.hasPrefix("listening") ? .green : .secondary).font(.caption)
                 }
             } header: { Text(L("Hub server")) } footer: {
-                Text(L("This Mac polls the providers; your other devices only read JSON from it over an authenticated local HTTP endpoint. No cloud, no Apple paid services."))
+                Text(L("Optional direct link for paired devices and local scripts: authenticated JSON over HTTP on your network. It also receives device logs. iPhone and Apple Watch don't need it while iCloud sync is on."))
             }
 
             if model.settings.hub.enabled, let token = model.hubToken {
@@ -138,7 +140,7 @@ struct HubPage: View {
                         }
                         .padding(.vertical, 6)
                     }
-                } header: { Text(L("Pair a device")) }
+                } header: { Text(L("Pair a device (optional)")) }
 
                 Section {
                     if model.devices.isEmpty {
@@ -186,6 +188,42 @@ struct HubPage: View {
         .formStyle(.grouped)
         .onAppear { portDraft = String(model.settings.hub.port); selectedHost = model.hubAddresses.first ?? "127.0.0.1"; model.reloadDevices() }
         .onChange(of: model.ticker.now) { _, _ in model.reloadDevices() }
+    }
+}
+
+struct CloudSyncSection: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Section {
+            Toggle(L("Sync to iCloud"), isOn: Binding(get: { model.settings.cloud.enabled }, set: { model.setCloudSync(enabled: $0) }))
+                .disabled(!model.cloudAvailable)
+            if !model.cloudAvailable {
+                Label(Present.cloudAccountText(.notEntitled), systemImage: "xmark.icloud").font(.caption).foregroundStyle(.secondary)
+            } else if model.settings.cloud.enabled {
+                LabeledContent(L("Status")) { status }
+                if let id = model.cloudStatus.accountID {
+                    LabeledContent(L("iCloud account ID")) { Text(id).font(.caption.monospaced()).textSelection(.enabled) }
+                }
+            } else {
+                Button(L("Remove QuotaPulse data from iCloud"), role: .destructive) { model.removeCloudData() }
+            }
+        } header: { Text(L("iCloud")) } footer: {
+            Text(L("Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers and plan names go to your private iCloud database. API keys and tokens never leave this Mac."))
+        }
+    }
+
+    @ViewBuilder private var status: some View {
+        let s = model.cloudStatus
+        if s.account != .available && s.account != .unknown {
+            Label(Present.cloudAccountText(s.account), systemImage: "exclamationmark.icloud").foregroundStyle(UsageLevel.hot.color)
+        } else if let e = s.lastError {
+            Label(e, systemImage: "exclamationmark.icloud").foregroundStyle(UsageLevel.hot.color).lineLimit(2)
+        } else if let t = s.lastPublishedAt {
+            Label(Present.updatedText(t, now: model.ticker.now), systemImage: "checkmark.icloud").foregroundStyle(.secondary)
+        } else {
+            Label(L("Waiting for first refresh…"), systemImage: "icloud").foregroundStyle(.secondary)
+        }
     }
 }
 

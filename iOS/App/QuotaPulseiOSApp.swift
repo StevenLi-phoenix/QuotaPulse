@@ -6,6 +6,7 @@ import WidgetKit
 
 @main
 struct QuotaPulseiOSApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = ClientModel()
     @Environment(\.scenePhase) private var phase
 
@@ -28,6 +29,28 @@ struct QuotaPulseiOSApp: App {
     }
 }
 
+/// Registers for the silent pushes iCloud sends when the Mac publishes.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        application.registerForRemoteNotifications()
+        return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        ClientModel.current?.logger.info("cloud", "push.registered")
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        ClientModel.current?.logger.error("cloud", "push.registration.failed", ["error": error.localizedDescription])
+    }
+
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+        guard CloudKitRecordStore.isChangeNotification(userInfo), let model = ClientModel.current else { return .noData }
+        model.logger.info("cloud", "push.received")
+        return await model.refresh(reason: "push") ? .newData : .failed
+    }
+}
+
 struct RootView: View {
     @Environment(ClientModel.self) private var model
     @State private var path = NavigationPath()
@@ -35,13 +58,7 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            Group {
-                if model.pairing == nil {
-                    PairView()
-                } else {
-                    HomeView()
-                }
-            }
+            HomeView()
         }
         .tint(Color(hex: 0xD97757))
         .sheet(isPresented: $showSettings) { NavigationStack { SettingsView() } }

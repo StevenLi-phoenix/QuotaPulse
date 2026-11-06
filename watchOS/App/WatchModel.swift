@@ -5,7 +5,7 @@ import WatchConnectivity
 import WatchKit
 import WidgetKit
 
-/// Watch side: receives snapshots from the iPhone, or fetches straight from the hub when it can.
+/// Watch side: reads iCloud, falls back to a paired hub, then to whatever the iPhone has.
 @MainActor @Observable
 final class WatchModel: NSObject {
     private(set) var snapshot: QuotaSnapshot
@@ -13,11 +13,13 @@ final class WatchModel: NSObject {
     private(set) var isRefreshing = false
     private(set) var lastError: String?
     private(set) var source = ""
+    private(set) var cloudAccount: CloudAccountState = .unknown
     let ticker = Ticker(interval: .seconds(20))
     let logger: FileLogger
 
     private let location = DataLocation.standard()
     private let defaults = UserDefaults(suiteName: DataLocation.appGroupID) ?? .standard
+    private let cloud = CloudKitRecordStore.standard().map(CloudReader.init(store:))
     private var session: WCSession?
 
     override init() {
@@ -49,15 +51,16 @@ final class WatchModel: NSObject {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
-        // 1. Direct hub fetch (works when the watch has Wi-Fi/cellular on the same network or tailnet).
-        if let pairing {
-            do {
-                let snap = try await HubClient(pairing: pairing).snapshot()
-                store(snap, source: "hub")
-                return
-            } catch {
-                lastError = error.localizedDescription
-            }
+        // 1. iCloud, then the hub when one is paired and iCloud has nothing recent.
+        let started = Date()
+        let result = await SnapshotFetcher(cloud: cloud, hub: pairing.map { HubClient(pairing: $0) }).fetch()
+        cloudAccount = result.account
+        lastError = result.userError
+        logger.info("sync", result.snapshot == nil ? "fetch.empty" : "fetch.ok", ["ms": "\(Int(Date().timeIntervalSince(started) * 1000))", "source": result.source?.rawValue ?? "-", "account": result.account.rawValue])
+        if let e = result.cloudError { logger.error("cloud", "fetch.failed", ["error": e]) }
+        if let snap = result.snapshot, let origin = result.source {
+            if snap.generatedAt >= snapshot.generatedAt { store(snap, source: origin.rawValue) }
+            return
         }
         // 2. Ask the phone.
         guard let session, session.activationState == .activated, session.isReachable else { return }

@@ -158,6 +158,17 @@ public enum Present {
         return String(localized: "Updated \(date.formatted(date: .abbreviated, time: .shortened))", bundle: .module)
     }
 
+    public static func cloudAccountText(_ state: CloudAccountState) -> String {
+        switch state {
+        case .unknown: L("Checking iCloud…")
+        case .available: L("Connected")
+        case .noAccount: L("Not signed in to iCloud")
+        case .restricted: L("iCloud is restricted on this device")
+        case .temporarilyUnavailable: L("iCloud is temporarily unavailable")
+        case .notEntitled: L("This build isn't signed for iCloud")
+        }
+    }
+
     public static func statusTitle(_ status: ProviderStatus) -> String {
         switch status {
         case .ok: L("OK")

@@ -261,6 +261,26 @@
         }
       }
     },
+    "Connect directly to your Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接连接到 Mac"
+          }
+        }
+      }
+    },
+    "Connect to your Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接到你的 Mac"
+          }
+        }
+      }
+    },
     "Copy pairing link": {
       "localizations": {
         "zh-Hans": {
@@ -317,6 +337,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "诊断"
+          }
+        }
+      }
+    },
+    "Direct connection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接连接"
           }
         }
       }
@@ -471,16 +501,6 @@
         }
       }
     },
-    "Hub": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hub"
-          }
-        }
-      }
-    },
     "Hub & Devices": {
       "localizations": {
         "zh-Hans": {
@@ -521,12 +541,12 @@
         }
       }
     },
-    "JSON Lines logs live in Files → QuotaPulse → Logs and are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics.": {
+    "JSON Lines logs live in Files → QuotaPulse → Logs. With a direct connection they are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "JSON Lines 日志在“文件”→ QuotaPulse → Logs，并会推送到你的 Mac（Hub 与设备 → 设备）。MetricKit 的崩溃/卡顿报告保存在 Diagnostics 下。"
+            "value": "JSON Lines 日志位于“文件”→ QuotaPulse → Logs。建立直接连接后还会推送到 Mac（Hub 与设备 → 设备）。MetricKit 的崩溃和卡顿报告保存在 Diagnostics 下。"
           }
         }
       }
@@ -547,6 +567,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "最近心跳 \\(heartbeat) · \\(d.eventCount) 条事件"
+          }
+        }
+      }
+    },
+    "Last update": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近更新"
           }
         }
       }
@@ -741,16 +771,6 @@
         }
       }
     },
-    "Open QuotaPulse on the Mac → Hub & Devices, then scan the QR code or type the address and token below. Data travels directly between your devices.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在 Mac 上打开 QuotaPulse → Hub 与设备，然后扫描二维码，或在下方填写地址和 token。数据只在你的设备之间直接传输。"
-          }
-        }
-      }
-    },
     "Open QuotaPulse…": {
       "localizations": {
         "zh-Hans": {
@@ -767,6 +787,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开该供应商的用量面板"
+          }
+        }
+      }
+    },
+    "Optional direct link for paired devices and local scripts: authenticated JSON over HTTP on your network. It also receives device logs. iPhone and Apple Watch don't need it while iCloud sync is on.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选的直连通道，供已配对设备和本地脚本使用：在你的网络内通过 HTTP 提供带鉴权的 JSON，同时接收设备日志。开启 iCloud 同步后，iPhone 和 Apple Watch 不需要它。"
+          }
+        }
+      }
+    },
+    "Optional while iCloud works. A direct link uses your network or Tailscale and also sends this device's logs to your Mac. Open QuotaPulse on the Mac → Hub & Devices, then scan the QR code or type the address and token below.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 正常时可不配置。直连使用局域网或 Tailscale，并会把这台设备的日志发送到 Mac。在 Mac 上打开 QuotaPulse → Hub 与设备，然后扫描二维码，或在下方输入地址和令牌。"
+          }
+        }
+      }
+    },
+    "Optional. Works without iCloud over your network or Tailscale, and sends this device's logs to your Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选。无需 iCloud，通过局域网或 Tailscale 工作，并会把这台设备的日志发送到 Mac。"
           }
         }
       }
@@ -791,32 +841,12 @@
         }
       }
     },
-    "Pair a device": {
+    "Pair a device (optional)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "配对设备"
-          }
-        }
-      }
-    },
-    "Pair on your iPhone first": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请先在 iPhone 上完成配对"
-          }
-        }
-      }
-    },
-    "Pair with your Mac": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "与你的 Mac 配对"
+            "value": "配对设备（可选）"
           }
         }
       }
@@ -871,6 +901,16 @@
         }
       }
     },
+    "Publishing Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发布数据的 Mac"
+          }
+        }
+      }
+    },
     "Push to Apple Watch now": {
       "localizations": {
         "zh-Hans": {
@@ -887,6 +927,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "退出 QuotaPulse"
+          }
+        }
+      }
+    },
+    "QuotaPulse gets your numbers from your Mac through iCloud. Sign in to the same account as your Mac, or connect to it directly.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QuotaPulse 通过 iCloud 从你的 Mac 获取数字。请登录与 Mac 相同的账号，或直接连接到 Mac。"
           }
         }
       }
@@ -1011,6 +1061,16 @@
         }
       }
     },
+    "Remove QuotaPulse data from iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从 iCloud 移除 QuotaPulse 数据"
+          }
+        }
+      }
+    },
     "Remove key": {
       "localizations": {
         "zh-Hans": {
@@ -1071,6 +1131,16 @@
         }
       }
     },
+    "Run QuotaPulse on a Mac signed in to this iCloud account. Your numbers appear here as soon as it publishes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在登录了同一 iCloud 账号的 Mac 上运行 QuotaPulse。它一发布，数字就会出现在这里。"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "zh-Hans": {
@@ -1121,12 +1191,12 @@
         }
       }
     },
-    "Serve usage to iPhone & Apple Watch": {
+    "Serve usage over the network": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "向 iPhone 和 Apple Watch 提供用量"
+            "value": "通过网络提供用量数据"
           }
         }
       }
@@ -1171,6 +1241,36 @@
         }
       }
     },
+    "Sign in to iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请登录 iCloud"
+          }
+        }
+      }
+    },
+    "Sign in to the same iCloud account as your Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请登录与 Mac 相同的 iCloud 账号。"
+          }
+        }
+      }
+    },
+    "Status": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态"
+          }
+        }
+      }
+    },
     "Stored samples": {
       "localizations": {
         "zh-Hans": {
@@ -1181,22 +1281,22 @@
         }
       }
     },
+    "Sync to iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步到 iCloud"
+          }
+        }
+      }
+    },
     "That QR code isn't a QuotaPulse pairing code.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "这不是 QuotaPulse 的配对二维码。"
-          }
-        }
-      }
-    },
-    "This Mac polls the providers; your other devices only read JSON from it over an authenticated local HTTP endpoint. No cloud, no Apple paid services.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "由这台 Mac 轮询各供应商；其他设备只通过带鉴权的本地 HTTP 接口读取 JSON。不经云端，不依赖 Apple 付费服务。"
           }
         }
       }
@@ -1271,12 +1371,12 @@
         }
       }
     },
-    "Waiting for the hub": {
+    "Waiting for your Mac": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "等待 Hub"
+            "value": "正在等待你的 Mac"
           }
         }
       }
@@ -1291,12 +1391,12 @@
         }
       }
     },
-    "Widgets read the last snapshot from the shared container and refresh in the background about every 15 minutes. The watch receives data from this iPhone and can also reach the hub directly.": {
+    "Widgets refresh from iCloud about every 15 minutes, or sooner when your Mac publishes. The watch reads iCloud too, and this iPhone also forwards data to it.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "小组件从共享容器读取最新快照，并大约每 15 分钟在后台刷新。手表从这台 iPhone 接收数据，也可以直接访问 Hub。"
+            "value": "小组件大约每 15 分钟从 iCloud 刷新一次，Mac 发布时可能更快。手表同样读取 iCloud，这台 iPhone 也会把数据转发给它。"
           }
         }
       }
@@ -1311,22 +1411,52 @@
         }
       }
     },
-    "Your Mac hasn't published a snapshot yet. Make sure QuotaPulse is running there.": {
+    "You can still connect directly to your Mac over your network or Tailscale.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你的 Mac 还没有发布快照。请确认那边的 QuotaPulse 正在运行。"
+            "value": "你仍可通过局域网或 Tailscale 直接连接到 Mac。"
           }
         }
       }
     },
-    "\\(Int($0.rounded())) days": {
+    "Your Mac hasn't published anything recently. Check that QuotaPulse is running there and has internet access.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(Int($0.rounded())) 天"
+            "value": "你的 Mac 最近没有发布新数据。请确认那边的 QuotaPulse 正在运行且能联网。"
+          }
+        }
+      }
+    },
+    "Your Mac publishes to your private iCloud database and this device reads it from anywhere. If nothing arrives, compare the account ID with the one shown on your Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 把数据发布到你私有的 iCloud 数据库，这台设备在任何地方都能读取。如果一直没有数据，请核对这里的账号标识是否与 Mac 上显示的一致。"
+          }
+        }
+      }
+    },
+    "Your iPhone and Apple Watch get these numbers from anywhere once they're signed in to the same iCloud account, with nothing to pair. Only usage numbers and plan names go to your private iCloud database. API keys and tokens never leave this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 和 Apple Watch 登录同一 iCloud 账号后，无需配对，在任何地方都能看到这些数字。写入你私有 iCloud 数据库的只有用量数字和套餐名称，API key 和 token 绝不会离开这台 Mac。"
+          }
+        }
+      }
+    },
+    "\\(QuotaFormat.wholeDays($0)) days": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(QuotaFormat.wholeDays($0)) 天"
           }
         }
       }
@@ -1337,6 +1467,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "\\(u.count) 行 · \\(u.at.formatted(date: .omitted, time: .shortened))"
+          }
+        }
+      }
+    },
+    "iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud"
+          }
+        }
+      }
+    },
+    "iCloud account ID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 账号标识"
           }
         }
       }

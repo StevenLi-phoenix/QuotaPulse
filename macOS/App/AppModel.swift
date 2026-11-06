@@ -15,6 +15,7 @@ final class AppModel {
     private(set) var histories: [ProviderID: [Sample]] = [:]
     private(set) var sparklines: [ProviderID: [Double]] = [:]
     private(set) var hubState = "stopped"
+    private(set) var cloudStatus = CloudPublishStatus()
     private(set) var pairing: HubPairing?
     private(set) var hubAddresses: [String] = []
     private(set) var apiKeyPresence: [ProviderID: Bool] = [:]
@@ -48,6 +49,7 @@ final class AppModel {
 
     let ticker = Ticker(interval: .seconds(20))
     private let engine: QuotaEngine
+    private let cloud: CloudPublisher?
     private let secrets: any SecretStore
     private let location: DataLocation
     private var hub: HubServer?
@@ -59,7 +61,11 @@ final class AppModel {
         let secrets = KeychainSecretStore()
         self.location = location
         self.secrets = secrets
-        self.engine = QuotaEngine(location: location, secrets: secrets, hubName: Host.current().localizedName ?? "Mac")
+        let engine = QuotaEngine(location: location, secrets: secrets, hubName: Host.current().localizedName ?? "Mac")
+        self.engine = engine
+        self.cloud = CloudKitRecordStore.standard().map { store in
+            CloudPublisher(store: store, history: { provider, since in await engine.rawHistory(provider: provider, since: since) })
+        }
         Task { await bootstrap() }
     }
 
@@ -81,6 +87,12 @@ final class AppModel {
         WidgetCenter.shared.reloadAllTimelines()
         Task { await reloadHistories() }
         evaluateAlerts(snap)
+        publishToCloud(snap)
+    }
+
+    private func publishToCloud(_ snap: QuotaSnapshot, force: Bool = false) {
+        guard settings.cloud.enabled, let cloud else { return }
+        Task { cloudStatus = await cloud.publish(snap, force: force) }
     }
 
     func reloadHistories() async {
@@ -158,7 +170,32 @@ final class AppModel {
     }
 
     func clearHistory() {
-        Task { await engine.clearHistory(); await reloadHistories() }
+        Task {
+            await engine.clearHistory()
+            await reloadHistories()
+            publishToCloud(snapshot, force: true) // deleted history must leave iCloud too
+        }
+    }
+
+    // MARK: iCloud
+
+    /// False in builds without the iCloud entitlement (unsigned dev builds).
+    var cloudAvailable: Bool { cloud != nil }
+
+    func setCloudSync(enabled: Bool) {
+        Task {
+            await engine.update { $0.cloud.enabled = enabled }
+            settings = await engine.settings
+            if enabled { publishToCloud(snapshot, force: true) }
+        }
+    }
+
+    func removeCloudData() {
+        guard let cloud else { return }
+        Task {
+            try? await cloud.removeAll()
+            cloudStatus = await cloud.status
+        }
     }
 
     func setLaunchAtLogin(_ on: Bool) {

@@ -61,6 +61,26 @@
         }
       }
     },
+    "Checking iCloud…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在检查 iCloud…"
+          }
+        }
+      }
+    },
+    "Connected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接"
+          }
+        }
+      }
+    },
     "Early estimate: 100% around \\(resetClock(ex)) (\\(QuotaFormat.rate(f.rate)))": {
       "localizations": {
         "zh-Hans": {
@@ -207,6 +227,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "未配置"
+          }
+        }
+      }
+    },
+    "Not signed in to iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未登录 iCloud"
           }
         }
       }
@@ -361,6 +391,16 @@
         }
       }
     },
+    "This build isn't signed for iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此版本未启用 iCloud 签名"
+          }
+        }
+      }
+    },
     "Unreadable data": {
       "localizations": {
         "zh-Hans": {
@@ -411,12 +451,12 @@
         }
       }
     },
-    "\\(perDay)/day — about \\(Int(days.rounded())) days left": {
+    "\\(perDay)/day — about \\(QuotaFormat.wholeDays(days)) days left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(perDay)/天 —— 约可用 \\(Int(days.rounded())) 天"
+            "value": "\\(perDay)/天 —— 约可用 \\(QuotaFormat.wholeDays(days)) 天"
           }
         }
       }
@@ -461,6 +501,26 @@
         }
       }
     },
+    "iCloud is restricted on this device": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台设备的 iCloud 受限"
+          }
+        }
+      }
+    },
+    "iCloud is temporarily unavailable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 暂时不可用"
+          }
+        }
+      }
+    },
     "n/a": {
       "localizations": {
         "zh-Hans": {
@@ -481,22 +541,22 @@
         }
       }
     },
-    "~\\(Int(d.rounded()))d": {
+    "~\\(QuotaFormat.wholeDays(d))d": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(Int(d.rounded())) 天"
+            "value": "约 \\(QuotaFormat.wholeDays(d)) 天"
           }
         }
       }
     },
-    "~\\(Int(d.rounded()))d left": {
+    "~\\(QuotaFormat.wholeDays(d))d left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约剩 \\(Int(d.rounded())) 天"
+            "value": "约剩 \\(QuotaFormat.wholeDays(d)) 天"
           }
         }
       }

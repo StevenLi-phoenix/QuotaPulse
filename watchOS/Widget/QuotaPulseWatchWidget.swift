@@ -16,7 +16,12 @@ struct Provider: TimelineProvider {
         completion(Entry(date: .now, snapshot: s.providers.isEmpty ? .placeholder : s))
     }
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-        completion(Timeline(entries: [Entry(date: .now, snapshot: load())], policy: .after(.now.addingTimeInterval(15 * 60))))
+        let done = UncheckedBox(value: completion)
+        Task {
+            let snapshot = await CloudSnapshotRefresh.latest(store: SnapshotStore(url: DataLocation.standard().snapshotURL),
+                                                             reader: CloudKitRecordStore.standard().map(CloudReader.init(store:)))
+            done.value(Timeline(entries: [Entry(date: .now, snapshot: snapshot)], policy: .after(.now.addingTimeInterval(15 * 60))))
+        }
     }
 }
 

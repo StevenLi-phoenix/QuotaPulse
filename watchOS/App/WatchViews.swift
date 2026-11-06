@@ -10,8 +10,10 @@ struct WatchHomeView: View {
         List {
             if model.snapshot.providers.isEmpty {
                 VStack(spacing: 8) {
-                    Image(systemName: "iphone.and.arrow.forward").font(.title2).foregroundStyle(.secondary)
-                    Text(L("Pair on your iPhone first")).font(.footnote).multilineTextAlignment(.center)
+                    Image(systemName: "icloud").font(.title2).foregroundStyle(.secondary)
+                    Text(L("Waiting for your Mac")).font(.footnote).multilineTextAlignment(.center)
+                    Text(model.cloudAccount == .noAccount ? Present.cloudAccountText(.noAccount) : L("Sign in to the same iCloud account as your Mac."))
+                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)

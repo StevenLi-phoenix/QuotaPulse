@@ -6,20 +6,21 @@ import WatchConnectivity
 import WidgetKit
 import os
 
-/// Carries non-Sendable framework objects (BGTask, reply handlers) across an actor hop we control.
-struct UncheckedBox<T>: @unchecked Sendable { let value: T }
-
-/// iPhone side: holds the hub pairing, polls the hub, caches for widgets and forwards to the watch.
+/// iPhone side: reads iCloud (or a paired hub), caches for widgets and forwards to the watch.
 @MainActor @Observable
 final class ClientModel: NSObject {
     static let refreshTaskID = "app.lishuyu.quotapulse.refresh"
     static let pairingKey = "hub.pairing.v1"
+    /// Push and background handlers have no SwiftUI environment to find the model through.
+    private(set) static weak var current: ClientModel?
 
     private(set) var snapshot: QuotaSnapshot
     private(set) var pairing: HubPairing?
     private(set) var isRefreshing = false
     private(set) var lastError: String?
-    private(set) var lastSuccessAt: Date?
+    private(set) var source: SnapshotSource?
+    private(set) var cloudAccount: CloudAccountState = .unknown
+    private(set) var cloudAccountID: String?
     private(set) var histories: [ProviderID: [Sample]] = [:]
     private(set) var sparklines: [ProviderID: [Double]] = [:]
     private(set) var lastTelemetryUpload: (at: Date, count: Int, error: String?)?
@@ -30,6 +31,10 @@ final class ClientModel: NSObject {
     private let location = DataLocation.standard()
     private let secrets = KeychainSecretStore()
     private let defaults = UserDefaults(suiteName: DataLocation.appGroupID) ?? .standard
+    private let cloud = CloudKitRecordStore.standard().map(CloudReader.init(store:))
+    private var cloudPrepared = false
+    private var historiesFetchedAt: Date?
+    private var inFlight: Task<Bool, Never>?
     private var session: WCSession?
 
     override init() {
@@ -37,6 +42,7 @@ final class ClientModel: NSObject {
         let identity = DeviceIdentityFactory.current(platform: "iOS")
         logger = FileLogger(directory: DiagnosticsPaths.logs, identity: identity)
         super.init()
+        Self.current = self
         diagnostics = DiagnosticsCollector(logger: logger)
         logger.notice("app", "launch", ["device": identity.name, "version": identity.appVersion])
         pairing = Self.loadPairing(defaults: defaults, secrets: secrets)
@@ -83,9 +89,14 @@ final class ClientModel: NSObject {
         defaults.removeObject(forKey: Self.pairingKey)
         try? secrets.set(nil, for: SecretKey.pairedHubToken)
         pairing = nil
-        snapshot = .empty
-        try? SnapshotStore(url: location.snapshotURL).save(.empty)
-        WidgetCenter.shared.reloadAllTimelines()
+        if cloudAccount != .available {
+            // The hub was the only source: don't keep showing its numbers.
+            snapshot = .empty
+            source = nil
+            try? SnapshotStore(url: location.snapshotURL).save(.empty)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+        Task { await refresh(reason: "unpaired") }
     }
 
     func handle(url: URL) {
@@ -106,34 +117,64 @@ final class ClientModel: NSObject {
 
     // MARK: Refresh
 
-    func refresh(reason: String) async {
-        guard let pairing, !isRefreshing else { return }
+    /// Concurrent callers join the refresh in flight: a background launch must not finish while launch's own fetch runs.
+    @discardableResult
+    func refresh(reason: String) async -> Bool {
+        if let inFlight { return await inFlight.value }
+        let task = Task { await performRefresh(reason: reason) }
+        inFlight = task
+        let ok = await task.value
+        inFlight = nil
+        return ok
+    }
+
+    private func performRefresh(reason: String) async -> Bool {
         isRefreshing = true
         defer { isRefreshing = false }
-        let client = HubClient(pairing: pairing)
+        let hub = pairing.map { HubClient(pairing: $0) }
         let started = Date()
-        do {
-            let snap = try await client.snapshot()
-            let ms = Int(Date().timeIntervalSince(started) * 1000)
+        let result = await SnapshotFetcher(cloud: cloud, hub: hub).fetch()
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+        cloudAccount = result.account
+        lastError = result.userError
+        if result.account == .available { Task { await prepareCloud() } }
+        if let e = result.cloudError { logger.error("cloud", "fetch.failed", ["reason": reason, "ms": "\(ms)", "error": e]) }
+        if let e = result.hubError { logger.error("hub", "fetch.failed", ["reason": reason, "ms": "\(ms)", "error": e]) }
+        // Telemetry only travels over a direct link and must never hold up the numbers.
+        if let hub { Task { await syncTelemetry(client: hub) } }
+        guard let snap = result.snapshot, let origin = result.source else {
+            logger.info("sync", "fetch.empty", ["reason": reason, "ms": "\(ms)", "account": result.account.rawValue])
+            return false
+        }
+        source = origin
+        QPLog.cloud.info("refresh ok (\(reason, privacy: .public)) via \(origin.rawValue, privacy: .public): \(snap.providers.count) providers")
+        logger.info("sync", "fetch.ok", ["reason": reason, "ms": "\(ms)", "source": origin.rawValue, "providers": "\(snap.providers.count)",
+                                         "generatedAt": ISO8601DateFormatter().string(from: snap.generatedAt),
+                                         "statuses": snap.providers.map { "\($0.id.rawValue):\($0.status.shortLabel)" }.joined(separator: ",")])
+        if snap.generatedAt > snapshot.generatedAt {
             snapshot = snap
-            lastSuccessAt = Date()
-            lastError = nil
             try? SnapshotStore(url: location.snapshotURL).save(snap)
             WidgetCenter.shared.reloadAllTimelines()
             logger.info("widget", "reload.requested", ["reason": reason])
             pushToWatch()
-            QPLog.hub.info("refresh ok (\(reason, privacy: .public)): \(snap.providers.count) providers")
-            logger.info("hub", "fetch.ok", ["reason": reason, "ms": "\(ms)", "providers": "\(snap.providers.count)",
-                                           "generatedAt": ISO8601DateFormatter().string(from: snap.generatedAt),
-                                           "statuses": snap.providers.map { "\($0.id.rawValue):\($0.status.shortLabel)" }.joined(separator: ",")])
             logForecasts(snap)
-            await loadSparklines(client: client)
-            await syncTelemetry(client: client)
+        }
+        await loadHistories(from: origin, hub: hub)
+        return true
+    }
+
+    /// Creates the zone and the change subscription once this device has an iCloud account.
+    private func prepareCloud() async {
+        guard let cloud, !cloudPrepared else { return }
+        cloudPrepared = true
+        cloudAccountID = await cloud.accountID()
+        do {
+            try await cloud.store.prepare()
+            try await cloud.store.subscribeToChanges()
+            logger.notice("cloud", "subscribed", ["account": cloudAccountID ?? "?"])
         } catch {
-            let ms = Int(Date().timeIntervalSince(started) * 1000)
-            lastError = error.localizedDescription
-            QPLog.hub.notice("refresh failed (\(reason, privacy: .public)): \(error.localizedDescription, privacy: .public)")
-            logger.error("hub", "fetch.failed", ["reason": reason, "ms": "\(ms)", "error": error.localizedDescription])
+            cloudPrepared = false // try again on the next refresh
+            logger.error("cloud", "subscribe.failed", ["error": error.localizedDescription])
         }
     }
 
@@ -157,23 +198,38 @@ final class ClientModel: NSObject {
 
     var pendingTelemetryLines: Int { logger.pendingLineCount }
 
-    private func loadSparklines(client: HubClient) async {
-        var all: [Sample] = []
-        var h: [ProviderID: [Sample]] = [:]
-        for p in snapshot.providers {
-            if let hist = try? await client.history(p.id, hours: 24) {
-                h[p.id] = hist.samples
-                all += hist.samples
+    private func loadHistories(from origin: SnapshotSource, hub: HubClient?) async {
+        let providers = snapshot.providers.map(\.id)
+        var loaded: [ProviderID: [Sample]] = [:]
+        if origin == .iCloud, let cloud {
+            // The Mac rewrites history at most every 30 minutes; re-reading it on every refresh is wasted work.
+            if let at = historiesFetchedAt, Date().timeIntervalSince(at) < 10 * 60, !histories.isEmpty { return }
+            do { loaded = try await cloud.histories(for: providers) } catch {
+                logger.error("cloud", "history.failed", ["error": error.localizedDescription])
+                return
             }
+            historiesFetchedAt = Date()
+        } else if let hub {
+            for p in providers {
+                if let hist = try? await hub.history(p, hours: 24) { loaded[p] = hist.samples }
+            }
+            historiesFetchedAt = nil
         }
-        logger.info("hub", "history.ok", ["samples": "\(all.count)"])
-        histories = h
-        sparklines = Derive.sparklines(samples: all, snapshot: snapshot)
+        let all = loaded.values.flatMap { $0 }
+        logger.info("sync", "history.ok", ["source": origin.rawValue, "samples": "\(all.count)"])
+        histories = loaded
+        let dayAgo = Date().addingTimeInterval(-24 * 3600)
+        sparklines = Derive.sparklines(samples: all.filter { $0.at >= dayAgo }, snapshot: snapshot)
     }
 
     func history(_ provider: ProviderID, hours: Double) async -> [Sample] {
-        guard let pairing else { return [] }
-        return (try? await HubClient(pairing: pairing).history(provider, hours: hours).samples) ?? []
+        if source == .hub, let pairing, let samples = try? await HubClient(pairing: pairing).history(provider, hours: hours).samples {
+            return samples
+        }
+        let since = Date().addingTimeInterval(-hours * 3600)
+        if source == .iCloud, let cached = histories[provider] { return cached.filter { $0.at >= since } }
+        let fetched = (try? await cloud?.histories(for: [provider]))?[provider] ?? []
+        return fetched.filter { $0.at >= since }
     }
 
     // MARK: Background refresh
@@ -193,30 +249,11 @@ final class ClientModel: NSObject {
     nonisolated static func handleBackgroundRefresh(_ bgTask: BGAppRefreshTask) {
         let boxed = UncheckedBox(value: bgTask)
         let work = Task { @MainActor in
-            let task = boxed.value
-            let location = DataLocation.standard()
-            let logger = FileLogger(directory: DiagnosticsPaths.logs, identity: DeviceIdentityFactory.current(platform: "iOS"))
-            logger.notice("bg", "refresh.run")
-            guard let pairing = loadPairing(defaults: UserDefaults(suiteName: DataLocation.appGroupID) ?? .standard, secrets: KeychainSecretStore()) else {
-                logger.error("bg", "refresh.skipped", ["reason": "not paired"])
-                task.setTaskCompleted(success: false); return
-            }
-            let started = Date()
-            do {
-                let client = HubClient(pairing: pairing)
-                let snap = try await client.snapshot()
-                try? SnapshotStore(url: location.snapshotURL).save(snap)
-                WidgetCenter.shared.reloadAllTimelines()
-                logger.info("bg", "refresh.ok", ["ms": "\(Int(Date().timeIntervalSince(started) * 1000))", "providers": "\(snap.providers.count)"])
-                _ = await client.syncTelemetry(from: logger)
-                task.setTaskCompleted(success: true)
-            } catch {
-                logger.error("bg", "refresh.failed", ["error": error.localizedDescription])
-                task.setTaskCompleted(success: false)
-            }
-            let req = BGAppRefreshTaskRequest(identifier: refreshTaskID)
-            req.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-            try? BGTaskScheduler.shared.submit(req)
+            let model = current ?? ClientModel()
+            model.logger.notice("bg", "refresh.run")
+            let ok = await model.refresh(reason: "background")
+            boxed.value.setTaskCompleted(success: ok)
+            model.scheduleBackgroundRefresh()
         }
         bgTask.expirationHandler = { work.cancel() }
     }

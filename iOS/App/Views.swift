@@ -8,29 +8,28 @@ import SwiftUI
 struct HomeView: View {
     @Environment(ClientModel.self) private var model
     @State private var showSettings = false
+    @State private var showPair = false
 
     var body: some View {
         let now = model.ticker.now
         ScrollView {
             LazyVStack(spacing: 14) {
                 if let err = model.lastError {
-                    Label(err, systemImage: "wifi.exclamationmark")
-                        .font(.caption).foregroundStyle(UsageLevel.hot.color)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(UsageLevel.hot.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                    banner(err, symbol: "wifi.exclamationmark")
+                } else if model.snapshot.isStale(now: now) {
+                    // Unlike a dead hub, a silent Mac produces no error: without this the numbers just quietly age.
+                    banner(L("Your Mac hasn't published anything recently. Check that QuotaPulse is running there and has internet access."), symbol: "clock.badge.exclamationmark")
                 }
-                if model.snapshot.providers.isEmpty {
-                    EmptyStateView(title: L("Waiting for the hub"), message: L("Your Mac hasn't published a snapshot yet. Make sure QuotaPulse is running there."))
-                }
+                if model.snapshot.providers.isEmpty { emptyState }
                 ForEach(model.snapshot.providers) { p in
                     NavigationLink(value: p.id) {
                         ProviderCard(snapshot: p, sparkline: model.sparklines[p.id] ?? [], style: .full, now: now)
                     }
                     .buttonStyle(.plain)
                 }
-                if let t = model.lastSuccessAt {
-                    Text(Present.updatedText(t, now: now)).font(.caption2).foregroundStyle(.tertiary)
+                if model.snapshot.generatedAt != .distantPast {
+                    Text(Present.updatedText(model.snapshot.generatedAt, now: now) + (model.source.map { " · \($0.rawValue)" } ?? ""))
+                        .font(.caption2).foregroundStyle(.tertiary)
                 }
             }
             .padding(16)
@@ -49,6 +48,27 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showSettings) { NavigationStack { SettingsView() } }
+        .sheet(isPresented: $showPair) { NavigationStack { PairView() } }
+    }
+
+    private func banner(_ text: String, symbol: String) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.caption).foregroundStyle(UsageLevel.hot.color)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(UsageLevel.hot.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder private var emptyState: some View {
+        switch model.cloudAccount {
+        case .available, .unknown:
+            EmptyStateView(title: L("Waiting for your Mac"), message: L("Run QuotaPulse on a Mac signed in to this iCloud account. Your numbers appear here as soon as it publishes."), symbol: "icloud")
+        case .noAccount:
+            EmptyStateView(title: L("Sign in to iCloud"), message: L("QuotaPulse gets your numbers from your Mac through iCloud. Sign in to the same account as your Mac, or connect to it directly."), symbol: "person.icloud")
+        case .restricted, .temporarilyUnavailable, .notEntitled:
+            EmptyStateView(title: Present.cloudAccountText(model.cloudAccount), message: L("You can still connect directly to your Mac over your network or Tailscale."), symbol: "xmark.icloud")
+        }
+        Button(L("Connect directly to your Mac")) { showPair = true }.buttonStyle(.bordered)
     }
 }
 
@@ -92,6 +112,7 @@ struct ProviderDetailView: View {
 
 struct PairView: View {
     @Environment(ClientModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
     @State private var urlText = "http://100.64.0.1:48422"
     @State private var token = ""
     @State private var name = "Mac"
@@ -104,8 +125,8 @@ struct PairView: View {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
                     Image(systemName: "gauge.with.dots.needle.33percent").font(.system(size: 40, weight: .light)).foregroundStyle(.tint)
-                    Text(L("Pair with your Mac")).font(.title2.weight(.semibold))
-                    Text(L("Open QuotaPulse on the Mac → Hub & Devices, then scan the QR code or type the address and token below. Data travels directly between your devices."))
+                    Text(L("Connect to your Mac")).font(.title2.weight(.semibold))
+                    Text(L("Optional while iCloud works. A direct link uses your network or Tailscale and also sends this device's logs to your Mac. Open QuotaPulse on the Mac → Hub & Devices, then scan the QR code or type the address and token below."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 6)
@@ -128,7 +149,7 @@ struct PairView: View {
                 .disabled(testing || token.isEmpty || URL(string: urlText) == nil)
             }
         }
-        .navigationTitle("QuotaPulse")
+        .navigationTitle(L("Direct connection"))
         .sheet(isPresented: $showScanner) {
             QRScannerView { code in
                 showScanner = false
@@ -147,7 +168,7 @@ struct PairView: View {
         testing = true
         defer { testing = false }
         let p = HubPairing(baseURL: url, token: token, hubName: name)
-        if let e = await model.test(p) { error = e } else { error = nil; model.pair(p) }
+        if let e = await model.test(p) { error = e } else { error = nil; model.pair(p); dismiss() }
     }
 }
 
@@ -159,15 +180,29 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            if let p = model.pairing {
-                Section(L("Hub")) {
+            Section {
+                LabeledContent(L("Status"), value: Present.cloudAccountText(model.cloudAccount))
+                if model.snapshot.generatedAt != .distantPast {
+                    LabeledContent(L("Publishing Mac"), value: model.snapshot.hubName)
+                    LabeledContent(L("Last update"), value: Present.updatedText(model.snapshot.generatedAt, now: model.ticker.now))
+                }
+                if let id = model.cloudAccountID { LabeledContent(L("iCloud account ID"), value: id) }
+            } header: { Text(L("iCloud")) } footer: {
+                Text(L("Your Mac publishes to your private iCloud database and this device reads it from anywhere. If nothing arrives, compare the account ID with the one shown on your Mac."))
+            }
+            Section {
+                if let p = model.pairing {
                     LabeledContent(L("Name"), value: p.hubName)
                     LabeledContent(L("URL"), value: p.baseURL.absoluteString)
                     Button(L("Forget this hub"), role: .destructive) { model.unpair(); dismiss() }
+                } else {
+                    NavigationLink(L("Connect directly to your Mac")) { PairView() }
                 }
+            } header: { Text(L("Direct connection")) } footer: {
+                Text(L("Optional. Works without iCloud over your network or Tailscale, and sends this device's logs to your Mac."))
             }
             Section(L("Widgets & Watch")) {
-                Text(L("Widgets read the last snapshot from the shared container and refresh in the background about every 15 minutes. The watch receives data from this iPhone and can also reach the hub directly."))
+                Text(L("Widgets refresh from iCloud about every 15 minutes, or sooner when your Mac publishes. The watch reads iCloud too, and this iPhone also forwards data to it."))
                     .font(.caption).foregroundStyle(.secondary)
                 Button(L("Push to Apple Watch now")) { model.pushToWatch() }
             }
@@ -219,7 +254,7 @@ struct DiagnosticsSection: View {
             }
             if let exportError { Text(exportError).font(.caption).foregroundStyle(UsageLevel.critical.color) }
         } header: { Text(L("Diagnostics")) } footer: {
-            Text(L("JSON Lines logs live in Files → QuotaPulse → Logs and are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics."))
+            Text(L("JSON Lines logs live in Files → QuotaPulse → Logs. With a direct connection they are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics."))
         }
     }
 }

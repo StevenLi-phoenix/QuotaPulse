@@ -21,6 +21,12 @@ public enum QPLog {
     }
 }
 
+/// Carries non-Sendable framework objects (BGTask, reply handlers) across an actor hop we control.
+public struct UncheckedBox<T>: @unchecked Sendable {
+    public let value: T
+    public init(value: T) { self.value = value }
+}
+
 // MARK: - HTTP transport (injectable for tests)
 
 public struct HTTPResponse: Sendable {

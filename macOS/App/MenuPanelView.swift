@@ -70,6 +70,12 @@ struct MenuPanelView: View {
             }
             .buttonStyle(.borderless)
             Spacer()
+            if model.settings.cloud.enabled, model.cloudAvailable {
+                let failed = model.cloudStatus.lastError != nil
+                Image(systemName: failed ? "exclamationmark.icloud" : "icloud")
+                    .font(.caption2).foregroundStyle(failed ? UsageLevel.hot.color : .secondary)
+                    .help(model.cloudStatus.lastError ?? "iCloud")
+            }
             if model.settings.hub.enabled {
                 Label(model.hubState.hasPrefix("listening") ? L("Hub on") : model.hubState, systemImage: "antenna.radiowaves.left.and.right")
                     .font(.caption2).foregroundStyle(.secondary)
