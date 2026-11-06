@@ -11,6 +11,7 @@ final class WatchModel: NSObject {
     private(set) var snapshot: QuotaSnapshot
     private(set) var pairing: HubPairing?
     private(set) var isRefreshing = false
+    private var retry: Task<Void, Never>?
     private(set) var lastError: String?
     private(set) var source = ""
     private(set) var cloudAccount: CloudAccountState = .unknown
@@ -47,6 +48,17 @@ final class WatchModel: NSObject {
         Task { await refresh() }
     }
 
+    /// iCloud errors often pass on their own, and nothing else refreshes an app that's left open.
+    private func scheduleRetry(cloudFailed: Bool) {
+        retry?.cancel()
+        guard cloudFailed else { return }
+        retry = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            guard !Task.isCancelled else { return }
+            await self?.refresh()
+        }
+    }
+
     func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true
@@ -58,6 +70,7 @@ final class WatchModel: NSObject {
         lastError = result.userError
         logger.info("sync", result.snapshot == nil ? "fetch.empty" : "fetch.ok", ["ms": "\(Int(Date().timeIntervalSince(started) * 1000))", "source": result.source?.rawValue ?? "-", "account": result.account.rawValue])
         if let e = result.cloudError { logger.error("cloud", "fetch.failed", ["error": e]) }
+        scheduleRetry(cloudFailed: result.cloudError != nil)
         if let snap = result.snapshot, let origin = result.source {
             if snap.generatedAt >= snapshot.generatedAt { store(snap, source: origin.rawValue) }
             return

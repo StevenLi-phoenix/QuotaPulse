@@ -35,6 +35,7 @@ final class ClientModel: NSObject {
     private var cloudPrepared = false
     private var historiesFetchedAt: Date?
     private var inFlight: Task<Bool, Never>?
+    private var retry: Task<Void, Never>?
     private var session: WCSession?
 
     override init() {
@@ -128,6 +129,17 @@ final class ClientModel: NSObject {
         return ok
     }
 
+    /// iCloud errors often pass on their own, and nothing else refreshes an app that's left open.
+    private func scheduleRetry(cloudFailed: Bool) {
+        retry?.cancel()
+        guard cloudFailed else { return }
+        retry = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            guard !Task.isCancelled else { return }
+            await self?.refresh(reason: "retry")
+        }
+    }
+
     private func performRefresh(reason: String) async -> Bool {
         isRefreshing = true
         defer { isRefreshing = false }
@@ -139,6 +151,7 @@ final class ClientModel: NSObject {
         lastError = result.userError
         if result.account == .available { Task { await prepareCloud() } }
         if let e = result.cloudError { logger.error("cloud", "fetch.failed", ["reason": reason, "ms": "\(ms)", "error": e]) }
+        scheduleRetry(cloudFailed: result.cloudError != nil)
         if let e = result.hubError { logger.error("hub", "fetch.failed", ["reason": reason, "ms": "\(ms)", "error": e]) }
         // Telemetry only travels over a direct link and must never hold up the numbers.
         if let hub { Task { await syncTelemetry(client: hub) } }

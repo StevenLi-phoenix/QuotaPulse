@@ -156,9 +156,10 @@ public struct CloudKitRecordStore: CloudRecordStore {
         return [.unknownItem, .zoneNotFound, .userDeletedZone].contains(ck.code)
     }
 
-    private static func map(_ error: Error) -> Error {
+    static func map(_ error: Error) -> Error {
         if error is CloudError { return error }
         guard let ck = error as? CKError else { return CloudError.other(error.localizedDescription) }
+        if ck.code != .partialFailure { QPLog.cloud.error("CKError \(ck.code.rawValue, privacy: .public): \(ck.localizedDescription, privacy: .public)") }
         switch ck.code {
         case .partialFailure:
             if let first = ck.partialErrorsByItemID?.values.first { return map(first) }
@@ -175,9 +176,17 @@ public struct CloudKitRecordStore: CloudRecordStore {
             return CloudError.zoneMissing
         case .quotaExceeded:
             return CloudError.quotaExceeded
+        case .permissionFailure, .badContainer:
+            return CloudError.rejected(serverReason(ck.localizedDescription))
         default:
             return CloudError.other(ck.localizedDescription)
         }
+    }
+
+    /// "Error fetching record <CKRecordID: 0x…> from server: reason" → "reason".
+    private static func serverReason(_ description: String) -> String {
+        guard let range = description.range(of: "from server: ") else { return description }
+        return String(description[range.upperBound...])
     }
 }
 #endif

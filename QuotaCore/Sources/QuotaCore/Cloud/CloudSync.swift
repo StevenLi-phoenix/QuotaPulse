@@ -29,6 +29,8 @@ public enum CloudError: Error, LocalizedError, Sendable, Equatable {
     /// The zone is gone (first use, or the user deleted the data): `prepare()` recreates it.
     case zoneMissing
     case quotaExceeded
+    /// The server refused this app for the container, with its reason. Seen on a new App ID, where the same request flips between success and this error.
+    case rejected(String)
     /// Written by a newer app version than this one understands.
     case incompatible(schema: Int)
     case corrupt
@@ -40,6 +42,7 @@ public enum CloudError: Error, LocalizedError, Sendable, Equatable {
         case let .retryLater(_, message): message
         case .zoneMissing: "QuotaPulse's iCloud zone is missing."
         case .quotaExceeded: "Your iCloud storage is full."
+        case let .rejected(reason): "iCloud isn't accepting this app yet (\(reason)). This can happen right after a first install. QuotaPulse keeps trying."
         case .incompatible: "iCloud data comes from a newer QuotaPulse. Update this device."
         case .corrupt: "iCloud data couldn't be read."
         case let .other(message): message

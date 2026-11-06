@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 import Testing
 @testable import QuotaCore
@@ -537,5 +538,13 @@ final class SampleHolder: @unchecked Sendable {
     @Test func unentitledProcessesGetNoStoreInsteadOfACrash() {
         // `swift test` has no iCloud entitlement; touching CKContainer here would kill the process with SIGTRAP.
         #expect(CloudKitRecordStore.standard() == nil)
+    }
+
+    /// Seen for a new App ID: the same request flips between success and this error, and the raw text is a record dump.
+    @Test func aRejectedAppReadsAsAReasonInsteadOfARecordDump() {
+        let raw = CKError(.permissionFailure, userInfo: [NSLocalizedDescriptionKey: "Error fetching record <CKRecordID: 0x7aae4a3440; recordName=snapshot, zoneID=QuotaPulse:__defaultOwner__> from server: Invalid bundle ID for container"])
+        let mapped = CloudKitRecordStore.map(raw) as? CloudError
+        #expect(mapped == .rejected("Invalid bundle ID for container"))
+        #expect(mapped?.errorDescription?.contains("0x7aae") == false)
     }
 }
