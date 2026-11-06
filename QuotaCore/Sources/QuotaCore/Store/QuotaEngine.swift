@@ -191,6 +191,11 @@ public actor QuotaEngine {
         return byWindow.values.flatMap { Downsample.samples($0, maxPoints: maxPoints) }.sorted { $0.at < $1.at }
     }
 
+    /// Every stored sample since a date, for callers that do their own downsampling.
+    public func rawHistory(provider: ProviderID, since: Date) async -> [Sample] {
+        await samples.samples(provider: provider, since: since)
+    }
+
     public func clearHistory() async {
         await samples.clear()
     }

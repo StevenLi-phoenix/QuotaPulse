@@ -34,10 +34,20 @@ public struct AlertSettings: Codable, Sendable, Hashable {
     }
 }
 
+public struct CloudSettings: Codable, Sendable, Hashable {
+    /// Publish snapshots and history to the user's private iCloud database.
+    public var enabled: Bool
+
+    public init(enabled: Bool = true) {
+        self.enabled = enabled
+    }
+}
+
 public struct AppSettings: Codable, Sendable, Hashable {
     public var providers: [ProviderID: ProviderSettings]
     public var pollInterval: TimeInterval
     public var hub: HubSettings
+    public var cloud: CloudSettings
     public var alerts: AlertSettings
     /// Days of sample history to keep.
     public var retentionDays: Int
@@ -46,17 +56,33 @@ public struct AppSettings: Codable, Sendable, Hashable {
     public var menuBarStyle: String
 
     public init(providers: [ProviderID: ProviderSettings]? = nil, pollInterval: TimeInterval = 5 * 60,
-                hub: HubSettings = .init(), alerts: AlertSettings = .init(), retentionDays: Int = 30,
+                hub: HubSettings = .init(), cloud: CloudSettings = .init(), alerts: AlertSettings = .init(), retentionDays: Int = 30,
                 launchAtLogin: Bool = false, menuBarStyle: String = "both") {
         self.providers = providers ?? Dictionary(uniqueKeysWithValues: ProviderID.allCases.map {
             ($0, ProviderSettings(enabled: $0.defaultEnabled))
         })
         self.pollInterval = pollInterval
         self.hub = hub
+        self.cloud = cloud
         self.alerts = alerts
         self.retentionDays = retentionDays
         self.launchAtLogin = launchAtLogin
         self.menuBarStyle = menuBarStyle
+    }
+
+    enum CodingKeys: String, CodingKey { case providers, pollInterval, hub, cloud, alerts, retentionDays, launchAtLogin, menuBarStyle }
+
+    /// `cloud` arrived in 0.3: settings written before it must keep every other value.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        providers = try c.decode([ProviderID: ProviderSettings].self, forKey: .providers)
+        pollInterval = try c.decode(TimeInterval.self, forKey: .pollInterval)
+        hub = try c.decode(HubSettings.self, forKey: .hub)
+        cloud = try c.decodeIfPresent(CloudSettings.self, forKey: .cloud) ?? CloudSettings()
+        alerts = try c.decode(AlertSettings.self, forKey: .alerts)
+        retentionDays = try c.decode(Int.self, forKey: .retentionDays)
+        launchAtLogin = try c.decode(Bool.self, forKey: .launchAtLogin)
+        menuBarStyle = try c.decode(String.self, forKey: .menuBarStyle)
     }
 
     public static let `default` = AppSettings()

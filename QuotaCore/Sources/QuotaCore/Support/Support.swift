@@ -10,6 +10,7 @@ public enum QPLog {
     public static let forecast = Logger(subsystem: subsystem, category: "forecast")
     public static let store = Logger(subsystem: subsystem, category: "store")
     public static let hub = Logger(subsystem: subsystem, category: "hub")
+    public static let cloud = Logger(subsystem: subsystem, category: "cloud")
     public static let engine = Logger(subsystem: subsystem, category: "engine")
     public static let ui = Logger(subsystem: subsystem, category: "ui")
 
