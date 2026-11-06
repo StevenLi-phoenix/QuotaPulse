@@ -32,6 +32,10 @@ let t0 = Date(timeIntervalSince1970: 1_792_120_000) // 2026-10-16T03:06:40Z
         let c = try ClaudeCredentials.parse(fixture("claude_credentials"))
         #expect(c.accessToken == "sk-ant-oat01-FIXTURE-TOKEN")
         #expect(c.planLabel == "Max 20x")
+        for (tier, label) in [("default_claude_ultra_10x", "Ultra 10x"), ("default_claude_plus", "Plus"), ("claude_pro", "Pro"), ("default_ultra_10x", "Ultra 10x")] {
+            let renamed = ClaudeCredentials(accessToken: "tok", refreshToken: nil, expiresAt: nil, scopes: [], rateLimitTier: tier, subscriptionType: nil)
+            #expect(renamed.planLabel == label)
+        }
         #expect(c.isExpired(now: Date(timeIntervalSince1970: 1_792_000_000)))
         #expect(!c.isExpired(now: Date(timeIntervalSince1970: 1_791_000_000)))
         #expect(throws: ClaudeCredentials.ParseError.missingOAuth) { try ClaudeCredentials.parse(Data("{\"mcpOAuth\":{}}".utf8)) }

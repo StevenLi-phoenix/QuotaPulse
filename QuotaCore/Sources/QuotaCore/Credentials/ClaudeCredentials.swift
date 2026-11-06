@@ -24,11 +24,11 @@ public struct ClaudeCredentials: Sendable, Equatable {
         return now.addingTimeInterval(leeway) >= expiresAt
     }
 
-    /// Human plan label ("Max 20x", "Pro"…), derived from non-secret metadata.
+    /// Human plan label ("Max 20x", "Pro"…), derived from non-secret metadata. Anthropic renames tiers, so nothing here lists them.
     public var planLabel: String? {
         if let tier = rateLimitTier {
             // default_claude_max_20x → Max 20x
-            let parts = tier.replacingOccurrences(of: "default_claude_", with: "").split(separator: "_")
+            let parts = tier.split(separator: "_").filter { $0 != "default" && $0 != "claude" }
             if !parts.isEmpty {
                 return parts.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
             }
