@@ -9,10 +9,16 @@ public struct CloudReader: Sendable {
     public func account() async -> CloudAccountState { await store.accountState() }
     public func accountID() async -> String? { await store.accountID() }
 
-    /// nil means the Mac hasn't published yet.
+    /// Built from one record per provider. nil means no Mac has published a provider yet. The snapshot's time is the newest
+    /// reading, and its hub name is the Mac that wrote that reading.
     public func snapshot() async throws -> QuotaSnapshot? {
-        guard let record = try await store.fetch([CloudPayload.snapshotRecord])[CloudPayload.snapshotRecord] else { return nil }
-        return try record.decode(QuotaSnapshot.self)
+        let records = try await store.fetch(ProviderID.allCases.map(CloudPayload.providerRecord))
+        let readings: [(provider: ProviderSnapshot, record: CloudRecord)] = try ProviderID.allCases.compactMap { id in
+            guard let record = records[CloudPayload.providerRecord(id)] else { return nil }
+            return (try record.decode(ProviderSnapshot.self), record)
+        }
+        guard let newest = readings.max(by: { $0.record.generatedAt < $1.record.generatedAt }) else { return nil }
+        return QuotaSnapshot(generatedAt: newest.record.generatedAt, hubName: newest.record.hubName, providers: readings.map(\.provider))
     }
 
     public func histories(for providers: [ProviderID]) async throws -> [ProviderID: [Sample]] {

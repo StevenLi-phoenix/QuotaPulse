@@ -10,7 +10,9 @@ public struct CloudPublishStatus: Sendable, Equatable {
     public init() {}
 }
 
-/// Mac side: mirrors the engine's snapshot and history into iCloud, writing only when a reader would notice.
+/// Mac side: mirrors each provider's latest reading and its history into iCloud. The account has one set of numbers per
+/// provider, so every Mac writes the same record for a provider: a newer reading replaces an older one, and history from
+/// two Macs is merged instead of replaced. A Mac writes only the providers it has read, so it never erases another's.
 public actor CloudPublisher {
     public private(set) var status = CloudPublishStatus()
 
@@ -18,7 +20,8 @@ public actor CloudPublisher {
     private let history: @Sendable (ProviderID, Date) async -> [Sample]
     private let policy: CloudSyncPolicy
     private var prepared = false
-    private var lastFingerprint: [String]?
+    private var lastFingerprint: [ProviderID: String] = [:]
+    private var lastChecked: [ProviderID: Date] = [:]
     private var retryNotBefore: Date?
     private var tail: Task<Void, Never>?
 
@@ -31,8 +34,8 @@ public actor CloudPublisher {
 
     /// `force` writes everything now: sync was just turned on, or history was deleted and must disappear from iCloud too.
     @discardableResult
-    public func publish(_ snapshot: QuotaSnapshot, force: Bool = false, now: Date = Date()) async -> CloudPublishStatus {
-        await inOrder { await $0.publishNow(snapshot, force: force, now: now) }
+    public func publish(_ snapshot: QuotaSnapshot, force: Bool = false, clearHistory: Bool = false, now: Date = Date()) async -> CloudPublishStatus {
+        await inOrder { await $0.publishNow(snapshot, force: force, clearHistory: clearHistory, now: now) }
     }
 
     /// Deletes everything QuotaPulse keeps in iCloud. The zone comes back on the next publish.
@@ -49,7 +52,7 @@ public actor CloudPublisher {
     }
 
     /// An actor only protects its state between suspension points, so work here runs one at a time: overlapping
-    /// publishes would both write history and could land the older snapshot last, and a save still on the
+    /// publishes would both write history and could land the older reading last, and a save still on the
     /// network would bring back what `removeAll` just deleted.
     private func inOrder<T: Sendable>(_ work: @escaping @Sendable (isolated CloudPublisher) async -> T) async -> T {
         let previous = tail
@@ -61,48 +64,79 @@ public actor CloudPublisher {
         return await task.value
     }
 
-    private func publishNow(_ snapshot: QuotaSnapshot, force: Bool, now: Date) async -> CloudPublishStatus {
+    private func publishNow(_ snapshot: QuotaSnapshot, force: Bool, clearHistory: Bool, now: Date) async -> CloudPublishStatus {
         guard snapshot.generatedAt != .distantPast, !snapshot.providers.isEmpty else { return status }
         if !force, let retryNotBefore, retryNotBefore > now {
             QPLog.cloud.debug("publish skipped: retry not before \(retryNotBefore, privacy: .public)")
             return status
         }
-        let fingerprint = snapshot.cloudFingerprint
-        let snapshotDue = force || fingerprint != lastFingerprint || isDue(status.lastPublishedAt, every: policy.heartbeat, now: now)
-        let historyDue = force || isDue(status.lastHistoryAt, every: policy.historyInterval, now: now)
-        guard snapshotDue || historyDue else { return status }
+        let fingerprints = Dictionary(uniqueKeysWithValues: zip(snapshot.providers.map(\.id), snapshot.cloudFingerprint))
+        // A provider is due when what a reader would see changed, or when its heartbeat has run out.
+        let due = snapshot.providers.filter { p in
+            force || lastFingerprint[p.id] != fingerprints[p.id] || isDue(lastChecked[p.id], every: policy.heartbeat, now: now)
+        }
+        let historyDue = force || clearHistory || isDue(status.lastHistoryAt, every: policy.historyInterval, now: now)
+        guard !due.isEmpty || historyDue else { return status }
 
         do {
             try await ensureReady()
+            // One read covers everything this pass might write: the current reading of each due provider, and the history
+            // another Mac may already have stored for each provider.
+            let names = due.map { CloudPayload.providerRecord($0.id) }
+                + (historyDue ? snapshot.providers.map { CloudPayload.historyRecord($0.id) } : [])
+            let current = try await store.fetch(names)
+
             var records: [CloudRecord] = []
-            if snapshotDue {
-                records.append(try CloudRecord(name: CloudPayload.snapshotRecord, generatedAt: snapshot.generatedAt, hubName: snapshot.hubName, encoding: snapshot))
+            var written: [ProviderID] = []
+            for p in due {
+                if let theirs = current[CloudPayload.providerRecord(p.id)], theirs.generatedAt > p.fetchedAt {
+                    QPLog.cloud.notice("kept \(p.id.rawValue, privacy: .public): iCloud has a newer reading from \(theirs.hubName, privacy: .public)")
+                    continue
+                }
+                records.append(try CloudRecord(name: CloudPayload.providerRecord(p.id), generatedAt: p.fetchedAt, hubName: snapshot.hubName, encoding: p))
+                written.append(p.id)
             }
             if historyDue {
                 let since = now.addingTimeInterval(-Double(policy.historyDays) * 86400)
                 for p in snapshot.providers {
-                    let samples = await history(p.id, since)
-                    records.append(try CloudHistory.record(provider: p.id, samples: samples, hubName: snapshot.hubName, now: now, policy: policy))
+                    let mine = await history(p.id, since)
+                    let stored = try? current[CloudPayload.historyRecord(p.id)]?.decode(CloudHistory.self)
+                    // Deleting history sets a cut-off; samples before it are dropped everywhere, so another Mac's copy can't bring them back.
+                    let cutoff = clearHistory ? now : stored?.clearedAt
+                    let all = Self.merged(mine, stored?.samples ?? [])
+                    let kept = cutoff.map { cut in all.filter { $0.at >= cut } } ?? all
+                    records.append(try CloudHistory.record(provider: p.id, samples: kept, hubName: snapshot.hubName, now: now, policy: policy, clearedAt: cutoff))
                 }
             }
-            try await store.save(records)
-            if snapshotDue { status.lastPublishedAt = now; lastFingerprint = fingerprint }
+            if !records.isEmpty { try await store.save(records) }
+            for p in due {
+                lastFingerprint[p.id] = fingerprints[p.id]
+                lastChecked[p.id] = now
+            }
+            if !written.isEmpty { status.lastPublishedAt = now }
             if historyDue { status.lastHistoryAt = now }
             status.lastError = nil
             retryNotBefore = nil
             let bytes = records.reduce(0) { $0 + $1.payload.count }
-            QPLog.cloud.notice("published \(records.count) records, \(bytes) bytes (snapshot=\(snapshotDue), history=\(historyDue), force=\(force))")
+            QPLog.cloud.notice("published \(records.count) records, \(bytes) bytes: providers [\(written.map(\.rawValue).joined(separator: ","), privacy: .public)], history=\(historyDue), force=\(force)")
         } catch {
             record(failure: error, now: now)
         }
         return status
     }
 
+    /// Two Macs read the same account, so each may hold points the other missed: keep both, one per window and time.
+    static func merged(_ mine: [Sample], _ theirs: [Sample]) -> [Sample] {
+        var seen = Set<String>()
+        return (mine + theirs).filter { seen.insert("\($0.window)|\($0.at.timeIntervalSince1970)").inserted }
+    }
+
     private func removeAllNow() async throws {
         do {
             try await store.removeAll()
             prepared = false
-            lastFingerprint = nil
+            lastFingerprint = [:]
+            lastChecked = [:]
             retryNotBefore = nil
             status.lastPublishedAt = nil
             status.lastHistoryAt = nil

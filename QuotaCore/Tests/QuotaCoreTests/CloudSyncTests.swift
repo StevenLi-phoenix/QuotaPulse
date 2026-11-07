@@ -51,7 +51,7 @@ final class FakeCloudStore: CloudRecordStore, @unchecked Sendable {
             _events.append("save")
             for r in records {
                 _records[r.name] = r
-                if r.name == CloudPayload.snapshotRecord { _savedSnapshotTimes.append(r.generatedAt) }
+                if r.name.hasPrefix("provider.") { _savedSnapshotTimes.append(r.generatedAt) }
             }
         }
     }
@@ -88,7 +88,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
 @Suite struct CloudPayloadTests {
     @Test func snapshotRoundTripsThroughACompressedRecord() throws {
         let s = snapshot()
-        let record = try CloudRecord(name: CloudPayload.snapshotRecord, generatedAt: s.generatedAt, hubName: s.hubName, encoding: s)
+        let record = try CloudRecord(name: "snapshot", generatedAt: s.generatedAt, hubName: s.hubName, encoding: s)
         #expect(record.schema == CloudPayload.schema)
         let back = try record.decode(QuotaSnapshot.self)
         #expect(back == s)
@@ -96,7 +96,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
     }
 
     @Test func newerSchemaIsRefusedInsteadOfMisread() throws {
-        var record = try CloudRecord(name: CloudPayload.snapshotRecord, generatedAt: now, hubName: "mini", encoding: snapshot())
+        var record = try CloudRecord(name: "snapshot", generatedAt: now, hubName: "mini", encoding: snapshot())
         record.schema = CloudPayload.schema + 1
         #expect(throws: CloudError.incompatible(schema: CloudPayload.schema + 1)) { try record.decode(QuotaSnapshot.self) }
     }
@@ -168,9 +168,9 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         async let second = pub.publish(newer, now: now.addingTimeInterval(1))
         _ = await (first, second)
 
-        #expect(store.saves == [["history.claude", "snapshot"], ["snapshot"]])
+        #expect(store.saves == [["history.claude", "provider.claude"], ["provider.claude"]])
         #expect(store.savedSnapshotTimes == [now, now.addingTimeInterval(1)])
-        #expect(try #require(store.records["snapshot"]).generatedAt == now.addingTimeInterval(1))
+        #expect(try #require(store.records["provider.claude"]).generatedAt == now.addingTimeInterval(1))
     }
 
     /// Otherwise a save still on the network brings back what the user just deleted.
@@ -192,16 +192,16 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         let samples = [Sample(provider: .claude, window: "five_hour", at: now.addingTimeInterval(-60), value: 12)]
         let status = await publisher(store, samples: samples).publish(snapshot(), now: now)
         #expect(store.prepares == 1)
-        #expect(store.saves == [["history.claude", "snapshot"]])
+        #expect(store.saves == [["history.claude", "provider.claude"]])
         #expect(status.lastPublishedAt == now)
         #expect(status.lastHistoryAt == now)
         #expect(status.account == .available)
         #expect(status.accountID == "abc123")
         #expect(status.lastError == nil)
-        let stored = try #require(store.records["snapshot"])
+        let stored = try #require(store.records["provider.claude"])
         #expect(stored.hubName == "mini")
         #expect(stored.generatedAt == now)
-        #expect(try stored.decode(QuotaSnapshot.self) == snapshot())
+        #expect(try stored.decode(ProviderSnapshot.self) == snapshot().providers[0])
         #expect(try #require(store.records["history.claude"]).decode(CloudHistory.self).samples == samples)
     }
 
@@ -217,7 +217,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         let beat = now.addingTimeInterval(15 * 60)
         let s = await pub.publish(snapshot(at: beat), now: beat)
         #expect(store.saves.count == 2)
-        #expect(store.saves.last == ["snapshot"])
+        #expect(store.saves.last == ["provider.claude"])
         #expect(s.lastPublishedAt == beat)
     }
 
@@ -228,8 +228,8 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         let later = now.addingTimeInterval(120)
         await pub.publish(snapshot(at: later, util: 41), now: later)
         #expect(store.saves.count == 2)
-        #expect(store.saves.last == ["snapshot"])
-        #expect(try #require(store.records["snapshot"]).generatedAt == later)
+        #expect(store.saves.last == ["provider.claude"])
+        #expect(try #require(store.records["provider.claude"]).generatedAt == later)
     }
 
     @Test func historyIsRewrittenOnlyEveryThirtyMinutes() async {
@@ -238,10 +238,10 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         await pub.publish(snapshot(), now: now)
         let t29 = now.addingTimeInterval(29 * 60)
         await pub.publish(snapshot(at: t29, util: 41), now: t29)
-        #expect(store.saves.last == ["snapshot"])
+        #expect(store.saves.last == ["provider.claude"])
         let t30 = now.addingTimeInterval(30 * 60)
         await pub.publish(snapshot(at: t30, util: 42), now: t30)
-        #expect(store.saves.last == ["history.claude", "snapshot"])
+        #expect(store.saves.last == ["history.claude", "provider.claude"])
     }
 
     @Test func emptySnapshotsAreNeverPublished() async {
@@ -282,7 +282,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         #expect(store.saves.isEmpty)
         let t11 = now.addingTimeInterval(660)
         let s2 = await pub.publish(snapshot(at: t11), now: t11)
-        #expect(store.saves == [["history.claude", "snapshot"]])
+        #expect(store.saves == [["history.claude", "provider.claude"]])
         #expect(s2.lastError == nil)
     }
 
@@ -297,7 +297,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         let t2 = now.addingTimeInterval(240)
         await pub.publish(snapshot(at: t2, util: 50), now: t2)
         #expect(store.prepares == 2)
-        #expect(store.saves.last == ["snapshot"])
+        #expect(store.saves.last == ["provider.claude"])
     }
 
     @Test func forcedPublishWritesEverythingEvenWhenNothingChanged() async {
@@ -306,7 +306,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         await pub.publish(snapshot(), now: now)
         await pub.publish(snapshot(), force: true, now: now.addingTimeInterval(1))
         #expect(store.saves.count == 2)
-        #expect(store.saves.last == ["history.claude", "snapshot"])
+        #expect(store.saves.last == ["history.claude", "provider.claude"])
     }
 
     @Test func removeAllWipesTheCloudAndAllowsRepublishing() async throws {
@@ -319,7 +319,22 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         #expect(status.lastPublishedAt == nil)
         await pub.publish(snapshot(), now: now.addingTimeInterval(1))
         #expect(store.prepares == 2)
-        #expect(store.records["snapshot"] != nil)
+        #expect(store.records["provider.claude"] != nil)
+    }
+
+    /// Deleting history on one Mac must not be undone by another Mac that still holds the old samples.
+    @Test func deletedHistoryDoesNotComeBackFromAnotherMac() async throws {
+        let store = FakeCloudStore()
+        let old = Sample(provider: .claude, window: "five_hour", at: now, value: 1)
+        let laptop = CloudPublisher(store: store, history: { _, _ in [old] })
+        await laptop.publish(snapshot(), now: now)
+        let mini = CloudPublisher(store: store, history: { _, _ in [] })
+        let cleared = now.addingTimeInterval(60)
+        await mini.publish(snapshot(), clearHistory: true, now: cleared)
+        await laptop.publish(snapshot(at: now.addingTimeInterval(1800), util: 41), force: true, now: now.addingTimeInterval(1800))
+        let stored = try #require(store.records["history.claude"]).decode(CloudHistory.self)
+        #expect(stored.samples.isEmpty)
+        #expect(stored.clearedAt == cleared)
     }
 
     @Test func historyDeletionReachesTheCloud() async throws {
@@ -329,8 +344,10 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         await pub.publish(snapshot(), now: now)
         #expect(try #require(store.records["history.claude"]).decode(CloudHistory.self).samples.count == 1)
         holder.samples = []
-        await pub.publish(snapshot(), force: true, now: now.addingTimeInterval(1))
-        #expect(try #require(store.records["history.claude"]).decode(CloudHistory.self).samples.isEmpty)
+        await pub.publish(snapshot(), clearHistory: true, now: now.addingTimeInterval(1))
+        let stored = try #require(store.records["history.claude"]).decode(CloudHistory.self)
+        #expect(stored.samples.isEmpty)
+        #expect(stored.clearedAt == now.addingTimeInterval(1))
     }
 }
 
@@ -369,7 +386,7 @@ final class SampleHolder: @unchecked Sendable {
 
     func cloud(_ snap: QuotaSnapshot?, account: CloudAccountState = .available) throws -> CloudReader {
         let store = FakeCloudStore(account: account)
-        if let snap { store.put(try CloudRecord(name: CloudPayload.snapshotRecord, generatedAt: snap.generatedAt, hubName: snap.hubName, encoding: snap)) }
+        if let snap { try putReadings(store, snap) }
         return CloudReader(store: store)
     }
 
@@ -467,7 +484,7 @@ final class SampleHolder: @unchecked Sendable {
 
     func reader(_ snap: QuotaSnapshot?, delay: Duration? = nil) throws -> CloudReader {
         let store = FakeCloudStore(fetchDelay: delay)
-        if let snap { store.put(try CloudRecord(name: CloudPayload.snapshotRecord, generatedAt: snap.generatedAt, hubName: snap.hubName, encoding: snap)) }
+        if let snap { try putReadings(store, snap) }
         return CloudReader(store: store)
     }
 
@@ -546,5 +563,12 @@ final class SampleHolder: @unchecked Sendable {
         let mapped = CloudKitRecordStore.map(raw) as? CloudError
         #expect(mapped == .rejected("Invalid bundle ID for container"))
         #expect(mapped?.errorDescription?.contains("0x7aae") == false)
+    }
+}
+
+/// The per-provider records a Mac publishes for `snap`, as a reader finds them in iCloud.
+private func putReadings(_ store: FakeCloudStore, _ snap: QuotaSnapshot) throws {
+    for p in snap.providers {
+        store.put(try CloudRecord(name: CloudPayload.providerRecord(p.id), generatedAt: p.fetchedAt, hubName: snap.hubName, encoding: p))
     }
 }

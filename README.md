@@ -148,7 +148,7 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 - Widgets on a real iPhone/Watch need the App Group capability on your team; the simulator doesn't check it.
 - Right after an App ID first gets the iCloud container, CloudKit can answer `Invalid bundle ID for container`, sometimes for only some requests. On our first iPhone install it lasted about 8 minutes and then stopped. The apps say so and retry every 30 seconds while open.
 - Apple Development builds use CloudKit's Development environment, whose schema is created on first write. A TestFlight or App Store build reads Production and needs the schema deployed in CloudKit Console first.
-- iCloud assumes one publishing Mac per account: with two, the last write wins.
+- iCloud keeps one record per provider (`provider.<id>`) and one history per provider (`history.<id>`), shared by every Mac on the account. A Mac writes only the providers it has read, a newer reading replaces an older one, and two Macs' history is merged. Deleting history leaves a cut-off that every Mac honours. Settings and API keys are not synced yet.
 - iOS can hold back silent pushes while the app is in the background, so a closed app may only catch up when opened or on its next background refresh.
 - The watch doesn't get silent pushes. It refreshes when opened and on its widget timeline, about every 15 minutes at best.
 - Unsigned dev builds have no iCloud entitlement, so sync is off and the setting explains why.

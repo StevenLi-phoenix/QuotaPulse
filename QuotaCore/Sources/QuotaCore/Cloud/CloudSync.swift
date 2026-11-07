@@ -93,8 +93,10 @@ public protocol CloudRecordStore: Sendable {
 }
 
 public enum CloudPayload {
-    public static let schema = 1
-    public static let snapshotRecord = "snapshot"
+    /// 2: one record per provider (`provider.<id>`). Readers on schema 1 refuse these records instead of misreading them.
+    public static let schema = 2
+    /// The account's reading of one provider. Every Mac that has that provider writes the same record; the newer reading wins.
+    public static func providerRecord(_ provider: ProviderID) -> String { "provider.\(provider.rawValue)" }
     public static func historyRecord(_ provider: ProviderID) -> String { "history.\(provider.rawValue)" }
 
     static func encode<T: Encodable>(_ value: T) throws -> Data {
@@ -133,6 +135,8 @@ public struct CloudHistory: Codable, Sendable, Equatable {
     public var provider: ProviderID
     public var generatedAt: Date
     public var samples: [Sample]
+    /// Set when history was deleted: samples before this time are gone for every Mac and are never merged back in.
+    public var clearedAt: Date?
 
     public init(provider: ProviderID, samples: [Sample], now: Date, policy: CloudSyncPolicy) {
         self.init(provider: provider, samples: samples, now: now, policy: policy, recentPoints: policy.recentPoints, olderPoints: policy.olderPoints)
@@ -153,10 +157,11 @@ public struct CloudHistory: Codable, Sendable, Equatable {
     }
 
     /// Encodes within CloudKit's record limit, halving resolution until it fits.
-    public static func record(provider: ProviderID, samples: [Sample], hubName: String, now: Date, policy: CloudSyncPolicy) throws -> CloudRecord {
+    public static func record(provider: ProviderID, samples: [Sample], hubName: String, now: Date, policy: CloudSyncPolicy, clearedAt: Date? = nil) throws -> CloudRecord {
         var recent = policy.recentPoints, older = policy.olderPoints
         while recent >= 4 {
-            let history = CloudHistory(provider: provider, samples: samples, now: now, policy: policy, recentPoints: recent, olderPoints: older)
+            var history = CloudHistory(provider: provider, samples: samples, now: now, policy: policy, recentPoints: recent, olderPoints: older)
+            history.clearedAt = clearedAt
             let record = try CloudRecord(name: CloudPayload.historyRecord(provider), generatedAt: now, hubName: hubName, encoding: history)
             if record.payload.count <= policy.maxRecordBytes { return record }
             QPLog.cloud.notice("history for \(provider.rawValue, privacy: .public) is \(record.payload.count) bytes; halving resolution")

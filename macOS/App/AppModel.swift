@@ -99,9 +99,9 @@ final class AppModel {
         publishToCloud(snap)
     }
 
-    private func publishToCloud(_ snap: QuotaSnapshot, force: Bool = false) {
+    private func publishToCloud(_ snap: QuotaSnapshot, force: Bool = false, clearHistory: Bool = false) {
         guard settings.cloud.enabled, let cloud else { return }
-        Task { cloudStatus = await cloud.publish(snap, force: force) }
+        Task { cloudStatus = await cloud.publish(snap, force: force, clearHistory: clearHistory) }
     }
 
     func reloadHistories() async {
@@ -182,7 +182,7 @@ final class AppModel {
         Task {
             await engine.clearHistory()
             await reloadHistories()
-            publishToCloud(snapshot, force: true) // deleted history must leave iCloud too
+            publishToCloud(snapshot, clearHistory: true) // deleted history must leave iCloud too, and stay gone on every Mac
         }
     }
 

@@ -18,6 +18,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Removing `gateway.json` restores the old behaviour: upstream keys, `opencode/auth.json`, nothing reported.
 - Reports to the gateway say `source: "mac"`, and a reading the gateway gave this Mac goes back as forecasts alone.
 
+### Fixed
+- Two Macs on one iCloud account no longer erase each other's data: iCloud holds one record per provider (`provider.<id>`) and per-provider history (`history.<id>`), so a Mac without a gateway no longer wipes OpenCode and DeepSeek, and history from two Macs is merged.
+- Deleting history cuts it off in iCloud with `clearedAt`, so another Mac's copy can't bring it back.
+
+### Changed
+- iCloud records are per provider (schema 2). iPhone, Watch and widgets built before this change read the old `snapshot` record, which is no longer written, so update them together with the Mac app.
+
 ## [0.3.1] - 2026-11-06
 
 ### Fixed

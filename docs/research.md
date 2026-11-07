@@ -55,7 +55,7 @@
 
 7. **同步走 CloudKit 私有库**：Mac 发布、iPhone/Watch 读取，不再要求设备能连上 Mac。容器 `iCloud.app.lishuyu.quotapulse`，zone `QuotaPulse`，记录类型 `QuotaBlob`（`snapshot`、`history.<provider>`，payload 为 lzfse 压缩的 JSON）。
    - 选 CloudKit 而不是另外两种：KVS 有写入节流，iCloud Documents 在手表上不可靠。
-   - 只有一台 Mac 发布，所以保存策略用 `.allKeys`（last writer wins），不处理冲突。发布在 `CloudPublisher` 内串行：actor 在 await 处可重入，并发的两次发布实测会重复写 history，较旧的 snapshot 也可能后落地。
+   - 记录按 provider 分：账号内每个 provider 只有一份用量，所以 `provider.<id>`（快照）和 `history.<id>`（历史）由任何读到该 provider 的 Mac 写入。快照：较新的读数覆盖较旧的，较旧的写入会被跳过。历史：两台 Mac 的样本按（窗口, 时间）合并。删除历史时写入截止时间 `clearedAt`，早于它的样本在所有 Mac 上都被丢弃。发布在 `CloudPublisher` 内串行：actor 在 await 处可重入，并发的两次发布实测会重复写 history。
    - 全部是 Apple Development 签名，走 Development 环境，schema 首次写入时自动创建。
    - 没用 `encryptedValues`：它依赖 iCloud Keychain，没开的设备会读不到。
    - 无 entitlement 时 `CKContainer(identifier:)` 直接 SIGTRAP（实测退出码 133），所以 `CloudKitRecordStore.standard()` 先用 SecTask 检查 entitlement，缺失返回 nil，未签名构建和 `swift test` 不会崩。
