@@ -172,12 +172,14 @@ public actor CloudPublisher {
             try await ensureReady()
             let remote = try await store.fetch([CloudPayload.settingsRecord])[CloudPayload.settingsRecord]
             let localStamp = local.updatedAt ?? .distantPast
+            // Compared to the second: the copy inside the record carries whole seconds, and a record written by an older build may not.
             if let remote {
-                if remote.generatedAt > localStamp {
+                let remoteStamp = AppSettings.stampNow(remote.generatedAt)
+                if remoteStamp > localStamp {
                     QPLog.cloud.notice("settings: adopting the iCloud copy written by \(remote.hubName, privacy: .public)")
                     return try remote.decode(AppSettings.self)
                 }
-                if remote.generatedAt == localStamp { return nil }
+                if remoteStamp == localStamp { return nil }
             }
             var stamped = local
             if local.updatedAt == nil { stamped.updatedAt = AppSettings.stampNow(now) }

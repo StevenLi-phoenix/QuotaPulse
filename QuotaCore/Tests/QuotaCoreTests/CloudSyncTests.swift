@@ -596,6 +596,16 @@ final class SampleHolder: @unchecked Sendable {
         #expect(adopted == nil)
         #expect(store.saves.isEmpty)
     }
+
+    /// A record written before stamps were whole seconds: same copy, fractional record stamp. Must not look newer than itself.
+    @Test func aFractionalRecordStampOfTheSameCopyDoesNothing() async throws {
+        let store = FakeCloudStore()
+        store.put(try CloudRecord(name: "settings", generatedAt: now.addingTimeInterval(0.4), hubName: "mini", encoding: settings(now)))
+        let adopted = await CloudPublisher(store: store, history: { _, _ in [] })
+            .reconcileSettings(settings(now), hubName: "laptop", now: now)
+        #expect(adopted == nil)
+        #expect(store.saves.isEmpty)
+    }
 }
 
 @Suite struct CloudKitGuardTests {
