@@ -58,6 +58,8 @@ public struct AppSettings: Codable, Sendable, Hashable {
     public var gatewaySeeded: Bool
     /// GLM was switched on because the gateway started reading it. Once only, so turning it off again stays off.
     public var gatewayZaiSeeded: Bool
+    /// When these settings last changed on any Mac. iCloud keeps the newer copy; nil means "never changed here".
+    public var updatedAt: Date? = nil
 
     public init(providers: [ProviderID: ProviderSettings]? = nil, pollInterval: TimeInterval = 5 * 60,
                 hub: HubSettings = .init(), cloud: CloudSettings = .init(), alerts: AlertSettings = .init(), retentionDays: Int = 30,
@@ -76,7 +78,7 @@ public struct AppSettings: Codable, Sendable, Hashable {
         self.gatewayZaiSeeded = gatewayZaiSeeded
     }
 
-    enum CodingKeys: String, CodingKey { case providers, pollInterval, hub, cloud, alerts, retentionDays, launchAtLogin, menuBarStyle, gatewaySeeded, gatewayZaiSeeded }
+    enum CodingKeys: String, CodingKey { case providers, pollInterval, hub, cloud, alerts, retentionDays, launchAtLogin, menuBarStyle, gatewaySeeded, gatewayZaiSeeded, updatedAt }
 
     /// `cloud` arrived in 0.3: settings written before it must keep every other value.
     public init(from decoder: Decoder) throws {
@@ -90,6 +92,7 @@ public struct AppSettings: Codable, Sendable, Hashable {
         launchAtLogin = try c.decode(Bool.self, forKey: .launchAtLogin)
         menuBarStyle = try c.decode(String.self, forKey: .menuBarStyle)
         gatewaySeeded = try c.decodeIfPresent(Bool.self, forKey: .gatewaySeeded) ?? false
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
         gatewayZaiSeeded = try c.decodeIfPresent(Bool.self, forKey: .gatewayZaiSeeded) ?? false
     }
 

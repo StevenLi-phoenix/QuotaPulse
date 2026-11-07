@@ -125,6 +125,37 @@ public actor CloudPublisher {
         return status
     }
 
+    /// Settings are one set for the whole account, so the copy with the newer `updatedAt` wins. Returns the settings this Mac
+    /// should adopt: the iCloud copy when it is newer, or the local copy stamped now when it had no timestamp yet. nil means
+    /// nothing changes here.
+    public func reconcileSettings(_ local: AppSettings, hubName: String, now: Date = Date()) async -> AppSettings? {
+        await inOrder { publisher in await publisher.reconcileSettingsNow(local, hubName: hubName, now: now) }
+    }
+
+    private func reconcileSettingsNow(_ local: AppSettings, hubName: String, now: Date) async -> AppSettings? {
+        do {
+            try await ensureReady()
+            let remote = try await store.fetch([CloudPayload.settingsRecord])[CloudPayload.settingsRecord]
+            let localStamp = local.updatedAt ?? .distantPast
+            if let remote {
+                if remote.generatedAt > localStamp {
+                    QPLog.cloud.notice("settings: adopting the iCloud copy written by \(remote.hubName, privacy: .public)")
+                    return try remote.decode(AppSettings.self)
+                }
+                if remote.generatedAt == localStamp { return nil }
+            }
+            var stamped = local
+            if local.updatedAt == nil { stamped.updatedAt = now }
+            let stamp = stamped.updatedAt ?? now
+            try await store.save([try CloudRecord(name: CloudPayload.settingsRecord, generatedAt: stamp, hubName: hubName, encoding: stamped)])
+            QPLog.cloud.notice("settings: pushed \(remote == nil ? "first copy" : "newer copy", privacy: .public)")
+            return local.updatedAt == nil ? stamped : nil
+        } catch {
+            QPLog.cloud.error("settings sync failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
     /// Two Macs read the same account, so each may hold points the other missed: keep both, one per window and time.
     static func merged(_ mine: [Sample], _ theirs: [Sample]) -> [Sample] {
         var seen = Set<String>()

@@ -97,6 +97,8 @@ public enum CloudPayload {
     public static let schema = 2
     /// The account's reading of one provider. Every Mac that has that provider writes the same record; the newer reading wins.
     public static func providerRecord(_ provider: ProviderID) -> String { "provider.\(provider.rawValue)" }
+    /// The account's settings. One record, newest `updatedAt` wins.
+    public static let settingsRecord = "settings"
     public static func historyRecord(_ provider: ProviderID) -> String { "history.\(provider.rawValue)" }
 
     static func encode<T: Encodable>(_ value: T) throws -> Data {

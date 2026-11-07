@@ -101,7 +101,14 @@ final class AppModel {
 
     private func publishToCloud(_ snap: QuotaSnapshot, force: Bool = false, clearHistory: Bool = false) {
         guard settings.cloud.enabled, let cloud else { return }
-        Task { cloudStatus = await cloud.publish(snap, force: force, clearHistory: clearHistory) }
+        Task {
+            cloudStatus = await cloud.publish(snap, force: force, clearHistory: clearHistory)
+            // Settings are one set for the account: take iCloud's copy when it is newer, otherwise push ours when we changed them.
+            if let adopted = await cloud.reconcileSettings(settings, hubName: snap.hubName) {
+                await engine.adopt(adopted)
+                settings = adopted
+            }
+        }
     }
 
     func reloadHistories() async {

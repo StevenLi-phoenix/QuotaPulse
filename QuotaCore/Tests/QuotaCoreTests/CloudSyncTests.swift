@@ -551,6 +551,53 @@ final class SampleHolder: @unchecked Sendable {
     }
 }
 
+@Suite struct CloudSettingsSyncTests {
+    private func settings(_ stamp: Date?, retention: Int = 30) -> AppSettings {
+        var s = AppSettings(retentionDays: retention)
+        s.updatedAt = stamp
+        return s
+    }
+
+    @Test func aFirstMacPushesItsSettingsStamped() async throws {
+        let store = FakeCloudStore()
+        let adopted = await CloudPublisher(store: store, history: { _, _ in [] })
+            .reconcileSettings(settings(nil), hubName: "mini", now: now)
+        #expect(adopted?.updatedAt == now)
+        #expect(store.saves == [["settings"]])
+        #expect(try #require(store.records["settings"]).decode(AppSettings.self).updatedAt == now)
+    }
+
+    @Test func aNewerICloudCopyIsAdoptedAndNotPushedBack() async throws {
+        let store = FakeCloudStore()
+        let remoteStamp = now.addingTimeInterval(60)
+        store.put(try CloudRecord(name: "settings", generatedAt: remoteStamp, hubName: "mini", encoding: settings(remoteStamp, retention: 90)))
+        let adopted = await CloudPublisher(store: store, history: { _, _ in [] })
+            .reconcileSettings(settings(now, retention: 30), hubName: "laptop", now: now)
+        #expect(adopted?.retentionDays == 90)
+        #expect(store.saves.isEmpty)
+    }
+
+    @Test func aNewerLocalCopyIsPushed() async throws {
+        let store = FakeCloudStore()
+        store.put(try CloudRecord(name: "settings", generatedAt: now, hubName: "mini", encoding: settings(now, retention: 30)))
+        let localStamp = now.addingTimeInterval(60)
+        let adopted = await CloudPublisher(store: store, history: { _, _ in [] })
+            .reconcileSettings(settings(localStamp, retention: 7), hubName: "laptop", now: now)
+        #expect(adopted == nil)
+        #expect(store.saves == [["settings"]])
+        #expect(try #require(store.records["settings"]).decode(AppSettings.self).retentionDays == 7)
+    }
+
+    @Test func equalStampsDoNothing() async throws {
+        let store = FakeCloudStore()
+        store.put(try CloudRecord(name: "settings", generatedAt: now, hubName: "mini", encoding: settings(now)))
+        let adopted = await CloudPublisher(store: store, history: { _, _ in [] })
+            .reconcileSettings(settings(now), hubName: "laptop", now: now)
+        #expect(adopted == nil)
+        #expect(store.saves.isEmpty)
+    }
+}
+
 @Suite struct CloudKitGuardTests {
     @Test func unentitledProcessesGetNoStoreInsteadOfACrash() {
         // `swift test` has no iCloud entitlement; touching CKContainer here would kill the process with SIGTRAP.

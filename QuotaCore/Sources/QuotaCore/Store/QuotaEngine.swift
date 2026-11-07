@@ -53,9 +53,17 @@ public actor QuotaEngine {
     public func update(_ mutate: @Sendable (inout AppSettings) -> Void) {
         var s = settings
         mutate(&s)
+        s.updatedAt = Date()
         settings = s
         settingsStore.save(s)
         QPLog.engine.debug("settings updated")
+    }
+
+    /// Takes the copy iCloud holds, which is newer than this Mac's. Keeps its timestamp, so it isn't pushed back.
+    public func adopt(_ remote: AppSettings) {
+        settings = remote
+        settingsStore.save(remote)
+        QPLog.engine.notice("settings adopted from iCloud")
     }
 
     public func setAPIKey(_ value: String?, for provider: ProviderID) throws {
