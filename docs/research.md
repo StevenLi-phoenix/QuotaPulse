@@ -53,8 +53,10 @@
 5. **Keychain 读取走 `/usr/bin/security` 子进程 + 3 秒超时**：Claude Code 自己用该 CLI 写入，ACL 已包含它，因此不会弹窗；万一弹窗，超时 kill 子进程即关闭对话框并退回文件读取。
 6. **不做浏览器 cookie 导入**：CodexBar 的 cookie 路线需要读 Chrome cookie 数据库（Keychain 弹窗 + 隐私面大），与"无人值守、不弹窗"冲突。
 
-7. **同步走 CloudKit 私有库**：Mac 发布、iPhone/Watch 读取，不再要求设备能连上 Mac。容器 `iCloud.app.lishuyu.quotapulse`，zone `QuotaPulse`，记录类型 `QuotaBlob`（`snapshot`、`history.<provider>`，payload 为 lzfse 压缩的 JSON）。
+7. **同步走 CloudKit 私有库**：Mac 发布、iPhone/Watch 读取，不再要求设备能连上 Mac。容器 `iCloud.app.lishuyu.quotapulse`，zone `QuotaPulse`，记录类型 `QuotaBlob`（payload 为 lzfse 压缩的 JSON，schema 2）。记录：`provider.<id>`（读数）、`history.<id>`（7 天降采样历史）、`samples.<id>.<n>`（90 天原始样本，分片，每片一条记录）、`settings`（整份设置，`updatedAt` 新者胜）。
    - 选 CloudKit 而不是另外两种：KVS 有写入节流，iCloud Documents 在手表上不可靠。
+   - 凭据（API key、hub token、gateway 配置）不走 CloudKit，走 iCloud 钥匙串：`synchronizable` 的 data-protection 钥匙串条目，需要 `keychain-access-groups` 权限（`macOS/App/QuotaPulse.entitlements`）。旧的本地条目在首次读取时搬进去；写入被拒时保留在本机，不丢。Claude Code / Codex 的登录不同步：它们是 CLI 自己的会话，刷新 token 会轮换，复制到两台 Mac 会让其中一台失效。
+   - gateway 配置以钥匙串为准；`gateway.json`（0600）是它的副本，供脚本和 Windows 读取。文件有、钥匙串没有时导入。
    - 记录按 provider 分：账号内每个 provider 只有一份用量，所以 `provider.<id>`（快照）和 `history.<id>`（历史）由任何读到该 provider 的 Mac 写入。快照：较新的读数覆盖较旧的，较旧的写入会被跳过。历史：两台 Mac 的样本按（窗口, 时间）合并。删除历史时写入截止时间 `clearedAt`，早于它的样本在所有 Mac 上都被丢弃。发布在 `CloudPublisher` 内串行：actor 在 await 处可重入，并发的两次发布实测会重复写 history。
    - 全部是 Apple Development 签名，走 Development 环境，schema 首次写入时自动创建。
    - 没用 `encryptedValues`：它依赖 iCloud Keychain，没开的设备会读不到。

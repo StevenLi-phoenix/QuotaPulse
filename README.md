@@ -95,7 +95,9 @@ Instead of holding the OpenCode and DeepSeek keys on the Mac, point QuotaPulse a
 
 On by default. **Hub & Devices → iCloud** on the Mac shows the account and last publish, turns sync off, and deletes what's stored.
 
-- The Mac writes as soon as a number changes, and otherwise every 15 minutes so your devices can tell it's alive. History (7 days, down-sampled) follows every 30 minutes.
+- The Mac writes as soon as a number changes, and otherwise every 15 minutes so your devices can tell it's alive. Every 30 minutes it also writes history (7 days, down-sampled) and its raw samples (90 days), then takes back the points the other Macs sampled, so every Mac shows the same charts.
+- Settings are one set for the account: the copy changed most recently wins on every Mac.
+- API keys, the hub token and the gateway link go through iCloud Keychain, which Apple encrypts end-to-end. A Mac that is signed in to the same iCloud account already has them. Windows, and any device outside that keychain, enters the gateway token by hand.
 - iPhone and Watch read iCloud first and ask a paired hub only when the iCloud copy is over 20 minutes old. Whichever snapshot is newest wins.
 - After 30 minutes without a new snapshot, the apps say when they last heard from the Mac. Something has to run there: if it's off or asleep, the numbers wait.
 - If nothing arrives, compare **iCloud account ID** on the Mac and phone. A mismatch means they're on different iCloud accounts.
@@ -112,7 +114,7 @@ Optional: iCloud sync doesn't use it. Local scripts and paired devices do.
 | `POST /v1/report` (gateway only, `{providers: [...]}`) | stores Claude / Codex / GLM readings and OpenCode / DeepSeek forecasts, returns `{accepted}` |
 | `POST /v1/telemetry` (`application/x-ndjson`, `X-Device-Name` / `X-App-Version` / `X-Platform`) | stores device logs, returns `{accepted}` |
 
-All need `Authorization: Bearer <token>`. The token lives in the Mac's Keychain and in `pairing.json`; **New token** in settings rotates it.
+All need `Authorization: Bearer <token>`. The token lives in the Mac's Keychain (synced through iCloud Keychain) and in `pairing.json`; **New token** in settings rotates it.
 
 ## Telemetry & diagnostics
 
@@ -121,7 +123,7 @@ The iPhone and Watch apps keep a JSON Lines log (`Documents/Logs/quotapulse-YYYY
 ## Development
 
 ```bash
-cd QuotaCore && swift test                 # 113 unit tests: parsing, forecasting, store, hub, gateway, iCloud sync
+cd QuotaCore && swift test                 # 152 unit tests: parsing, forecasting, store, hub, gateway, iCloud sync, keychain
 ../tools/xcodegen/bin/xcodegen generate    # project.yml → QuotaPulse.xcodeproj
 xcodebuild -scheme QuotaPulse-macOS -destination 'platform=macOS' build
 xcodebuild -scheme QuotaPulse-iOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
@@ -135,9 +137,9 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 
 ## Privacy & security
 
-- Credentials are read from where your CLIs put them and sent only to that provider. Keys you type are stored in your own Keychain.
+- Credentials are read from where your CLIs put them and sent only to that provider. Keys you type are stored in your Keychain and synced through iCloud Keychain, which Apple encrypts end-to-end. Claude Code and Codex logins stay on each Mac.
 - The hub binds to all interfaces by default so Tailscale works; turn off *Reachable from other devices* for loopback only. Requests without the bearer token get 401.
-- iCloud sync stores the snapshot and history in your own private CloudKit database: usage numbers, plan names, where a credential was read from (`keychain` or `file`) and the Mac's name. Provider credentials are never uploaded. Apple's standard iCloud encryption applies, so these fields are not end-to-end encrypted.
+- iCloud sync stores the snapshot and history in your own private CloudKit database: usage numbers, plan names, where a credential was read from (`keychain` or `file`), the Mac's name, the settings (no keys or tokens) and the raw samples. API keys and tokens never go into CloudKit; they go through iCloud Keychain. Apple's standard iCloud encryption applies to CloudKit, so these fields are not end-to-end encrypted.
 - No analytics, and no servers besides the providers themselves and your iCloud.
 
 ## Known limits
@@ -148,7 +150,7 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 - Widgets on a real iPhone/Watch need the App Group capability on your team; the simulator doesn't check it.
 - Right after an App ID first gets the iCloud container, CloudKit can answer `Invalid bundle ID for container`, sometimes for only some requests. On our first iPhone install it lasted about 8 minutes and then stopped. The apps say so and retry every 30 seconds while open.
 - Apple Development builds use CloudKit's Development environment, whose schema is created on first write. A TestFlight or App Store build reads Production and needs the schema deployed in CloudKit Console first.
-- iCloud keeps one record per provider (`provider.<id>`) and one history per provider (`history.<id>`), shared by every Mac on the account. A Mac writes only the providers it has read, a newer reading replaces an older one, and two Macs' history is merged. Deleting history leaves a cut-off that every Mac honours. Settings and API keys are not synced yet.
+- iCloud keeps one record per provider (`provider.<id>`), one history per provider (`history.<id>`) and the raw samples in pieces (`samples.<id>.<n>`), shared by every Mac on the account. A Mac writes only the providers it has read, a newer reading replaces an older one, and samples from two Macs are merged by provider, window and second. Deleting history leaves a cut-off that every Mac honours. Settings are one record, newest copy wins. Schema 2 needs the iPhone and Watch apps updated together with the Mac app.
 - iOS can hold back silent pushes while the app is in the background, so a closed app may only catch up when opened or on its next background refresh.
 - The watch doesn't get silent pushes. It refreshes when opened and on its widget timeline, about every 15 minutes at best.
 - Unsigned dev builds have no iCloud entitlement, so sync is off and the setting explains why.

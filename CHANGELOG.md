@@ -11,19 +11,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - iPhone pairing defaults to the gateway (`https://llm.lishuyu.app/llm/hub`, name `llmgateway`).
 - With a gateway link, Claude, Codex and GLM use the gateway's reading while it is good and under 30 minutes old (phm reads Claude and Codex with logins of its own, the Worker reads GLM), and read locally otherwise. So the Mac's credentials are the automatic fallback, and these readings no longer need the Mac.
 - GLM is switched on once when the gateway starts reading it (later toggles are kept); Settings says the gateway's reading comes first.
+- Settings sync through iCloud: one settings record, and the copy changed most recently wins on every Mac.
+- Raw samples sync through iCloud: each Mac sends its 90 days of samples in pieces that fit the record limit, and takes back the points the other Macs sampled, so both Macs chart the same history.
+- API keys, the hub token and the gateway link sync through iCloud Keychain, so a second Mac needs no re-entry.
 
 ### Changed
 - `HubClient` keeps the path of the hub URL (`…/llm/hub` + `/v1/snapshot`), so a hub behind a path prefix works; plain `http://host:48422` is unchanged.
 - Device log upload is skipped for a hub behind a path prefix (the gateway has no telemetry route) instead of failing on every refresh.
 - Removing `gateway.json` restores the old behaviour: upstream keys, `opencode/auth.json`, nothing reported.
 - Reports to the gateway say `source: "mac"`, and a reading the gateway gave this Mac goes back as forecasts alone.
+- `gateway.json` on the Mac is a 0600 copy of the keychain gateway link; a file with no keychain copy is imported on first run.
+- iCloud records are per provider (schema 2). iPhone, Watch and widgets built before this change read the old `snapshot` record, which is no longer written, so update them together with the Mac app.
 
 ### Fixed
 - Two Macs on one iCloud account no longer erase each other's data: iCloud holds one record per provider (`provider.<id>`) and per-provider history (`history.<id>`), so a Mac without a gateway no longer wipes OpenCode and DeepSeek, and history from two Macs is merged.
 - Deleting history cuts it off in iCloud with `clearedAt`, so another Mac's copy can't bring it back.
-
-### Changed
-- iCloud records are per provider (schema 2). iPhone, Watch and widgets built before this change read the old `snapshot` record, which is no longer written, so update them together with the Mac app.
+- Samples from two Macs are merged by provider, window and second, so a point both Macs took counts once, and a `balance` window of two providers stays separate.
 
 ## [0.3.1] - 2026-11-06
 
