@@ -103,7 +103,7 @@ public actor QuotaEngine {
         defer { isRefreshing = false }
         QPLog.engine.info("refresh start (\(reason, privacy: .public), force=\(force))")
 
-        let gatewayConfig = GatewayConfig.load(from: location.gatewayURL)
+        let gatewayConfig = GatewayConfigStore.current(file: location.gatewayURL, secrets: secrets)
         let gateway = gatewayConfig.map { GatewayLink(config: $0, cache: gatewayCache) }
         if gateway != nil, !settings.gatewaySeeded {
             update {

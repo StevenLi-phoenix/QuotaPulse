@@ -65,6 +65,7 @@ targets:
       path: macOS/App/QuotaPulse.entitlements
       properties:
         com.apple.security.application-groups: [88U7V98QAC.app.lishuyu.quotapulse]
+        keychain-access-groups: [88U7V98QAC.app.lishuyu.quotapulse]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
     info:

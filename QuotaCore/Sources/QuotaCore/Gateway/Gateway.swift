@@ -41,6 +41,38 @@ public struct GatewayConfig: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Where the Mac keeps it
+
+/// The gateway link as a Mac uses it. The keychain copy is the one iCloud Keychain syncs, so every Mac on the account gets it.
+/// `gateway.json` next to `pairing.json` is kept as a 0600 copy of it, for scripts and for setups that read the file. A file
+/// with no keychain copy yet is imported. When both exist and differ, the keychain copy wins and the file is rewritten.
+public enum GatewayConfigStore {
+    public static func current(file: URL, secrets: any SecretStore) -> GatewayConfig? {
+        let fromFile = GatewayConfig.load(from: file)
+        let stored: String? = try? secrets.get(SecretKey.gatewayConfig)
+        let fromKeychain = stored.flatMap { try? JSON.decoder.decode(GatewayConfig.self, from: Data($0.utf8)) }
+        guard let config = fromKeychain ?? fromFile else { return nil }
+        if fromKeychain != config {
+            if let data = try? JSON.encoder.encode(config), let text = String(data: data, encoding: .utf8) {
+                try? secrets.set(text, for: SecretKey.gatewayConfig)
+            }
+            QPLog.hub.notice("gateway link imported from gateway.json into iCloud Keychain")
+        }
+        if fromFile != config { writeCopy(config, to: file) }
+        return config
+    }
+
+    private static func writeCopy(_ config: GatewayConfig, to file: URL) {
+        do {
+            try FileIO.writeAtomically(try JSON.prettyEncoder.encode(config), to: file)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+            QPLog.hub.notice("gateway.json rewritten from the keychain copy")
+        } catch {
+            QPLog.hub.error("gateway.json write failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+}
+
 // MARK: - Client
 
 /// Talks to the gateway's hub routes and speaks `ProviderError`, so providers can pass failures straight up.

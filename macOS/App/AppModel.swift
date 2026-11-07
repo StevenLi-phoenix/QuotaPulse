@@ -87,7 +87,7 @@ final class AppModel {
     }
 
     private func refreshGatewayState() {
-        gatewayActive = GatewayConfig.load(from: location.gatewayURL) != nil
+        gatewayActive = GatewayConfigStore.current(file: location.gatewayURL, secrets: secrets) != nil
     }
 
     private func apply(_ snap: QuotaSnapshot) {

@@ -14,5 +14,9 @@
 	<array>
 		<string>88U7V98QAC.app.lishuyu.quotapulse</string>
 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>88U7V98QAC.app.lishuyu.quotapulse</string>
+	</array>
 </dict>
 </plist>
