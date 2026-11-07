@@ -74,6 +74,24 @@ public struct CloudRecord: Sendable, Equatable {
         guard schema <= CloudPayload.schema else { throw CloudError.incompatible(schema: schema) }
         return try CloudPayload.decode(type, from: payload)
     }
+
+    /// CloudKit refuses a request with too many records or too many bytes, so a save goes out in batches within both limits.
+    public static func batches(_ records: [CloudRecord], maxRecords: Int = 100, maxBytes: Int = 1_000_000) -> [[CloudRecord]] {
+        var out: [[CloudRecord]] = []
+        var current: [CloudRecord] = []
+        var bytes = 0
+        for r in records {
+            if !current.isEmpty, current.count >= maxRecords || bytes + r.payload.count > maxBytes {
+                out.append(current)
+                current = []
+                bytes = 0
+            }
+            current.append(r)
+            bytes += r.payload.count
+        }
+        if !current.isEmpty { out.append(current) }
+        return out
+    }
 }
 
 /// What the sync logic needs from iCloud. `CloudKitRecordStore` is the real one; tests use an in-memory fake.
@@ -100,6 +118,8 @@ public enum CloudPayload {
     /// The account's settings. One record, newest `updatedAt` wins.
     public static let settingsRecord = "settings"
     public static func historyRecord(_ provider: ProviderID) -> String { "history.\(provider.rawValue)" }
+    /// One piece of a provider's raw samples; pieces are numbered from 0 and the first one says how many follow.
+    public static func samplesRecord(_ provider: ProviderID, _ index: Int) -> String { "samples.\(provider.rawValue).\(index)" }
 
     static func encode<T: Encodable>(_ value: T) throws -> Data {
         try (JSON.encoder.encode(value) as NSData).compressed(using: .lzfse) as Data
@@ -128,6 +148,10 @@ public struct CloudSyncPolicy: Sendable, Equatable {
     /// CloudKit caps a record at 1 MB including metadata.
     public var maxRecordBytes = 900_000
     public var retryDelay: TimeInterval = 5 * 60
+    /// Raw samples go back this far: the longest retention the app offers.
+    public var sampleDays = 90
+    /// Samples per piece before the size check; halved until a piece fits `maxRecordBytes`.
+    public var samplesPerRecord = 10_000
 
     public static let standard = CloudSyncPolicy()
 }

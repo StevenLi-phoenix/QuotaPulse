@@ -417,6 +417,10 @@ public struct Sample: Codable, Sendable, Hashable {
     }
 
     public static let balanceWindowID = "balance"
+
+    /// The same point on two Macs. JSON keeps whole seconds while memory keeps fractions, so the key rounds down to the second;
+    /// the provider is part of it because `balance` is a window id for more than one provider.
+    public var identity: String { "\(provider.rawValue)|\(window)|\(Int(at.timeIntervalSince1970.rounded(.down)))" }
 }
 
 // MARK: - Forecast

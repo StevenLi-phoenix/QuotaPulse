@@ -66,7 +66,9 @@ final class AppModel {
         let engine = QuotaEngine(location: location, secrets: secrets, hubName: Host.current().localizedName ?? "Mac")
         self.engine = engine
         self.cloud = CloudKitRecordStore.standard().map { store in
-            CloudPublisher(store: store, history: { provider, since in await engine.rawHistory(provider: provider, since: since) })
+            CloudPublisher(store: store,
+                           history: { provider, since in await engine.rawHistory(provider: provider, since: since) },
+                           absorb: { samples, cutoffs in await engine.absorbSamples(samples, cutoffs: cutoffs) })
         }
         Task { await bootstrap() }
     }
@@ -103,6 +105,7 @@ final class AppModel {
         guard settings.cloud.enabled, let cloud else { return }
         Task {
             cloudStatus = await cloud.publish(snap, force: force, clearHistory: clearHistory)
+            await reloadHistories() // the pass may have taken in points other Macs sampled
             // Settings are one set for the account: take iCloud's copy when it is newer, otherwise push ours when we changed them.
             if let adopted = await cloud.reconcileSettings(settings, hubName: snap.hubName) {
                 await engine.adopt(adopted)

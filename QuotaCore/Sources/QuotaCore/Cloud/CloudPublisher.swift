@@ -18,6 +18,7 @@ public actor CloudPublisher {
 
     private let store: any CloudRecordStore
     private let history: @Sendable (ProviderID, Date) async -> [Sample]
+    private let absorb: @Sendable ([Sample], [ProviderID: Date]) async -> Void
     private let policy: CloudSyncPolicy
     private var prepared = false
     private var lastFingerprint: [ProviderID: String] = [:]
@@ -25,10 +26,14 @@ public actor CloudPublisher {
     private var retryNotBefore: Date?
     private var tail: Task<Void, Never>?
 
-    /// `history` returns raw samples for a provider since a date.
-    public init(store: any CloudRecordStore, history: @escaping @Sendable (ProviderID, Date) async -> [Sample], policy: CloudSyncPolicy = .standard) {
+    /// `history` returns raw samples for a provider since a date. `absorb` takes in the points other Macs sampled, with the
+    /// deletion cut-off of each provider, after they have been saved to iCloud.
+    public init(store: any CloudRecordStore, history: @escaping @Sendable (ProviderID, Date) async -> [Sample],
+                absorb: @escaping @Sendable ([Sample], [ProviderID: Date]) async -> Void = { _, _ in },
+                policy: CloudSyncPolicy = .standard) {
         self.store = store
         self.history = history
+        self.absorb = absorb
         self.policy = policy
     }
 
@@ -80,10 +85,13 @@ public actor CloudPublisher {
 
         do {
             try await ensureReady()
-            // One read covers everything this pass might write: the current reading of each due provider, and the history
-            // another Mac may already have stored for each provider.
-            let names = due.map { CloudPayload.providerRecord($0.id) }
-                + (historyDue ? snapshot.providers.map { CloudPayload.historyRecord($0.id) } : [])
+            // One read covers everything this pass might write: the current reading of each due provider, and for a history
+            // pass the history and first sample piece iCloud holds for each provider.
+            var names = due.map { CloudPayload.providerRecord($0.id) }
+            if historyDue {
+                names += snapshot.providers.map { CloudPayload.historyRecord($0.id) }
+                names += CloudSamples.firstPieceNames(snapshot.providers.map(\.id))
+            }
             let current = try await store.fetch(names)
 
             var records: [CloudRecord] = []
@@ -96,19 +104,15 @@ public actor CloudPublisher {
                 records.append(try CloudRecord(name: CloudPayload.providerRecord(p.id), generatedAt: p.fetchedAt, hubName: snapshot.hubName, encoding: p))
                 written.append(p.id)
             }
+            var merge: HistoryMerge?
             if historyDue {
-                let since = now.addingTimeInterval(-Double(policy.historyDays) * 86400)
-                for p in snapshot.providers {
-                    let mine = await history(p.id, since)
-                    let stored = try? current[CloudPayload.historyRecord(p.id)]?.decode(CloudHistory.self)
-                    // Deleting history sets a cut-off; samples before it are dropped everywhere, so another Mac's copy can't bring them back.
-                    let cutoff = clearHistory ? now : stored?.clearedAt
-                    let all = Self.merged(mine, stored?.samples ?? [])
-                    let kept = cutoff.map { cut in all.filter { $0.at >= cut } } ?? all
-                    records.append(try CloudHistory.record(provider: p.id, samples: kept, hubName: snapshot.hubName, now: now, policy: policy, clearedAt: cutoff))
-                }
+                let m = try await mergeHistory(snapshot, current: current, clearHistory: clearHistory, now: now)
+                records += m.records
+                merge = m
             }
             if !records.isEmpty { try await store.save(records) }
+            // Only after the save: the points taken back are the ones iCloud now holds.
+            if let merge { await absorb(merge.samples, merge.cutoffs) }
             for p in due {
                 lastFingerprint[p.id] = fingerprints[p.id]
                 lastChecked[p.id] = now
@@ -118,11 +122,42 @@ public actor CloudPublisher {
             status.lastError = nil
             retryNotBefore = nil
             let bytes = records.reduce(0) { $0 + $1.payload.count }
-            QPLog.cloud.notice("published \(records.count) records, \(bytes) bytes: providers [\(written.map(\.rawValue).joined(separator: ","), privacy: .public)], history=\(historyDue), force=\(force)")
+            QPLog.cloud.notice("published \(records.count) records, \(bytes) bytes: providers [\(written.map(\.rawValue).joined(separator: ","), privacy: .public)], history=\(historyDue), samples=\(merge?.sampleCount ?? 0), force=\(force)")
         } catch {
             record(failure: error, now: now)
         }
         return status
+    }
+
+    /// What a history pass writes, and what this Mac takes back from iCloud.
+    private struct HistoryMerge {
+        var records: [CloudRecord] = []
+        var samples: [Sample] = []
+        var cutoffs: [ProviderID: Date] = [:]
+        var sampleCount = 0
+    }
+
+    /// Per provider: joins this Mac's samples with the ones iCloud holds, drops what a deletion cut off, and builds the
+    /// history and sample records. Samples go back `policy.sampleDays`; the history record keeps its own shorter window.
+    private func mergeHistory(_ snapshot: QuotaSnapshot, current: [String: CloudRecord], clearHistory: Bool, now: Date) async throws -> HistoryMerge {
+        let remote = try await CloudSamples.read(snapshot.providers.map(\.id), first: current, store: store)
+        let horizon = now.addingTimeInterval(-Double(policy.sampleDays) * 86400)
+        var out = HistoryMerge()
+        for p in snapshot.providers {
+            let mine = await history(p.id, horizon)
+            let theirs = remote[p.id]
+            let stored = try? current[CloudPayload.historyRecord(p.id)]?.decode(CloudHistory.self)
+            // Deleting history sets a cut-off; samples before it are dropped everywhere, so another Mac's copy can't bring them back.
+            let cutoff = clearHistory ? now : [stored?.clearedAt, theirs?.clearedAt].compactMap { $0 }.max()
+            let all = Self.merged(mine, theirs?.samples ?? []).filter { $0.at >= horizon }
+            let kept = cutoff.map { cut in all.filter { $0.at >= cut } } ?? all
+            if let cutoff { out.cutoffs[p.id] = cutoff }
+            out.records += try CloudSamples.records(provider: p.id, samples: kept, clearedAt: cutoff, hubName: snapshot.hubName, now: now, policy: policy)
+            out.records.append(try CloudHistory.record(provider: p.id, samples: kept, hubName: snapshot.hubName, now: now, policy: policy, clearedAt: cutoff))
+            out.samples += kept
+            out.sampleCount += kept.count
+        }
+        return out
     }
 
     /// Settings are one set for the whole account, so the copy with the newer `updatedAt` wins. Returns the settings this Mac
@@ -156,10 +191,10 @@ public actor CloudPublisher {
         }
     }
 
-    /// Two Macs read the same account, so each may hold points the other missed: keep both, one per window and time.
+    /// Two Macs read the same account, so each may hold points the other missed: keep both, one per provider, window and second.
     static func merged(_ mine: [Sample], _ theirs: [Sample]) -> [Sample] {
         var seen = Set<String>()
-        return (mine + theirs).filter { seen.insert("\($0.window)|\($0.at.timeIntervalSince1970)").inserted }
+        return (mine + theirs).filter { seen.insert($0.identity).inserted }.sorted { $0.at < $1.at }
     }
 
     private func removeAllNow() async throws {

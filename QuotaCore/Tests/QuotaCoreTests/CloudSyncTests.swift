@@ -192,7 +192,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         let samples = [Sample(provider: .claude, window: "five_hour", at: now.addingTimeInterval(-60), value: 12)]
         let status = await publisher(store, samples: samples).publish(snapshot(), now: now)
         #expect(store.prepares == 1)
-        #expect(store.saves == [["history.claude", "provider.claude"]])
+        #expect(store.saves == [["history.claude", "provider.claude", "samples.claude.0"]])
         #expect(status.lastPublishedAt == now)
         #expect(status.lastHistoryAt == now)
         #expect(status.account == .available)

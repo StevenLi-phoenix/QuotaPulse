@@ -253,5 +253,15 @@ public actor QuotaEngine {
         await samples.clear()
     }
 
+    /// Takes in the points other Macs sampled (from iCloud) and applies deletion cut-offs, then saves.
+    public func absorbSamples(_ incoming: [Sample], cutoffs: [ProviderID: Date], now: Date = Date()) async {
+        let added = await samples.absorb(incoming, cutoffs: cutoffs, now: now)
+        do { try await samples.flush() } catch {
+            QPLog.store.error("samples save after iCloud merge failed: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        QPLog.engine.notice("samples: \(added) points from iCloud, \(incoming.count) offered, \(cutoffs.count) deletion cut-offs")
+    }
+
     public func sampleCount() async -> Int { await samples.count }
 }

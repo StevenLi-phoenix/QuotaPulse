@@ -118,6 +118,25 @@ public actor SampleStore {
         return samples.filter { sample in sample.provider == provider && (since.map { sample.at >= $0 } ?? true) }
     }
 
+    /// Takes in points another Mac sampled and drops what a deletion cut off, so a deleted point never comes back.
+    /// Starts from the current contents, so points this Mac took while the sync ran are kept. Returns how many were new.
+    @discardableResult
+    public func absorb(_ incoming: [Sample], cutoffs: [ProviderID: Date], now: Date = Date()) -> Int {
+        ensureLoaded()
+        func cut(_ s: Sample) -> Bool { cutoffs[s.provider].map { s.at < $0 } ?? false }
+        var seen = Set(samples.map(\.identity))
+        var merged = samples.filter { !cut($0) }
+        var added = 0
+        for s in incoming where !cut(s) && seen.insert(s.identity).inserted {
+            merged.append(s)
+            added += 1
+        }
+        samples = merged.sorted { $0.at < $1.at }
+        prune(now: now)
+        dirty = true
+        return added
+    }
+
     public func replaceAll(_ new: [Sample]) { ensureLoaded(); samples = new; dirty = true }
 
     public func clear() { loaded = true; samples = []; dirty = true; try? flush() }

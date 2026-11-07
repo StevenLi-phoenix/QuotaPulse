@@ -78,9 +78,11 @@ public struct CloudKitRecordStore: CloudRecordStore {
 
     private func write(_ records: [CloudRecord]) async throws {
         try await run { db in
-            let (results, _) = try await db.modifyRecords(saving: records.map(makeRecord), deleting: [], savePolicy: .allKeys, atomically: false)
-            for (_, result) in results {
-                if case let .failure(error) = result { throw error }
+            for batch in CloudRecord.batches(records) {
+                let (results, _) = try await db.modifyRecords(saving: batch.map(makeRecord), deleting: [], savePolicy: .allKeys, atomically: false)
+                for (_, result) in results {
+                    if case let .failure(error) = result { throw error }
+                }
             }
         }
     }
