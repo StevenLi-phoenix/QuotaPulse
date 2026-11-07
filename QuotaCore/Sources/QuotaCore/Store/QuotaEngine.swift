@@ -41,10 +41,17 @@ public actor QuotaEngine {
         self.samples = SampleStore(url: location.samplesURL, retentionDays: s.retentionDays)
         self.snapshot = snapshotStore.load() ?? .empty
         QPLog.engine.notice("engine init: data at \(location.root.path, privacy: .public), \(s.enabledProviders.count) providers enabled")
-        // Names only, never the values: shows whether this Mac holds each key, including ones that came through iCloud Keychain.
+        // Names and where each item lives, never the values: shows which keys and tokens this Mac holds, and which of them iCloud Keychain has.
         let store = secrets
-        let keyed = ProviderID.allCases.filter { (try? store.get(SecretKey.apiKey($0)))?.isEmpty == false }.map(\.rawValue)
-        QPLog.credentials.notice("api keys on this Mac: \(keyed.isEmpty ? "none" : keyed.joined(separator: ", "), privacy: .public)")
+        func placeOf(_ key: String) -> String? {
+            guard (try? store.get(key))?.isEmpty == false else { return nil }
+            return store.isSynced(key) ? "iCloud" : "this Mac"
+        }
+        var held: [String] = ProviderID.allCases.compactMap { p in placeOf(SecretKey.apiKey(p)).map { "\(p.rawValue) (\($0))" } }
+        for (name, key) in [("hub token", SecretKey.hubToken), ("paired hub token", SecretKey.pairedHubToken), ("gateway", SecretKey.gatewayConfig)] {
+            if let place = placeOf(key) { held.append("\(name) (\(place))") }
+        }
+        QPLog.credentials.notice("secrets on this Mac: \(held.isEmpty ? "none" : held.joined(separator: ", "), privacy: .public)")
     }
 
     public func setOnUpdate(_ handler: @escaping @Sendable (QuotaSnapshot) -> Void) {

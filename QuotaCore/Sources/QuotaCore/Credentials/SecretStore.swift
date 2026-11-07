@@ -7,6 +7,12 @@ import Security
 public protocol SecretStore: Sendable {
     func get(_ key: String) throws -> String?
     func set(_ value: String?, for key: String) throws
+    /// True when the item is in iCloud Keychain (synchronizable), so it is on every Mac of the account. Logging only.
+    func isSynced(_ key: String) -> Bool
+}
+
+public extension SecretStore {
+    func isSynced(_ key: String) -> Bool { false }
 }
 
 public final class InMemorySecretStore: SecretStore, @unchecked Sendable {
@@ -61,6 +67,10 @@ public struct KeychainSecretStore: SecretStore {
             QPLog.credentials.error("could not move \(key, privacy: .public) into iCloud Keychain: \(error.localizedDescription, privacy: .public)")
         }
         return legacy
+    }
+
+    public func isSynced(_ key: String) -> Bool {
+        (try? read(Self.itemQuery(service: service, key: key, protected: true, synchronizable: true))) != nil
     }
 
     public func set(_ value: String?, for key: String) throws {
