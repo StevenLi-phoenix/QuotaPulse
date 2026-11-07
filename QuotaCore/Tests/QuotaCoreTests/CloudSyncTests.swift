@@ -613,6 +613,22 @@ final class SampleHolder: @unchecked Sendable {
     }
 }
 
+@Suite struct SettingsStampTests {
+    /// Gateway seeding runs on every Mac at launch. If it stamped the settings, a Mac with an older copy would outrank the other
+    /// Mac's real changes; a user change stamps, to the whole second, so the stamp survives JSON and compares equal after a relaunch.
+    @Test func bookkeepingDoesNotStampAndUserChangesDoStampToTheSecond() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("qp-stamp-\(UUID().uuidString)", isDirectory: true)
+        let engine = QuotaEngine(location: DataLocation(root: root), providers: [], secrets: InMemorySecretStore(), hubName: "test")
+        await engine.update({ $0.gatewaySeeded = true }, stamp: false)
+        #expect(await engine.settings.updatedAt == nil)
+        await engine.update { $0.pollInterval = 60 }
+        let stamp = try #require(await engine.settings.updatedAt)
+        #expect(stamp.timeIntervalSince1970 == stamp.timeIntervalSince1970.rounded(.down))
+        let reloaded = SettingsStore(url: DataLocation(root: root).settingsURL).load()
+        #expect(reloaded.updatedAt == stamp)
+    }
+}
+
 /// The per-provider records a Mac publishes for `snap`, as a reader finds them in iCloud.
 private func putReadings(_ store: FakeCloudStore, _ snap: QuotaSnapshot) throws {
     for p in snap.providers {

@@ -180,7 +180,7 @@ public actor CloudPublisher {
                 if remote.generatedAt == localStamp { return nil }
             }
             var stamped = local
-            if local.updatedAt == nil { stamped.updatedAt = now }
+            if local.updatedAt == nil { stamped.updatedAt = AppSettings.stampNow(now) }
             let stamp = stamped.updatedAt ?? now
             try await store.save([try CloudRecord(name: CloudPayload.settingsRecord, generatedAt: stamp, hubName: hubName, encoding: stamped)])
             QPLog.cloud.notice("settings: pushed \(remote == nil ? "first copy" : "newer copy", privacy: .public)")

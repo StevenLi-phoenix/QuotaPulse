@@ -50,10 +50,12 @@ public actor QuotaEngine {
 
     // MARK: Settings
 
-    public func update(_ mutate: @Sendable (inout AppSettings) -> Void) {
+    /// A user's change stamps the settings, so it wins over the older copy on other Macs. `stamp: false` is for the app's own
+    /// bookkeeping (gateway seeding), which runs on every Mac and must not outrank a change made on another one.
+    public func update(_ mutate: @Sendable (inout AppSettings) -> Void, stamp: Bool = true) {
         var s = settings
         mutate(&s)
-        s.updatedAt = Date()
+        if stamp { s.updatedAt = AppSettings.stampNow() }
         settings = s
         settingsStore.save(s)
         QPLog.engine.debug("settings updated")
@@ -106,12 +108,12 @@ public actor QuotaEngine {
         let gatewayConfig = GatewayConfigStore.current(file: location.gatewayURL, secrets: secrets)
         let gateway = gatewayConfig.map { GatewayLink(config: $0, cache: gatewayCache) }
         if gateway != nil, !settings.gatewaySeeded {
-            update {
+            update({
                 for id in [ProviderID.deepseek, .opencode] where !$0.isEnabled(id) {
                     $0.providers[id, default: ProviderSettings(enabled: true)].enabled = true
                 }
                 $0.gatewaySeeded = true
-            }
+            }, stamp: false)
             QPLog.engine.notice("gateway link found: DeepSeek and OpenCode enabled")
         }
 
@@ -143,10 +145,10 @@ public actor QuotaEngine {
         // The gateway started reading GLM: show it, once. A provider that is off is never fetched, so this is the only place that can notice.
         if let gateway, !settings.gatewayZaiSeeded, !settings.isEnabled(.zai),
            await gateway.reading(.zai, transport: transport, now: now) != nil {
-            update {
+            update({
                 $0.providers[.zai, default: ProviderSettings(enabled: true)].enabled = true
                 $0.gatewayZaiSeeded = true
-            }
+            }, stamp: false)
             QPLog.engine.notice("gateway reads GLM: enabled")
         }
 

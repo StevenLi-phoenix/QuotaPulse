@@ -80,6 +80,11 @@ public struct AppSettings: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey { case providers, pollInterval, hub, cloud, alerts, retentionDays, launchAtLogin, menuBarStyle, gatewaySeeded, gatewayZaiSeeded, updatedAt }
 
+    /// Now, to the second: JSON keeps whole seconds, so an unrounded stamp would compare unequal to its own copy after a relaunch.
+    public static func stampNow(_ now: Date = Date()) -> Date {
+        Date(timeIntervalSince1970: now.timeIntervalSince1970.rounded(.down))
+    }
+
     /// `cloud` arrived in 0.3: settings written before it must keep every other value.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
