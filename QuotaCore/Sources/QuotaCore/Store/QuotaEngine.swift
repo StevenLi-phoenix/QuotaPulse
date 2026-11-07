@@ -41,6 +41,10 @@ public actor QuotaEngine {
         self.samples = SampleStore(url: location.samplesURL, retentionDays: s.retentionDays)
         self.snapshot = snapshotStore.load() ?? .empty
         QPLog.engine.notice("engine init: data at \(location.root.path, privacy: .public), \(s.enabledProviders.count) providers enabled")
+        // Names only, never the values: shows whether this Mac holds each key, including ones that came through iCloud Keychain.
+        let store = secrets
+        let keyed = ProviderID.allCases.filter { (try? store.get(SecretKey.apiKey($0)))?.isEmpty == false }.map(\.rawValue)
+        QPLog.credentials.notice("api keys on this Mac: \(keyed.isEmpty ? "none" : keyed.joined(separator: ", "), privacy: .public)")
     }
 
     public func setOnUpdate(_ handler: @escaping @Sendable (QuotaSnapshot) -> Void) {
