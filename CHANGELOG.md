@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-16
+
 ### Changed
 - The update log no longer records "you're up to date" as an error.
 - GitHub Actions publishes the release on every push to `main` that has an `[Unreleased]` line. It runs the tests, signs with Developer ID from repository secrets, notarizes with an App Store Connect API key, launch-checks the app, then publishes the EdDSA-signed zip and appcast.
