@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- New providers need no update on the iPhone, Watch, widgets or other Macs: each snapshot carries the provider's name, subtitle, colour, symbol and dashboard link (`ProviderSnapshot.info`), and a provider without it draws in a neutral style.
+- iCloud keeps a `providers` index record that the publishing Macs only add to; readers fetch it with the original five providers and fetch any others in a second request.
+- The hub's `/v1/snapshot` sends only the original five providers unless the client asks with `?providers=all`, so iPhones on older builds keep decoding it; this build's clients ask for all.
+- `open -n QuotaPulse.app --args -QPCloudProbe YES` logs what an iPhone would read from iCloud, and how long it took.
 - Grok Bot: the weekly usage percent and reset time of the Grok Bot desktop app, read from its signed-in session on the Mac that has it (`GetSandUsageStatus` on api2.cursor.sh); on by default and shown as not installed on a Mac without the app.
 - Gateway hub: with `gateway.json` in the group container (`{baseURL, token}`, 0600), the Mac reads OpenCode and DeepSeek from `https://llm.lishuyu.app/llm/hub/v1/snapshot` (one request per refresh) instead of using their upstream keys, and reports Claude, Codex, GLM readings plus OpenCode and DeepSeek forecasts to `POST /v1/report`.
 - With a gateway link, DeepSeek and OpenCode are switched on once (later toggles are kept) and Settings says "Provided by your gateway" instead of asking for a key; report failures only log and cool down for 5 minutes.
@@ -17,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API keys, the hub token and the gateway link sync through iCloud Keychain, so a second Mac needs no re-entry.
 
 ### Changed
+- `ProviderID` is a string struct instead of an enum; JSON is unchanged, including the array form of `[ProviderID: …]` in settings, and ids from outside are checked with `ProviderID(validating:)`.
+- A provider is one `UsageProvider` with a `ProviderDescriptor` (id, info, default on/off, API key or not) plus a line in `ProviderRegistry`; Grok Bot's look lives only in `GrokBotProvider.swift`.
+- Settings store only the providers someone toggled; the rest follow their descriptor's default, and keys for providers this Mac can't read are kept.
+- One unreadable provider record in iCloud no longer hides the others.
 - A Mac with nothing to read for a provider (Grok Bot not installed, no key) no longer writes that provider to iCloud, so it can't overwrite the other Mac's reading.
 - `HubClient` keeps the path of the hub URL (`…/llm/hub` + `/v1/snapshot`), so a hub behind a path prefix works; plain `http://host:48422` is unchanged.
 - Device log upload is skipped for a hub behind a path prefix (the gateway has no telemetry route) instead of failing on every refresh.

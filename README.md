@@ -110,7 +110,7 @@ Optional: iCloud sync doesn't use it. Local scripts and paired devices do.
 | Endpoint | Returns |
 |---|---|
 | `GET /v1/health` | `{ok, version, hubName, generatedAt}` |
-| `GET /v1/snapshot` | the full `QuotaSnapshot` (providers, windows, balances, forecasts) |
+| `GET /v1/snapshot?providers=all` | the full `QuotaSnapshot` (providers, windows, balances, forecasts, and each provider's `info`). Without `providers=all` only the original five providers are sent, because older builds reject a snapshot with an id they don't know |
 | `GET /v1/history?provider=claude&hours=24` | down-sampled samples |
 | `POST /v1/report` (gateway only, `{providers: [...]}`) | stores Claude / Codex / GLM readings and OpenCode / DeepSeek forecasts, returns `{accepted}` |
 | `POST /v1/telemetry` (`application/x-ndjson`, `X-Device-Name` / `X-App-Version` / `X-Platform`) | stores device logs, returns `{accepted}` |
@@ -124,7 +124,7 @@ The iPhone and Watch apps keep a JSON Lines log (`Documents/Logs/quotapulse-YYYY
 ## Development
 
 ```bash
-cd QuotaCore && swift test                 # 152 unit tests: parsing, forecasting, store, hub, gateway, iCloud sync, keychain
+cd QuotaCore && swift test                 # 182 unit tests: parsing, forecasting, store, hub, gateway, iCloud sync, keychain, old-client compatibility
 ../tools/xcodegen/bin/xcodegen generate    # project.yml → QuotaPulse.xcodeproj
 xcodebuild -scheme QuotaPulse-macOS -destination 'platform=macOS' build
 xcodebuild -scheme QuotaPulse-iOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
@@ -134,7 +134,11 @@ cd QuotaUI && swift run WidgetRender ../docs/screenshots   # widget PNGs from th
 
 Layout: `QuotaCore` (models, providers, credentials, forecasting, store, hub, gateway, iCloud sync) · `QuotaUI` (shared SwiftUI) · `macOS/`, `iOS/`, `watchOS/` (apps + widget extensions) · `docs/research.md` (provider endpoints and design decisions).
 
-Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets are always redacted (`sk-ant…(len 108)`).
+Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets are always redacted (`sk-ant…(len 108)`). `open -n QuotaPulse.app --args -QPCloudProbe YES` makes the Mac read iCloud the way the iPhone does and log `cloud probe: a reader shows [...]`.
+
+### Adding a provider
+
+Only the Mac that reads it needs the new build. Write one `UsageProvider` whose `ProviderDescriptor` holds the id, the `ProviderInfo` (name, subtitle, colour, SF Symbol, dashboard link), whether it starts on and whether it takes an API key, and add it to `ProviderRegistry.all()`. The engine stamps that `info` on every snapshot, the publisher adds the id to iCloud's `providers` index, and iPhones, Watches, widgets and other Macs draw it from there without knowing it. Settings on the Mac list the registry, so a provider with its own options also needs a case in `SettingsPages.swift`. `GrokBotProvider.swift` is the example: nothing outside it knows Grok Bot's look.
 
 ## Privacy & security
 
@@ -151,7 +155,9 @@ Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets 
 - Widgets on a real iPhone/Watch need the App Group capability on your team; the simulator doesn't check it.
 - Right after an App ID first gets the iCloud container, CloudKit can answer `Invalid bundle ID for container`, sometimes for only some requests. On our first iPhone install it lasted about 8 minutes and then stopped. The apps say so and retry every 30 seconds while open.
 - Apple Development builds use CloudKit's Development environment, whose schema is created on first write. A TestFlight or App Store build reads Production and needs the schema deployed in CloudKit Console first.
-- iCloud keeps one record per provider (`provider.<id>`), one history per provider (`history.<id>`) and the raw samples in pieces (`samples.<id>.<n>`), shared by every Mac on the account. A Mac writes only the providers it has read, a newer reading replaces an older one, and samples from two Macs are merged by provider, window and second. Deleting history leaves a cut-off that every Mac honours. Settings are one record, newest copy wins. Schema 2 needs the iPhone and Watch apps updated together with the Mac app.
+- iCloud keeps one record per provider (`provider.<id>`), one history per provider (`history.<id>`) and the raw samples in pieces (`samples.<id>.<n>`), shared by every Mac on the account. A Mac writes only the providers it has read, a newer reading replaces an older one, and samples from two Macs are merged by provider, window and second. Deleting history leaves a cut-off that every Mac honours. Settings are one record, newest copy wins. Schema 2 needs the iPhone and Watch apps updated together with the Mac app. A `providers` record lists every provider published; readers fetch it with the original five, so a provider added later costs them a second request.
+- iPhones and Watches on builds from before self-describing providers show only the original five providers, from iCloud and from the hub; providers added since appear once they're updated.
+- A provider no Mac reads any more keeps its last record in iCloud, so other devices go on showing its old numbers.
 - iOS can hold back silent pushes while the app is in the background, so a closed app may only catch up when opened or on its next background refresh.
 - The watch doesn't get silent pushes. It refreshes when opened and on its widget timeline, about every 15 minutes at best.
 - Unsigned dev builds have no iCloud entitlement, so sync is off and the setting explains why.
