@@ -44,6 +44,12 @@
 ### 智谱 GLM（z.ai / bigmodel.cn，扩展点）
 - `GET https://open.bigmodel.cn/api/monitor/usage/quota/limit`（global 为 `https://api.z.ai/…`）`Authorization: Bearer <key>` → `{code, data:{limits:[{type, percentage, usage, currentValue, remaining, nextResetTime(ms), unit, number}]}}`。已按此实现 `ZaiProvider`（默认关闭，需手填 key）。
 
+### Grok Bot（桌面 App，Cursor 后端）
+- Grok Bot 是 Electron 应用（bundle id `com.anysphere.sand`，`/Applications/Grok Bot.app`），后端是 Cursor 的 `https://api2.cursor.sh`，Connect 协议（JSON）。`POST /aiserver.v1.DashboardService/GetSandUsageStatus`，body `{}`，头 `Authorization: Bearer <access token>`、`Content-Type: application/json`、`Connect-Protocol-Version: 1` → `{currentPeriodStart, nextResetTimestampUtc, usagePercent, cursorPlanName, grokPlanLabel, prepaidAvailableCents(字符串), additionalUsageLimit{state, spentCents}, …}`。窗口 7 天、`fixedCadence`；protobuf JSON 省略零值，新周期没有 `usagePercent` 键，按 0 处理。`GetCurrentPeriodUsage` 给同一个百分比（`planUsage.totalPercentUsed`），没有读它。
+- 凭据：`~/Library/Application Support/Grok Bot/sand-secrets.json`，`cursor-accounts` 是 JSON 字符串 `{active, accounts:{<id>:{cursor-access-token, cursor-refresh-token, …}}}`，值是 Electron `safeStorage` 密文（`v10` + AES-128-CBC，key = PBKDF2-SHA1(Keychain 项 `Grok Bot Safe Storage` / 账户 `Grok Bot Key` 的口令, "saltysalt", 1003, 16)，IV 16 个空格），可带 `scoped:v1:<hash>:` 前缀。口令用 `/usr/bin/security -w` 读（5 秒超时），解密在进程内用 CommonCrypto。
+- 不刷新 token：Grok Bot 自己轮换，第二个刷新方可能把它挤下线；过期报 “Open Grok Bot to refresh it”。
+- 只有装了 Grok Bot 的 Mac 能读；另一台 Mac 读不到时是 `notConfigured`，`CloudPublisher` 不写这类快照，所以不会覆盖有读数那台的 `provider.grokbot`。网关 `reported` 集合没加它（网关侧未支持）。
+
 ## 架构决定
 
 1. **Mac 是 hub**：Mac Mini 常开、在 Tailscale 上。菜单栏 App 持凭据、轮询、存样本、算预测，并用 `NWListener` 提供 `GET /v1/health|snapshot|history`（Bearer token）。iOS/watch 只消费 JSON，不碰任何供应商凭据。hub 现在是可选直连，本地脚本和设备日志上传走它；数据同步默认走第 7 条的 iCloud。

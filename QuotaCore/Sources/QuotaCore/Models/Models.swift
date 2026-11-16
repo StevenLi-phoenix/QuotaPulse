@@ -8,6 +8,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
     case deepseek
     case opencode
     case zai
+    case grokbot
 
     public var id: String { rawValue }
 
@@ -18,6 +19,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .deepseek: "DeepSeek"
         case .opencode: "OpenCode"
         case .zai: "GLM (z.ai)"
+        case .grokbot: "Grok Bot"
         }
     }
 
@@ -28,12 +30,13 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .deepseek: "API balance"
         case .opencode: "Zen / Go"
         case .zai: "Coding plan"
+        case .grokbot: "Desktop app"
         }
     }
 
     public var kind: ProviderKind {
         switch self {
-        case .claude, .codex, .opencode, .zai: .rateWindows
+        case .claude, .codex, .opencode, .zai, .grokbot: .rateWindows
         case .deepseek: .balance
         }
     }
@@ -45,6 +48,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .deepseek: URL(string: "https://platform.deepseek.com/usage")!
         case .opencode: URL(string: "https://opencode.ai/console")!
         case .zai: URL(string: "https://bigmodel.cn/coding-plan/personal/usage")!
+        case .grokbot: URL(string: "https://cursor.com/dashboard/spending")!
         }
     }
 
@@ -56,13 +60,14 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .deepseek: 0x4D6BFE
         case .opencode: 0xF59E0B
         case .zai: 0x6366F1
+        case .grokbot: 0x8E8E93
         }
     }
 
     /// Whether the provider needs a user-entered API key (vs. reading a CLI's own credentials).
     public var usesAPIKey: Bool {
         switch self {
-        case .claude, .codex: false
+        case .claude, .codex, .grokbot: false
         case .deepseek, .opencode, .zai: true
         }
     }
@@ -70,7 +75,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
     /// Providers enabled on first launch.
     public var defaultEnabled: Bool {
         switch self {
-        case .claude, .codex: true
+        case .claude, .codex, .grokbot: true
         case .deepseek, .opencode, .zai: false
         }
     }

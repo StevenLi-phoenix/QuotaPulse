@@ -255,7 +255,7 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
         _ = await e.refresh(reason: "t", now: now)
         // gateway file present: deepseek and opencode are enabled by default
         let enabled = await e.settings.enabledProviders
-        #expect(Set(enabled) == [.claude, .codex, .zai, .opencode, .deepseek])
+        #expect(Set(enabled) == [.claude, .codex, .zai, .opencode, .deepseek, .grokbot])
         let posts = transport.requests.filter { $0.httpMethod == "POST" }
         #expect(posts.count == 1)
         let req = try #require(posts.first)

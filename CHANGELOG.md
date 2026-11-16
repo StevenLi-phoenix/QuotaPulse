@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Grok Bot: the weekly usage percent and reset time of the Grok Bot desktop app, read from its signed-in session on the Mac that has it (`GetSandUsageStatus` on api2.cursor.sh); on by default and shown as not installed on a Mac without the app.
 - Gateway hub: with `gateway.json` in the group container (`{baseURL, token}`, 0600), the Mac reads OpenCode and DeepSeek from `https://llm.lishuyu.app/llm/hub/v1/snapshot` (one request per refresh) instead of using their upstream keys, and reports Claude, Codex, GLM readings plus OpenCode and DeepSeek forecasts to `POST /v1/report`.
 - With a gateway link, DeepSeek and OpenCode are switched on once (later toggles are kept) and Settings says "Provided by your gateway" instead of asking for a key; report failures only log and cool down for 5 minutes.
 - iPhone pairing defaults to the gateway (`https://llm.lishuyu.app/llm/hub`, name `llmgateway`).
@@ -16,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API keys, the hub token and the gateway link sync through iCloud Keychain, so a second Mac needs no re-entry.
 
 ### Changed
+- A Mac with nothing to read for a provider (Grok Bot not installed, no key) no longer writes that provider to iCloud, so it can't overwrite the other Mac's reading.
 - `HubClient` keeps the path of the hub URL (`…/llm/hub` + `/v1/snapshot`), so a hub behind a path prefix works; plain `http://host:48422` is unchanged.
 - Device log upload is skipped for a hub behind a path prefix (the gateway has no telemetry route) instead of failing on every refresh.
 - Removing `gateway.json` restores the old behaviour: upstream keys, `opencode/auth.json`, nothing reported.

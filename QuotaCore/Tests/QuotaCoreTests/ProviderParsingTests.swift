@@ -253,3 +253,58 @@ let t0 = Date(timeIntervalSince1970: 1_792_120_000) // 2026-10-16T03:06:40Z
         #expect(QuotaFormat.wholeDays(-3) == 0)
     }
 }
+
+@Suite struct GrokBotParsing {
+    static let sealed = "djEwNMLpIMFHiKlpVHLxNFXw7tqYsRW6YMKC5nIo05GAW0kZkJ+o3HwmGtVASXNOF4Iz"
+    static let password = Data("fixture-safe-storage-password".utf8)
+
+    @Test func parsesWeeklyWindowAndPlan() throws {
+        let snap = try GrokBotProvider.parse(fixture("grokbot_usage"), now: t0)
+        #expect(snap.id == .grokbot)
+        #expect(snap.windows.map(\.id) == ["weekly"])
+        let w = snap.windows[0]
+        #expect(abs(w.utilization - 5.655471289274106) < 1e-9)
+        #expect(w.resetsAt == DateParsing.iso8601("2026-11-22T20:17:03.191Z"))
+        #expect(abs((w.duration ?? 0) - 7 * 86400) < 1)
+        #expect(snap.account?.plan == "Premium")
+        #expect(snap.balance == nil, "prepaid 0 is no balance")
+    }
+
+    @Test func freshPeriodHasNoUsagePercentKey() throws {
+        let body = Data(#"{"currentPeriodStart":"2026-11-15T20:17:03.191Z","nextResetTimestampUtc":"2026-11-22T20:17:03.191Z","cursorPlanName":"Premium"}"#.utf8)
+        #expect(try GrokBotProvider.parse(body, now: t0).windows[0].utilization == 0)
+        #expect(throws: ProviderError.self) { try GrokBotProvider.parse(Data("{}".utf8), now: t0) }
+    }
+
+    @Test func decryptsSafeStorageTokens() throws {
+        func file(_ token: String) -> Data {
+            let accounts = #"{"active":"a1","accounts":{"a1":{"cursor-access-token":"\#(token)"},"a2":{"cursor-access-token":"x"}}}"#
+            return try! JSONSerialization.data(withJSONObject: ["version": 1, "cursor-accounts": accounts])
+        }
+        for token in [Self.sealed, "scoped:v1:" + String(repeating: "a", count: 64) + ":" + Self.sealed] {
+            let t = try GrokBotSecrets.accessToken(secretsFile: file(token), safeStoragePassword: Self.password)
+            #expect(t == "fixture.eyJleHAiOjE3OTI1MDAwMDB9.sig")
+            #expect(GrokBotCredentials(accessToken: t).expiresAt == Date(timeIntervalSince1970: 1_792_500_000))
+        }
+        let plain = try JSONSerialization.data(withJSONObject: ["cursor-access-token": "plaintext:v1:abc"])
+        #expect(try GrokBotSecrets.accessToken(secretsFile: plain, safeStoragePassword: Data()) == "abc")
+    }
+
+    @Test func wrongKeyOrMissingSessionFails() throws {
+        let accounts = #"{"active":"a1","accounts":{"a1":{"cursor-access-token":"\#(Self.sealed)"}}}"#
+        let file = try JSONSerialization.data(withJSONObject: ["cursor-accounts": accounts])
+        #expect(throws: GrokBotSecrets.ParseError.self) { try GrokBotSecrets.accessToken(secretsFile: file, safeStoragePassword: Data("wrong".utf8)) }
+        #expect(throws: GrokBotSecrets.ParseError.noSession) { try GrokBotSecrets.accessToken(secretsFile: Data("{}".utf8), safeStoragePassword: Self.password) }
+        #expect(throws: GrokBotSecrets.ParseError.invalidJSON) { try GrokBotSecrets.accessToken(secretsFile: Data("nope".utf8), safeStoragePassword: Self.password) }
+    }
+
+    @Test func expiredSessionIsReportedNotSent() async throws {
+        struct Loader: GrokBotCredentialLoading {
+            func load() async throws -> GrokBotCredentials { GrokBotCredentials(accessToken: "fixture.eyJleHAiOjE3OTI1MDAwMDB9.sig") }
+        }
+        let ctx = FetchContext(secrets: InMemorySecretStore(), now: Date(timeIntervalSince1970: 1_792_600_000))
+        await #expect(throws: ProviderError.expired("Grok Bot's session has expired. Open Grok Bot to refresh it.")) {
+            try await GrokBotProvider(credentials: Loader()).fetch(ctx)
+        }
+    }
+}

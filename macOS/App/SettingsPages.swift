@@ -65,6 +65,11 @@ struct ProviderSettingsRow: View {
             }
             Toggle(L("Auto-refresh expired session"), isOn: Binding(get: { model.settings.options(id)[CodexProvider.optionAllowRefresh] != "false" },
                                                                    set: { model.setOption(id, key: CodexProvider.optionAllowRefresh, value: $0 ? nil : "false") }))
+        case .grokbot:
+            LabeledContent(L("Credentials")) {
+                Text(L("Read from the Grok Bot app on this Mac (its session file and the Keychain item “Grok Bot Safe Storage”). Nothing is stored or refreshed by QuotaPulse: open Grok Bot to renew an expired session."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         case .deepseek where model.gatewayActive, .opencode where model.gatewayActive:
             LabeledContent(L("Credentials")) {
                 Text(L("Provided by your gateway. No API key is needed on this Mac."))

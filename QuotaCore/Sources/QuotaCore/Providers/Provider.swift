@@ -91,8 +91,9 @@ public extension HTTPResponse {
 public enum ProviderRegistry {
     /// All built-in providers, in display order.
     public static func all(claude: any ClaudeCredentialLoading = ClaudeCredentialLoader(),
-                           codex: any CodexCredentialLoading = CodexCredentialLoader()) -> [any UsageProvider] {
+                           codex: any CodexCredentialLoading = CodexCredentialLoader(),
+                           grokBot: any GrokBotCredentialLoading = GrokBotCredentialLoader()) -> [any UsageProvider] {
         [ClaudeProvider(credentials: claude), CodexProvider(credentials: codex),
-         DeepSeekProvider(), OpenCodeProvider(), ZaiProvider()]
+         DeepSeekProvider(), OpenCodeProvider(), ZaiProvider(), GrokBotProvider(credentials: grokBot)]
     }
 }

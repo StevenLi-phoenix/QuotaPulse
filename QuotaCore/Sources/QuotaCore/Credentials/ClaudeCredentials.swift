@@ -160,10 +160,10 @@ public struct ClaudeCredentialLoader: ClaudeCredentialLoading {
     #if os(macOS)
     /// Runs `/usr/bin/security find-generic-password -s <service> -w` with a hard timeout so a
     /// hypothetical ACL dialog can never hang the poll loop (killing the process dismisses it).
-    static func readKeychainViaSecurityCLI(service: String, timeout: TimeInterval) async throws -> Data? {
+    static func readKeychainViaSecurityCLI(service: String, account: String? = nil, timeout: TimeInterval) async throws -> Data? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["find-generic-password", "-s", service, "-w"]
+        process.arguments = ["find-generic-password", "-s", service] + (account.map { ["-a", $0] } ?? []) + ["-w"]
         let out = Pipe(), err = Pipe()
         process.standardOutput = out
         process.standardError = err

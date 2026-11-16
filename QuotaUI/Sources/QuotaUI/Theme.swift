@@ -24,6 +24,7 @@ public extension ProviderID {
         case .deepseek: "water.waves"
         case .opencode: "terminal"
         case .zai: "brain.head.profile"
+        case .grokbot: "scope"
         }
     }
 

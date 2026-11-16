@@ -4,7 +4,7 @@
 
 **How much AI do I have left, and when does it run out?** — answered in the macOS menu bar, on the desktop, on your iPhone's home screen and on your wrist.
 
-QuotaPulse watches the rate-limit windows and balances of the AI providers you already use — **Claude** (Claude Code subscription), **OpenAI Codex** (ChatGPT subscription), **DeepSeek** (prepaid balance), **OpenCode Zen/Go** and **GLM / z.ai** — and turns the raw percentages into something actionable:
+QuotaPulse watches the rate-limit windows and balances of the AI providers you already use — **Claude** (Claude Code subscription), **OpenAI Codex** (ChatGPT subscription), **DeepSeek** (prepaid balance), **OpenCode Zen/Go**, **GLM / z.ai** and **Grok Bot** (desktop app) — and turns the raw percentages into something actionable:
 
 - *"At this pace you hit 100 % at 18:40 — reset is at 21:00"*
 - *"9 pts ahead of budget"* / *"On pace"*
@@ -47,6 +47,7 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 | DeepSeek | Balance (paid / granted), burn per day, days left | API key (Settings or `DEEPSEEK_API_KEY`) |
 | OpenCode | Go subscription 5-hour / weekly / monthly | API key (Settings, `OPENCODE_API_KEY`, or opencode's `auth.json`) |
 | GLM (z.ai / bigmodel.cn) | Coding-plan limits | API key (Settings or `ZHIPU_API_KEY`) |
+| Grok Bot | Weekly usage percent + reset, plan | The signed-in Grok Bot app on this Mac (its session file + Keychain item “Grok Bot Safe Storage”). Nothing stored, never refreshed: open Grok Bot to renew an expired session. Another Mac without the app reads it from iCloud. |
 
 **Reset semantics** — Claude's windows start with your first request and are merely *cleared* at `resets_at` (the next window starts when you next use it), so an expired window reads "Fresh · next window starts on first request" rather than a negative countdown. Codex windows reset on a fixed cadence and roll forward automatically.
 
@@ -68,7 +69,7 @@ scripts/install.sh      # Release build → ~/Applications/QuotaPulse.app → la
 
 Requirements: macOS 26+, Xcode 27.1, Swift 6.4, and Xcode signed in to an Apple ID on a paid Apple Developer team (iCloud needs a provisioning profile; `install.sh` registers the Mac and fetches it). The app is signed with an Apple Development certificate (team `88U7V98QAC`). To build under your own team, change `DEVELOPMENT_TEAM` in `project.yml`, and rename the iCloud container in `project.yml` and `CloudKitRecordStore.containerID`, since container IDs are global.
 
-First launch: Claude and Codex are enabled by default and read your CLI sign-ins — if Claude Code is signed in you'll see numbers within seconds. Add API keys for DeepSeek / OpenCode / GLM under **Providers**. QuotaPulse is a menu-bar app: look for the ring + percentage top right (the first launch also opens the main window; *Show in Dock* is under General). The hub starts on port 48422 and writes `pairing.json` (0600) in the app's group container so local scripts can use it:
+First launch: Claude, Codex and Grok Bot are enabled by default and read your CLI sign-ins — if Claude Code is signed in you'll see numbers within seconds. Add API keys for DeepSeek / OpenCode / GLM under **Providers**. QuotaPulse is a menu-bar app: look for the ring + percentage top right (the first launch also opens the main window; *Show in Dock* is under General). The hub starts on port 48422 and writes `pairing.json` (0600) in the app's group container so local scripts can use it:
 
 ```bash
 P=~/Library/Group\ Containers/88U7V98QAC.app.lishuyu.quotapulse/QuotaPulse/pairing.json

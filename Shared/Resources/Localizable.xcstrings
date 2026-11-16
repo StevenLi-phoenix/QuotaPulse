@@ -1021,6 +1021,16 @@
         }
       }
     },
+    "Read from the Grok Bot app on this Mac (its session file and the Keychain item “Grok Bot Safe Storage”). Nothing is stored or refreshed by QuotaPulse: open Grok Bot to renew an expired session.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取这台 Mac 上 Grok Bot 应用的登录会话（其会话文件和钥匙串项“Grok Bot Safe Storage”）。QuotaPulse 不保存也不刷新它：会话过期时打开 Grok Bot 即可续期。"
+          }
+        }
+      }
+    },
     "Read from ~/.codex/auth.json (or $CODEX_HOME). Expired sessions are refreshed with the Codex CLI's own client id and written back.": {
       "localizations": {
         "zh-Hans": {

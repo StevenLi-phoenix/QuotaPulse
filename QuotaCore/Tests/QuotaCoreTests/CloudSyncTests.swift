@@ -205,6 +205,15 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         #expect(try #require(store.records["history.claude"]).decode(CloudHistory.self).samples == samples)
     }
 
+    @Test func aMacWithNothingToReadLeavesAnotherMacsReadingAlone() async throws {
+        let store = FakeCloudStore()
+        var snap = snapshot()
+        snap.providers.append(ProviderSnapshot(id: .grokbot, fetchedAt: now, status: .notConfigured("Grok Bot is not installed on this Mac.")))
+        _ = await publisher(store).publish(snap, now: now)
+        #expect(store.records["provider.claude"] != nil)
+        #expect(store.records["provider.grokbot"] == nil)
+    }
+
     @Test func anIdleMacDoesNotWriteEveryPollButKeepsAHeartbeat() async {
         let store = FakeCloudStore()
         let pub = publisher(store)

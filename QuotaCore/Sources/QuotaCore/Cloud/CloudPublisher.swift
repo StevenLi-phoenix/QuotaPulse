@@ -77,8 +77,10 @@ public actor CloudPublisher {
         }
         let fingerprints = Dictionary(uniqueKeysWithValues: zip(snapshot.providers.map(\.id), snapshot.cloudFingerprint))
         // A provider is due when what a reader would see changed, or when its heartbeat has run out.
+        // A Mac that has nothing to read for a provider (Grok Bot not installed, no key) must not overwrite another Mac's reading.
         let due = snapshot.providers.filter { p in
-            force || lastFingerprint[p.id] != fingerprints[p.id] || isDue(lastChecked[p.id], every: policy.heartbeat, now: now)
+            if case .notConfigured = p.status { return false }
+            return force || lastFingerprint[p.id] != fingerprints[p.id] || isDue(lastChecked[p.id], every: policy.heartbeat, now: now)
         }
         let historyDue = force || clearHistory || isDue(status.lastHistoryAt, every: policy.historyInterval, now: now)
         guard !due.isEmpty || historyDue else { return status }
