@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+- The macOS menu-bar dropdown showed only its header and footer (no provider numbers) because its scrolling card stack collapsed; it is now a plain compact column: one group per provider, one line per window with used percent and reset countdown, plus balance and extra usage. The header keeps "updated …" and refresh, and loading, empty and error states each read as one line instead of a blank menu.
+
 ### Added
 - Gateway hub: with `gateway.json` in the group container (`{baseURL, token}`, 0600), the Mac reads OpenCode and DeepSeek from `https://llm.lishuyu.app/llm/hub/v1/snapshot` (one request per refresh) instead of using their upstream keys, and reports Claude, Codex, GLM readings plus OpenCode and DeepSeek forecasts to `POST /v1/report`.
 - With a gateway link, DeepSeek and OpenCode are switched on once (later toggles are kept) and Settings says "Provided by your gateway" instead of asking for a key; report failures only log and cool down for 5 minutes.

@@ -531,12 +531,32 @@
         }
       }
     },
+    "over a year left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可用一年以上"
+          }
+        }
+      }
+    },
     "tomorrow \\(date.formatted(date: .omitted, time: .shortened))": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "明天 \\(date.formatted(date: .omitted, time: .shortened))"
+          }
+        }
+      }
+    },
+    "under a day left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不足一天"
           }
         }
       }
@@ -557,6 +577,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "约剩 \\(QuotaFormat.wholeDays(d)) 天"
+          }
+        }
+      }
+    },
+    "≈ \\(whole)d left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 \\(whole) 天可用"
           }
         }
       }

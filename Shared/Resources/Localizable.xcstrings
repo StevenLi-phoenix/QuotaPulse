@@ -531,16 +531,6 @@
         }
       }
     },
-    "Hub on": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hub 已开启"
-          }
-        }
-      }
-    },
     "Hub server": {
       "localizations": {
         "zh-Hans": {
@@ -717,6 +707,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有可用的相机，请手动输入配对信息。"
+          }
+        }
+      }
+    },
+    "No data yet — enable a provider in Settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无数据——请在设置中启用一个服务。"
           }
         }
       }
@@ -1027,6 +1027,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "从 ~/.codex/auth.json（或 $CODEX_HOME）读取。过期会话会用 Codex CLI 自己的 client id 刷新并写回。"
+          }
+        }
+      }
+    },
+    "Reading quotas…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在读取额度…"
           }
         }
       }
