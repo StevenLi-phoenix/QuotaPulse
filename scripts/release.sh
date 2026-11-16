@@ -120,7 +120,8 @@ PY
 "$XCODEGEN" generate >/dev/null
 ARCHIVE="$WORK/QuotaPulse.xcarchive"
 if [ "$CI_MODE" = 1 ]; then
-  SIGN_ARGS=(CODE_SIGN_STYLE=Manual "CODE_SIGN_IDENTITY=Developer ID Application" "QP_APP_PROFILE=$QP_APP_PROFILE")
+  # Command-line settings reach every target, Swift package resource bundles too, so they need the team as well.
+  SIGN_ARGS=(CODE_SIGN_STYLE=Manual "CODE_SIGN_IDENTITY=Developer ID Application" "DEVELOPMENT_TEAM=$TEAM" "QP_APP_PROFILE=$QP_APP_PROFILE")
   [ -n "${QP_KEYCHAIN:-}" ] && SIGN_ARGS+=("OTHER_CODE_SIGN_FLAGS=--keychain $QP_KEYCHAIN")
 else
   SIGN_ARGS=(-allowProvisioningUpdates)
