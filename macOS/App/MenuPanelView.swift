@@ -9,6 +9,7 @@ import QuotaUI
 /// and one line per window, so every number fits without opening the main window.
 struct MenuPanelView: View {
     @Environment(AppModel.self) private var model
+    @Environment(Updater.self) private var updater
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -153,6 +154,17 @@ struct MenuPanelView: View {
                 NSApp.activate(ignoringOtherApps: true)
             }
             .buttonStyle(.borderless)
+            // Gentle reminder: a scheduled check found a version while QuotaPulse was in the background.
+            if let version = updater.availableVersion {
+                Button {
+                    updater.checkForUpdates()
+                } label: {
+                    Label(L("Update available"), systemImage: "arrow.down.circle.fill").font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.tint)
+                .help(version)
+            }
             Spacer()
             if model.settings.cloud.enabled, model.cloudAvailable {
                 let failed = model.cloudStatus.lastError != nil

@@ -24,15 +24,16 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     DEAD_CODE_STRIPPING: YES
 settingGroups:
+  # Hardened runtime: notarization (scripts/release.sh) requires it; local builds use it too.
   macSigning:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Apple Development"
     PROVISIONING_PROFILE_SPECIFIER: ""
-    ENABLE_HARDENED_RUNTIME: NO
+    ENABLE_HARDENED_RUNTIME: YES
   macAppSigning:
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: "Apple Development"
-    ENABLE_HARDENED_RUNTIME: NO
+    ENABLE_HARDENED_RUNTIME: YES
   simSigning:
     CODE_SIGN_STYLE: Automatic
 packages:
@@ -40,6 +41,10 @@ packages:
     path: QuotaCore
   QuotaUI:
     path: QuotaUI
+  # Auto-update for the macOS app (GitHub Releases + appcast, see scripts/release.sh).
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.1
 targets:
   # ───────────── macOS ─────────────
   QuotaPulse:
@@ -51,6 +56,7 @@ targets:
     dependencies:
       - package: QuotaCore
       - package: QuotaUI
+      - package: Sparkle
       - target: QuotaPulseWidget
     settings:
       groups: [macAppSigning]
@@ -80,6 +86,13 @@ targets:
             CFBundleURLSchemes: [quotapulse]
         CFBundleLocalizations: [en, zh-Hans]
         CFBundleDevelopmentRegion: en
+        # Sparkle: feed = appcast.xml of the latest GitHub release; updates must carry this key's EdDSA signature.
+        SUFeedURL: https://github.com/StevenLi-phoenix/QuotaPulse/releases/latest/download/appcast.xml
+        SUPublicEDKey: "37MYz4OUXeOq/H8Y7pqWUK6Op4ydV++sw/ykWVGuWAw="
+        SUEnableAutomaticChecks: true
+        SUAutomaticallyUpdate: true
+        SUScheduledCheckInterval: 3600
+        SUVerifyUpdateBeforeExtraction: true
   QuotaPulseWidget:
     type: app-extension
     platform: macOS

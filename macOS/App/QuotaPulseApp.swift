@@ -5,6 +5,7 @@ import QuotaUI
 @main
 struct QuotaPulseApp: App {
     @State private var model = AppModel()
+    @State private var updater = Updater()
     @Environment(\.openWindow) private var openWindow
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
@@ -12,6 +13,7 @@ struct QuotaPulseApp: App {
         MenuBarExtra {
             MenuPanelView()
                 .environment(model)
+                .environment(updater)
         } label: {
             MenuBarLabel(model: model)
         }
@@ -20,6 +22,7 @@ struct QuotaPulseApp: App {
         Window("QuotaPulse", id: MainWindow.id) {
             MainWindow()
                 .environment(model)
+                .environment(updater)
                 .frame(minWidth: 820, minHeight: 560)
                 .onOpenURL { url in handle(url) }
         }
@@ -29,13 +32,16 @@ struct QuotaPulseApp: App {
 
         // Same content as the menu-bar dropdown, in a plain window (used for screenshots / docs).
         Window("QuotaPulse Panel", id: "panel") {
-            MenuPanelView().environment(model)
+            MenuPanelView().environment(model).environment(updater)
         }
         .windowResizability(.contentSize)
         .handlesExternalEvents(matching: ["panel"])
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
+                if Updater.isEnabled {
+                    Button(L("Check for Updates…")) { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
+                }
                 Button(L("Refresh now")) { Task { await model.refreshNow() } }.keyboardShortcut("r")
             }
         }

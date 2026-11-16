@@ -42,5 +42,17 @@
 	<false/>
 	<key>NSSupportsSuddenTermination</key>
 	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/StevenLi-phoenix/QuotaPulse/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>37MYz4OUXeOq/H8Y7pqWUK6Op4ydV++sw/ykWVGuWAw=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 </dict>
 </plist>

@@ -221,6 +221,26 @@
         }
       }
     },
+    "Check for Updates…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新…"
+          }
+        }
+      }
+    },
+    "Check for updates automatically": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动检查更新"
+          }
+        }
+      }
+    },
     "Claude's usage endpoint rate-limits aggressively; 5 minutes is the recommended floor. 429s back off automatically up to 30 minutes.": {
       "localizations": {
         "zh-Hans": {
@@ -301,6 +321,16 @@
         }
       }
     },
+    "Debug builds don't update themselves.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试版不会自动更新。"
+          }
+        }
+      }
+    },
     "Delete history": {
       "localizations": {
         "zh-Hans": {
@@ -357,6 +387,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成"
+          }
+        }
+      }
+    },
+    "Download and install updates automatically": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动下载并安装更新"
           }
         }
       }
@@ -561,6 +601,16 @@
         }
       }
     },
+    "Last checked": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次检查"
+          }
+        }
+      }
+    },
     "Last heartbeat \\(heartbeat) · \\(d.eventCount) events": {
       "localizations": {
         "zh-Hans": {
@@ -687,6 +737,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "名称"
+          }
+        }
+      }
+    },
+    "Never": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从未"
           }
         }
       }
@@ -1367,6 +1427,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "URL"
+          }
+        }
+      }
+    },
+    "Update available": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版本"
+          }
+        }
+      }
+    },
+    "Updates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新"
+          }
+        }
+      }
+    },
+    "Updates come from GitHub Releases, signed and notarized by Apple. A downloaded update installs as soon as you switch away from QuotaPulse, which then reopens by itself.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新来自 GitHub Releases，已签名并经 Apple 公证。更新下载好后，只要你切到别的 App 就会安装，QuotaPulse 随后自动重新打开。"
           }
         }
       }

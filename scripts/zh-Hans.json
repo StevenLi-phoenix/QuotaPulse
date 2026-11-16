@@ -215,5 +215,14 @@
   "No data yet — enable a provider in Settings.": "暂无数据——请在设置中启用一个服务。",
   "under a day left": "不足一天",
   "over a year left": "可用一年以上",
-  "≈ \\(whole)d left": "约 \\(whole) 天可用"
+  "≈ \\(whole)d left": "约 \\(whole) 天可用",
+  "Updates": "更新",
+  "Check for updates automatically": "自动检查更新",
+  "Download and install updates automatically": "自动下载并安装更新",
+  "Last checked": "上次检查",
+  "Never": "从未",
+  "Update available": "有新版本",
+  "Check for Updates…": "检查更新…",
+  "Updates come from GitHub Releases, signed and notarized by Apple. A downloaded update installs as soon as you switch away from QuotaPulse, which then reopens by itself.": "更新来自 GitHub Releases，已签名并经 Apple 公证。更新下载好后，只要你切到别的 App 就会安装，QuotaPulse 随后自动重新打开。",
+  "Debug builds don't update themselves.": "调试版不会自动更新。"
 }

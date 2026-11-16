@@ -13,6 +13,7 @@ public enum QPLog {
     public static let cloud = Logger(subsystem: subsystem, category: "cloud")
     public static let engine = Logger(subsystem: subsystem, category: "engine")
     public static let ui = Logger(subsystem: subsystem, category: "ui")
+    public static let update = Logger(subsystem: subsystem, category: "update")
 
     /// Redacts a secret for logs: first 6 chars + length.
     public static func redact(_ secret: String) -> String {

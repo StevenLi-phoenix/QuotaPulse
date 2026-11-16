@@ -12,8 +12,9 @@ def keys_in(paths):
             for m in KEY_RE.finditer(f.read_text()):
                 out.add(m.group(1).replace('\\"', '"').replace("\\\\", "\\"))
     return out
+# `L()` looks keys up in QuotaUI's bundle, so its catalog carries the app and widget keys too.
 targets = {
-    root / "QuotaUI/Sources/QuotaUI/Resources/Localizable.xcstrings": [root / "QuotaUI/Sources"],
+    root / "QuotaUI/Sources/QuotaUI/Resources/Localizable.xcstrings": [root / "QuotaUI/Sources", root / "macOS", root / "iOS", root / "watchOS"],
     root / "Shared/Resources/Localizable.xcstrings": [root / "macOS", root / "iOS", root / "watchOS"],
 }
 missing = set()

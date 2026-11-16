@@ -305,9 +305,35 @@ struct AlertsPage: View {
 
 struct GeneralPage: View {
     @Environment(AppModel.self) private var model
+    @Environment(Updater.self) private var updater
 
     var body: some View {
+        @Bindable var updater = updater
         Form {
+            Section(L("Updates")) {
+                if Updater.isEnabled {
+                    Toggle(L("Check for updates automatically"), isOn: $updater.automaticallyChecks)
+                    Toggle(L("Download and install updates automatically"), isOn: $updater.automaticallyInstalls)
+                        .disabled(!updater.automaticallyChecks)
+                    LabeledContent(L("Last checked")) {
+                        if let last = updater.lastCheck {
+                            Text(last, format: .relative(presentation: .named))
+                        } else {
+                            Text(L("Never"))
+                        }
+                    }
+                    if let version = updater.installingVersion ?? updater.availableVersion {
+                        LabeledContent(L("Update available")) { Text(version).monospacedDigit() }
+                    }
+                    Button(L("Check for Updates…")) { updater.checkForUpdates() }
+                        .disabled(!updater.canCheckForUpdates)
+                    Text(L("Updates come from GitHub Releases, signed and notarized by Apple. A downloaded update installs as soon as you switch away from QuotaPulse, which then reopens by itself."))
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text(L("Debug builds don't update themselves."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Section(L("Polling")) {
                 Picker(L("Refresh every"), selection: Binding(get: { model.settings.pollInterval }, set: { model.setPollInterval($0) })) {
                     Text(L("2 minutes")).tag(120.0)
@@ -344,7 +370,10 @@ struct GeneralPage: View {
                 Text(model.dataFolder.path).font(.caption2.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
             }
             Section(L("About")) {
-                LabeledContent(L("Version")) { Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—") }
+                LabeledContent(L("Version")) {
+                    let info = Bundle.main.infoDictionary ?? [:]
+                    Text("\(info["CFBundleShortVersionString"] as? String ?? "—") (\(info["CFBundleVersion"] as? String ?? "—"))").monospacedDigit()
+                }
                 Text(L("QuotaPulse reads the credentials your CLIs already keep on this Mac and never sends them anywhere except the provider itself. Logs: `log stream --predicate 'subsystem == \"app.lishuyu.quotapulse\"'`."))
                     .font(.caption).foregroundStyle(.secondary)
             }
