@@ -10,6 +10,8 @@ public actor QuotaEngine {
     public private(set) var lastRefreshStarted: Date?
 
     private let providers: [ProviderID: any UsageProvider]
+    /// The providers this Mac can read, in display order.
+    public nonisolated let lineup: [ProviderDescriptor]
     private let secrets: any SecretStore
     private let transport: any HTTPTransport
     private let samples: SampleStore
@@ -30,7 +32,9 @@ public actor QuotaEngine {
                 transport: any HTTPTransport = URLSessionTransport(),
                 hubName: String = ProcessInfo.processInfo.hostName) {
         self.location = location
-        self.providers = Dictionary(uniqueKeysWithValues: providers.map { ($0.id, $0) })
+        self.providers = Dictionary(providers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var seen = Set<ProviderID>()
+        self.lineup = providers.map(\.descriptor).filter { seen.insert($0.id).inserted }
         self.secrets = secrets
         self.transport = transport
         self.hubName = hubName
@@ -40,14 +44,14 @@ public actor QuotaEngine {
         self.settings = s
         self.samples = SampleStore(url: location.samplesURL, retentionDays: s.retentionDays)
         self.snapshot = snapshotStore.load() ?? .empty
-        QPLog.engine.notice("engine init: data at \(location.root.path, privacy: .public), \(s.enabledProviders.count) providers enabled")
+        QPLog.engine.notice("engine init: data at \(location.root.path, privacy: .public), providers \(self.lineup.map(\.id.rawValue).joined(separator: ","), privacy: .public), enabled \(s.enabledProviders(in: self.lineup).map(\.rawValue).joined(separator: ","), privacy: .public)")
         // Names and where each item lives, never the values: shows which keys and tokens this Mac holds, and which of them iCloud Keychain has.
         let store = secrets
         func placeOf(_ key: String) -> String? {
             guard (try? store.get(key))?.isEmpty == false else { return nil }
             return store.isSynced(key) ? "iCloud" : "this Mac"
         }
-        var held: [String] = ProviderID.allCases.compactMap { p in placeOf(SecretKey.apiKey(p)).map { "\(p.rawValue) (\($0))" } }
+        var held: [String] = lineup.filter(\.usesAPIKey).compactMap { p in placeOf(SecretKey.apiKey(p.id)).map { "\(p.id.rawValue) (\($0))" } }
         for (name, key) in [("hub token", SecretKey.hubToken), ("paired hub token", SecretKey.pairedHubToken), ("gateway", SecretKey.gatewayConfig)] {
             if let place = placeOf(key) { held.append("\(name) (\(place))") }
         }
@@ -120,7 +124,7 @@ public actor QuotaEngine {
         let gateway = gatewayConfig.map { GatewayLink(config: $0, cache: gatewayCache) }
         if gateway != nil, !settings.gatewaySeeded {
             update({
-                for id in [ProviderID.deepseek, .opencode] where !$0.isEnabled(id) {
+                for id in [ProviderID.deepseek, .opencode] where !$0.isEnabled(id, default: false) {
                     $0.providers[id, default: ProviderSettings(enabled: true)].enabled = true
                 }
                 $0.gatewaySeeded = true
@@ -128,7 +132,7 @@ public actor QuotaEngine {
             QPLog.engine.notice("gateway link found: DeepSeek and OpenCode enabled")
         }
 
-        let enabled = settings.enabledProviders
+        let enabled = settings.enabledProviders(in: lineup)
         let previous = snapshot
         var results: [ProviderSnapshot] = []
 
@@ -154,7 +158,7 @@ public actor QuotaEngine {
         }
 
         // The gateway started reading GLM: show it, once. A provider that is off is never fetched, so this is the only place that can notice.
-        if let gateway, !settings.gatewayZaiSeeded, !settings.isEnabled(.zai),
+        if let gateway, !settings.gatewayZaiSeeded, !settings.isEnabled(.zai, default: false),
            await gateway.reading(.zai, transport: transport, now: now) != nil {
             update({
                 $0.providers[.zai, default: ProviderSettings(enabled: true)].enabled = true
@@ -199,6 +203,8 @@ public actor QuotaEngine {
             } else {
                 merged.append(ProviderSnapshot(id: id, fetchedAt: now, status: .notConfigured("Waiting for first fetch…")))
             }
+            // Every snapshot says how to draw its provider, so devices that don't know it (built before it existed) still can.
+            merged[merged.count - 1].info = providers[id]?.descriptor.info
         }
 
         await samples.append(newSamples, now: now)

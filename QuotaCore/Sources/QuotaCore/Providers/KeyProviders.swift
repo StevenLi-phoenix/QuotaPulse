@@ -3,7 +3,7 @@ import Foundation
 // MARK: - DeepSeek (prepaid balance)
 
 public struct DeepSeekProvider: UsageProvider {
-    public let id: ProviderID = .deepseek
+    public let descriptor = ProviderDescriptor(id: .deepseek, usesAPIKey: true)
     public static let balanceURL = URL(string: "https://api.deepseek.com/user/balance")!
     public static let envKeys = ["DEEPSEEK_API_KEY", "DEEPSEEK_KEY"]
 
@@ -54,7 +54,7 @@ public struct DeepSeekProvider: UsageProvider {
 // MARK: - OpenCode Zen / Go
 
 public struct OpenCodeProvider: UsageProvider {
-    public let id: ProviderID = .opencode
+    public let descriptor = ProviderDescriptor(id: .opencode, usesAPIKey: true)
     public static let usageURL = URL(string: "https://opencode.ai/zen/go/v1/usage")!
     public static let envKeys = ["OPENCODE_API_KEY", "OPENCODE_GO_API_KEY", "OPENCODE_ZEN_API_KEY"]
 
@@ -134,7 +134,7 @@ public struct OpenCodeProvider: UsageProvider {
 // MARK: - z.ai / BigModel coding plan
 
 public struct ZaiProvider: UsageProvider {
-    public let id: ProviderID = .zai
+    public let descriptor = ProviderDescriptor(id: .zai, usesAPIKey: true)
     public static let envKeys = ["ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY", "ZHIPUAI_API_KEY", "ZHI_PU_API"]
     public static let optionRegion = "region"   // "global" | "cn"
 

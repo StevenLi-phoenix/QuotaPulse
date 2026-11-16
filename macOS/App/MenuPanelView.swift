@@ -21,7 +21,7 @@ struct MenuPanelView: View {
                     ForEach(model.snapshot.providers) { p in
                         ProviderCard(snapshot: p, sparkline: model.sparklines[p.id] ?? [], style: .menu, now: now)
                             .contentShape(Rectangle())
-                            .onTapGesture { NSWorkspace.shared.open(p.id.dashboardURL) }
+                            .onTapGesture { if let url = p.dashboardURL { NSWorkspace.shared.open(url) } }
                             .help(L("Open the provider's usage dashboard"))
                             .transition(.opacity.combined(with: .move(edge: .top)))
                     }

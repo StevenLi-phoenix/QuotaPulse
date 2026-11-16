@@ -7,12 +7,12 @@ import Charts
 /// Utilization history for one provider; one line per window, optional balance axis.
 public struct HistoryChart: View {
     public var samples: [Sample]
-    public var provider: ProviderID
+    public var provider: ProviderInfo
     public var windows: [UsageWindow]
     public var range: TimeInterval
     public var now: Date
 
-    public init(samples: [Sample], provider: ProviderID, windows: [UsageWindow], range: TimeInterval, now: Date = Date()) {
+    public init(samples: [Sample], provider: ProviderInfo, windows: [UsageWindow], range: TimeInterval, now: Date = Date()) {
         self.samples = samples
         self.provider = provider
         self.windows = windows

@@ -12,6 +12,10 @@ public enum HubProtocol {
     public static let appVersionHeader = "X-App-Version"
     public static let platformHeader = "X-Platform"
     public static let urlScheme = "quotapulse"
+    /// `?providers=all` on the snapshot route: the client decodes provider ids it doesn't know. Without it the hub sends only
+    /// `ProviderID.legacy`, because builds from before dynamic providers reject the whole snapshot over one unknown id.
+    public static let providersQuery = "providers"
+    public static let allProviders = "all"
 
     public struct Health: Codable, Sendable, Equatable {
         public var ok: Bool
@@ -121,7 +125,9 @@ public struct HubClient: Sendable {
     }
 
     public func health() async throws -> HubProtocol.Health { try await get(HubProtocol.healthPath, as: HubProtocol.Health.self) }
-    public func snapshot() async throws -> QuotaSnapshot { try await get(HubProtocol.snapshotPath, as: QuotaSnapshot.self) }
+    public func snapshot() async throws -> QuotaSnapshot {
+        try await get(HubProtocol.snapshotPath, query: [.init(name: HubProtocol.providersQuery, value: HubProtocol.allProviders)], as: QuotaSnapshot.self)
+    }
     public func history(_ provider: ProviderID, hours: Double) async throws -> HubProtocol.History {
         try await get(HubProtocol.historyPath, query: [.init(name: "provider", value: provider.rawValue), .init(name: "hours", value: "\(Int(hours))")],
                       as: HubProtocol.History.self)
@@ -183,9 +189,15 @@ public struct HubRouter: Sendable {
             let s = await snapshot()
             return json(HubProtocol.Health(ok: true, hubName: hubName, generatedAt: s.generatedAt == .distantPast ? nil : s.generatedAt))
         case HubProtocol.snapshotPath:
-            return json(await snapshot())
+            let s = await snapshot()
+            if req.query[HubProtocol.providersQuery] == HubProtocol.allProviders { return json(s) }
+            let legacy = s.legacyCompatible
+            if legacy.providers.count < s.providers.count {
+                QPLog.hub.info("snapshot for an older client: left out \(s.providers.filter { !ProviderID.legacy.contains($0.id) }.map(\.id.rawValue).joined(separator: ","), privacy: .public)")
+            }
+            return json(legacy)
         case HubProtocol.historyPath:
-            guard let p = req.query["provider"].flatMap(ProviderID.init(rawValue:)) else {
+            guard let p = req.query["provider"].flatMap(ProviderID.init(validating:)) else {
                 return Response(status: 400, body: Data("{\"error\":\"provider\"}".utf8))
             }
             let hours = min(24 * 30, max(1, Double(req.query["hours"] ?? "") ?? 24))

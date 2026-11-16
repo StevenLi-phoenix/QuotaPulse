@@ -120,12 +120,16 @@ public struct Sparkline: View {
 // MARK: - Glyph & badges
 
 public struct ProviderGlyph: View {
-    public var provider: ProviderID
+    public var provider: ProviderInfo
     public var size: CGFloat
 
-    public init(_ provider: ProviderID, size: CGFloat = 28) {
+    public init(_ provider: ProviderInfo, size: CGFloat = 28) {
         self.provider = provider
         self.size = size
+    }
+
+    public init(_ snapshot: ProviderSnapshot, size: CGFloat = 28) {
+        self.init(snapshot.display, size: size)
     }
 
     public var body: some View {
@@ -329,7 +333,7 @@ public struct ProviderCard: View {
                 errorBody
             } else {
                 ForEach(snapshot.displayWindows) { w in
-                    WindowRow(window: w, forecast: snapshot.forecasts[w.id], color: snapshot.id.color, compact: compact, now: now)
+                    WindowRow(window: w, forecast: snapshot.forecasts[w.id], color: snapshot.color, compact: compact, now: now)
                 }
                 if let b = snapshot.balance {
                     BalanceRow(balance: b, forecast: snapshot.forecasts[Sample.balanceWindowID], compact: compact)
@@ -349,31 +353,31 @@ public struct ProviderCard: View {
         }
         .padding(compact ? 12 : 16)
         .background(QPDesign.cardBackground, in: RoundedRectangle(cornerRadius: QPDesign.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: QPDesign.cardRadius, style: .continuous).strokeBorder(snapshot.id.color.opacity(0.18), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: QPDesign.cardRadius, style: .continuous).strokeBorder(snapshot.color.opacity(0.18), lineWidth: 1))
     }
 
     private var header: some View {
         HStack(spacing: 10) {
-            ProviderGlyph(snapshot.id, size: compact ? 26 : 32)
+            ProviderGlyph(snapshot, size: compact ? 26 : 32)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
-                    Text(snapshot.id.localizedName).font(compact ? .subheadline.weight(.semibold) : .headline).lineLimit(1).fixedSize()
+                    Text(snapshot.localizedName).font(compact ? .subheadline.weight(.semibold) : .headline).lineLimit(1).fixedSize()
                     if let plan = snapshot.account?.plan, !plan.isEmpty { PlanBadge(plan) }
                 }
-                Text(snapshot.lastSuccessAt.map { Present.updatedText($0, now: now) } ?? snapshot.id.subtitle)
+                Text(snapshot.lastSuccessAt.map { Present.updatedText($0, now: now) } ?? snapshot.localizedSubtitle)
                     .font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
             if sparkline.count >= 2 {
                 // Flexible width so the name never wraps on narrow cards; the sparkline gives way first.
-                Sparkline(values: sparkline, color: snapshot.id.color)
+                Sparkline(values: sparkline, color: snapshot.color)
                     .frame(maxWidth: compact ? 56 : 80)
                     .frame(height: compact ? 20 : 26)
                     .layoutPriority(-1)
             }
             StatusBadge(snapshot.status)
             if let p = snapshot.headlinePercent {
-                UsageRing(percent: p, color: snapshot.id.color, lineWidth: compact ? 4 : 5)
+                UsageRing(percent: p, color: snapshot.color, lineWidth: compact ? 4 : 5)
                     .frame(width: compact ? 34 : 44, height: compact ? 34 : 44)
             }
         }

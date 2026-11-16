@@ -105,6 +105,9 @@ public protocol CloudRecordStore: Sendable {
     func save(_ records: [CloudRecord]) async throws
     /// Missing records are simply absent from the result.
     func fetch(_ names: [String]) async throws -> [String: CloudRecord]
+    /// Names of the stored records that start with `prefix`, without their contents. This is how a reader finds providers
+    /// that were added after it was built.
+    func recordNames(prefix: String) async throws -> [String]
     /// Asks iCloud to wake this device with a silent push when records change.
     func subscribeToChanges() async throws
     func removeAll() async throws
@@ -114,7 +117,13 @@ public enum CloudPayload {
     /// 2: one record per provider (`provider.<id>`). Readers on schema 1 refuse these records instead of misreading them.
     public static let schema = 2
     /// The account's reading of one provider. Every Mac that has that provider writes the same record; the newer reading wins.
-    public static func providerRecord(_ provider: ProviderID) -> String { "provider.\(provider.rawValue)" }
+    public static func providerRecord(_ provider: ProviderID) -> String { providerPrefix + provider.rawValue }
+    public static let providerPrefix = "provider."
+    /// The provider a `provider.<id>` record belongs to; nil for any other name or an id that doesn't validate.
+    public static func provider(fromRecord name: String) -> ProviderID? {
+        guard name.hasPrefix(providerPrefix) else { return nil }
+        return ProviderID(validating: String(name.dropFirst(providerPrefix.count)))
+    }
     /// The account's settings. One record, newest `updatedAt` wins.
     public static let settingsRecord = "settings"
     public static func historyRecord(_ provider: ProviderID) -> String { "history.\(provider.rawValue)" }

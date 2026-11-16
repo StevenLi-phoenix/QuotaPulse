@@ -196,19 +196,19 @@ private func hosts(_ t: StubTransport) -> [String] { t.requests.compactMap { $0.
         let dir = tempDir()
         let e0 = try engine(dir, without, providers: [ZaiProvider()])
         _ = await e0.refresh(reason: "t", now: now)
-        #expect(await e0.settings.isEnabled(.zai) == false, "no reading, stays off")
+        #expect(await e0.settings.isEnabled(.zai, default: false) == false, "no reading, stays off")
 
         let with = transport(snapshot(entry(.zai, source: "gateway")))
         let e1 = try engine(dir, with, providers: [ZaiProvider()])
         _ = await e1.refresh(reason: "t", now: now)
-        #expect(await e1.settings.isEnabled(.zai) == true)
+        #expect(await e1.settings.isEnabled(.zai, default: false) == true)
         await e1.update { $0.providers[.zai] = ProviderSettings(enabled: false) }
         _ = await e1.refresh(reason: "t", force: true, now: now.addingTimeInterval(1))
-        #expect(await e1.settings.isEnabled(.zai) == false, "the owner's later choice stands")
+        #expect(await e1.settings.isEnabled(.zai, default: false) == false, "the owner's later choice stands")
         let echo = transport(snapshot(entry(.zai, source: "mac")))
         let dir2 = tempDir()
         let e2 = try engine(dir2, echo, providers: [ZaiProvider()])
         _ = await e2.refresh(reason: "t", now: now)
-        #expect(await e2.settings.isEnabled(.zai) == false, "its own echo does not count")
+        #expect(await e2.settings.isEnabled(.zai, default: false) == false, "its own echo does not count")
     }
 }

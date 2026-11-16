@@ -44,6 +44,8 @@ public struct CloudSettings: Codable, Sendable, Hashable {
 }
 
 public struct AppSettings: Codable, Sendable, Hashable {
+    /// Only providers the user (or gateway seeding) touched; the rest follow their descriptor's `defaultEnabled`. Keys may name
+    /// providers this build can't read (another Mac's newer build wrote them): they are kept and ignored.
     public var providers: [ProviderID: ProviderSettings]
     public var pollInterval: TimeInterval
     public var hub: HubSettings
@@ -64,9 +66,7 @@ public struct AppSettings: Codable, Sendable, Hashable {
     public init(providers: [ProviderID: ProviderSettings]? = nil, pollInterval: TimeInterval = 5 * 60,
                 hub: HubSettings = .init(), cloud: CloudSettings = .init(), alerts: AlertSettings = .init(), retentionDays: Int = 30,
                 launchAtLogin: Bool = false, menuBarStyle: String = "both", gatewaySeeded: Bool = false, gatewayZaiSeeded: Bool = false) {
-        self.providers = providers ?? Dictionary(uniqueKeysWithValues: ProviderID.allCases.map {
-            ($0, ProviderSettings(enabled: $0.defaultEnabled))
-        })
+        self.providers = providers ?? [:]
         self.pollInterval = pollInterval
         self.hub = hub
         self.cloud = cloud
@@ -103,10 +103,13 @@ public struct AppSettings: Codable, Sendable, Hashable {
 
     public static let `default` = AppSettings()
 
-    public func isEnabled(_ id: ProviderID) -> Bool { providers[id]?.enabled ?? id.defaultEnabled }
+    public func isEnabled(_ provider: ProviderDescriptor) -> Bool { providers[provider.id]?.enabled ?? provider.defaultEnabled }
+    /// For callers that know the provider's default without its descriptor (gateway seeding of providers that start off).
+    public func isEnabled(_ id: ProviderID, default fallback: Bool) -> Bool { providers[id]?.enabled ?? fallback }
     public func options(_ id: ProviderID) -> [String: String] { providers[id]?.options ?? [:] }
 
-    public var enabledProviders: [ProviderID] { ProviderID.allCases.filter(isEnabled) }
+    /// The providers to poll, in the lineup's order.
+    public func enabledProviders(in lineup: [ProviderDescriptor]) -> [ProviderID] { lineup.filter(isEnabled).map(\.id) }
 }
 
 /// Settings persistence as JSON next to the data (so the widget / CLI can read it too).

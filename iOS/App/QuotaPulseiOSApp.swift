@@ -66,7 +66,7 @@ struct RootView: View {
             // Automation hook (simulator / screenshots): QUOTAPULSE_START_ROUTE=provider/claude | settings
             if let route = ProcessInfo.processInfo.environment["QUOTAPULSE_START_ROUTE"] {
                 let parts = route.split(separator: "/")
-                if parts.count == 2, parts[0] == "provider", let id = ProviderID(rawValue: String(parts[1])) {
+                if parts.count == 2, parts[0] == "provider", let id = ProviderID(validating: String(parts[1])) {
                     path.append(id)
                 } else if route == "settings" {
                     showSettings = true

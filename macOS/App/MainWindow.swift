@@ -133,7 +133,7 @@ struct HistoryPage: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Picker(L("Provider"), selection: $provider) {
-                    ForEach(model.settings.enabledProviders) { Text($0.displayName).tag($0) }
+                    ForEach(model.enabledProviders) { Text(model.snapshot.info($0).localizedName).tag($0) }
                 }
                 .frame(maxWidth: 220)
                 Picker(L("Range"), selection: $rangeHours) {
@@ -147,7 +147,7 @@ struct HistoryPage: View {
                 Spacer()
                 if loading { ProgressView().controlSize(.small) }
             }
-            HistoryChart(samples: samples, provider: provider,
+            HistoryChart(samples: samples, provider: model.snapshot.info(provider),
                          windows: model.snapshot.provider(provider)?.windows ?? [],
                          range: rangeHours * 3600, now: model.ticker.now)
                 .padding(16)
@@ -164,7 +164,7 @@ struct HistoryPage: View {
             loading = false
         }
         .onAppear {
-            if !model.settings.isEnabled(provider), let first = model.settings.enabledProviders.first { provider = first }
+            if !model.isEnabled(provider), let first = model.enabledProviders.first { provider = first }
         }
     }
 }

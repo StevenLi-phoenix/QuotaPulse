@@ -2,7 +2,7 @@ import Foundation
 
 /// OpenAI Codex (ChatGPT subscription) usage via `GET https://chatgpt.com/backend-api/wham/usage`.
 public struct CodexProvider: UsageProvider {
-    public let id: ProviderID = .codex
+    public let descriptor = ProviderDescriptor(id: .codex, defaultEnabled: true)
     public static let usageURL = URL(string: "https://chatgpt.com/backend-api/wham/usage")!
     public static let optionAllowRefresh = "allowRefresh"
 

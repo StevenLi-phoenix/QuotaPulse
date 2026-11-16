@@ -91,7 +91,7 @@ struct MenuBarLabel: View {
                 Text("—")
             }
         }
-        .accessibilityLabel(Text(focus.map { "\($0.provider.id.displayName) \(QuotaFormat.percent($0.window.currentUtilization()))" } ?? "QuotaPulse"))
+        .accessibilityLabel(Text(focus.map { "\($0.provider.localizedName) \(QuotaFormat.percent($0.window.currentUtilization()))" } ?? "QuotaPulse"))
     }
 }
 

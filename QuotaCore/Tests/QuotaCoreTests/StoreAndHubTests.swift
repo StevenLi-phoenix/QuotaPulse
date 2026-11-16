@@ -29,8 +29,8 @@ import Testing
         let url = tempDir().appendingPathComponent("settings.json")
         let store = SettingsStore(url: url)
         var s = store.load()
-        #expect(s.isEnabled(.claude))
-        #expect(!s.isEnabled(.deepseek))
+        #expect(s.isEnabled(ClaudeProvider().descriptor), "Claude starts on")
+        #expect(!s.isEnabled(DeepSeekProvider().descriptor), "API-key providers start off")
         #expect(s.pollInterval == 300)
         s.providers[.deepseek] = ProviderSettings(enabled: true, options: ["x": "y"])
         store.save(s)
@@ -56,13 +56,14 @@ import Testing
     @Test func engineRefreshRecordsSamplesAndForecasts() async throws {
         struct StaticProvider: UsageProvider {
             let id: ProviderID
+            var descriptor: ProviderDescriptor { ProviderDescriptor(id: id, defaultEnabled: true) }
             let util: Double
             func fetch(_ context: FetchContext) async throws -> ProviderSnapshot {
                 ProviderSnapshot(id: id, fetchedAt: context.now, windows: [UsageWindow(id: "w", title: "W", utilization: util, resetsAt: context.now.addingTimeInterval(3600), duration: 5 * 3600)])
             }
         }
         struct Failing: UsageProvider {
-            let id: ProviderID = .codex
+            let descriptor = ProviderDescriptor(id: .codex, defaultEnabled: true)
             func fetch(_ context: FetchContext) async throws -> ProviderSnapshot { throw ProviderError.rateLimited(retryAfter: nil) }
         }
         let loc = DataLocation(root: tempDir())

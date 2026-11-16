@@ -90,19 +90,21 @@ struct ProviderDetailView: View {
                         Text(L("6 h")).tag(6.0); Text(L("24 h")).tag(24.0); Text(L("7 d")).tag(168.0)
                     }
                     .pickerStyle(.segmented)
-                    HistoryChart(samples: samples, provider: provider, windows: p.windows, range: rangeHours * 3600, now: now)
+                    HistoryChart(samples: samples, provider: p.display, windows: p.windows, range: rangeHours * 3600, now: now)
                         .padding(14)
                         .background(QPDesign.cardBackground, in: RoundedRectangle(cornerRadius: QPDesign.cardRadius, style: .continuous))
-                    Link(destination: provider.dashboardURL) {
-                        Label(L("Open the provider's usage dashboard"), systemImage: "safari")
+                    if let dashboard = p.dashboardURL {
+                        Link(destination: dashboard) {
+                            Label(L("Open the provider's usage dashboard"), systemImage: "safari")
+                        }
+                        .font(.callout)
                     }
-                    .font(.callout)
                 }
             }
             .padding(16)
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle(provider.displayName)
+        .navigationTitle(model.snapshot.info(provider).localizedName)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: rangeHours) { samples = await model.history(provider, hours: rangeHours) }
     }

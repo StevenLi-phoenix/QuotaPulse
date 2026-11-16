@@ -2,83 +2,115 @@ import Foundation
 
 // MARK: - Provider identity
 
-public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, Hashable {
-    case claude
-    case codex
-    case deepseek
-    case opencode
-    case zai
-    case grokbot
+/// A provider's stable key (`claude`, `grokbot`, …). Any string is a valid id, so a device decodes and shows providers that
+/// were added after it was built. Encodes as a bare string, exactly like the enum it replaced; it is deliberately not
+/// `CodingKeyRepresentable`, so `[ProviderID: …]` keeps the array form settings files and iCloud records already use.
+public struct ProviderID: RawRepresentable, Codable, Sendable, Identifiable, Hashable, Comparable, ExpressibleByStringLiteral, CustomStringConvertible {
+    public let rawValue: String
+
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(_ rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: String) { self.rawValue = value }
+
+    /// For ids from outside (record names, query strings, deep links): 1…32 of `a-z 0-9 _ -`.
+    public init?(validating raw: String) {
+        guard (1...32).contains(raw.count),
+              raw.unicodeScalars.allSatisfy({ ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "_" || $0 == "-" }) else { return nil }
+        self.rawValue = raw
+    }
+
+    public init(from decoder: Decoder) throws { rawValue = try decoder.singleValueContainer().decode(String.self) }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(rawValue)
+    }
 
     public var id: String { rawValue }
+    public var description: String { rawValue }
+    public static func < (a: ProviderID, b: ProviderID) -> Bool { a.rawValue < b.rawValue }
 
-    public var displayName: String {
-        switch self {
-        case .claude: "Claude"
-        case .codex: "Codex"
-        case .deepseek: "DeepSeek"
-        case .opencode: "OpenCode"
-        case .zai: "GLM (z.ai)"
-        case .grokbot: "Grok Bot"
+    public static let claude: ProviderID = "claude"
+    public static let codex: ProviderID = "codex"
+    public static let deepseek: ProviderID = "deepseek"
+    public static let opencode: ProviderID = "opencode"
+    public static let zai: ProviderID = "zai"
+
+    /// The providers every released build knows. Builds before dynamic providers fail to decode a snapshot that holds any other
+    /// id, so the hub sends only these unless the client asks for all of them.
+    public static let legacy: [ProviderID] = [.claude, .codex, .deepseek, .opencode, .zai]
+
+    /// What this build can say about the provider when no snapshot carries its own description.
+    public var fallbackInfo: ProviderInfo { ProviderInfo.builtIn[self] ?? .generic(self) }
+
+    /// Display order: the original five in their order, then the rest by id.
+    public static func displayOrder(_ a: ProviderID, _ b: ProviderID) -> Bool {
+        switch (legacy.firstIndex(of: a), legacy.firstIndex(of: b)) {
+        case let (x?, y?): x < y
+        case (_?, nil): true
+        case (nil, _?): false
+        case (nil, nil): a < b
         }
     }
+}
 
-    public var subtitle: String {
-        switch self {
-        case .claude: "Claude Code · OAuth"
-        case .codex: "ChatGPT subscription"
-        case .deepseek: "API balance"
-        case .opencode: "Zen / Go"
-        case .zai: "Coding plan"
-        case .grokbot: "Desktop app"
-        }
-    }
-
-    public var kind: ProviderKind {
-        switch self {
-        case .claude, .codex, .opencode, .zai, .grokbot: .rateWindows
-        case .deepseek: .balance
-        }
-    }
-
-    public var dashboardURL: URL {
-        switch self {
-        case .claude: URL(string: "https://claude.ai/settings/usage")!
-        case .codex: URL(string: "https://chatgpt.com/codex/settings/usage")!
-        case .deepseek: URL(string: "https://platform.deepseek.com/usage")!
-        case .opencode: URL(string: "https://opencode.ai/console")!
-        case .zai: URL(string: "https://bigmodel.cn/coding-plan/personal/usage")!
-        case .grokbot: URL(string: "https://cursor.com/dashboard/spending")!
-        }
-    }
-
+/// How a provider presents itself. The Mac that reads a provider publishes this inside every snapshot, so other devices draw
+/// it without knowing the provider in advance.
+public struct ProviderInfo: Codable, Sendable, Hashable {
+    public var displayName: String
+    public var subtitle: String
+    public var kind: ProviderKind
     /// Brand accent colour as 0xRRGGBB.
-    public var brandHex: UInt32 {
-        switch self {
-        case .claude: 0xD97757
-        case .codex: 0x10A37F
-        case .deepseek: 0x4D6BFE
-        case .opencode: 0xF59E0B
-        case .zai: 0x6366F1
-        case .grokbot: 0x8E8E93
-        }
+    public var brandHex: UInt32
+    /// SF Symbol name.
+    public var symbol: String
+    public var dashboardURL: URL?
+
+    public init(displayName: String, subtitle: String = "", kind: ProviderKind = .rateWindows, brandHex: UInt32 = ProviderInfo.neutralHex,
+                symbol: String = ProviderInfo.neutralSymbol, dashboardURL: URL? = nil) {
+        self.displayName = displayName
+        self.subtitle = subtitle
+        self.kind = kind
+        self.brandHex = brandHex
+        self.symbol = symbol
+        self.dashboardURL = dashboardURL
     }
 
-    /// Whether the provider needs a user-entered API key (vs. reading a CLI's own credentials).
-    public var usesAPIKey: Bool {
-        switch self {
-        case .claude, .codex, .grokbot: false
-        case .deepseek, .opencode, .zai: true
-        }
+    /// Unknown fields and values are dropped instead of failing the whole snapshot: a newer Mac may describe more.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        subtitle = (try? c.decodeIfPresent(String.self, forKey: .subtitle)) ?? ""
+        kind = (try? c.decodeIfPresent(ProviderKind.self, forKey: .kind)) ?? .rateWindows
+        brandHex = (try? c.decodeIfPresent(UInt32.self, forKey: .brandHex)) ?? Self.neutralHex
+        let symbol = (try? c.decodeIfPresent(String.self, forKey: .symbol)) ?? nil
+        self.symbol = symbol.flatMap { $0.isEmpty ? nil : $0 } ?? Self.neutralSymbol
+        dashboardURL = try? c.decodeIfPresent(URL.self, forKey: .dashboardURL)
     }
 
-    /// Providers enabled on first launch.
-    public var defaultEnabled: Bool {
-        switch self {
-        case .claude, .codex, .grokbot: true
-        case .deepseek, .opencode, .zai: false
-        }
+    enum CodingKeys: String, CodingKey { case displayName, subtitle, kind, brandHex, symbol, dashboardURL }
+
+    public static let neutralHex: UInt32 = 0x8E8E93
+    public static let neutralSymbol = "gauge.with.dots.needle.33percent"
+
+    /// A provider nothing describes: its id, title-cased, in neutral colours.
+    public static func generic(_ id: ProviderID) -> ProviderInfo {
+        let name = id.rawValue.split(whereSeparator: { $0 == "_" || $0 == "-" }).map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+        return ProviderInfo(displayName: name.isEmpty ? id.rawValue : name)
     }
+
+    /// The original five, for snapshots written before providers described themselves (older Macs, the gateway).
+    public static let builtIn: [ProviderID: ProviderInfo] = [
+        .claude: ProviderInfo(displayName: "Claude", subtitle: "Claude Code · OAuth", brandHex: 0xD97757, symbol: "sparkles",
+                              dashboardURL: URL(string: "https://claude.ai/settings/usage")),
+        .codex: ProviderInfo(displayName: "Codex", subtitle: "ChatGPT subscription", brandHex: 0x10A37F, symbol: "chevron.left.forwardslash.chevron.right",
+                             dashboardURL: URL(string: "https://chatgpt.com/codex/settings/usage")),
+        .deepseek: ProviderInfo(displayName: "DeepSeek", subtitle: "API balance", kind: .balance, brandHex: 0x4D6BFE, symbol: "water.waves",
+                                dashboardURL: URL(string: "https://platform.deepseek.com/usage")),
+        .opencode: ProviderInfo(displayName: "OpenCode", subtitle: "Zen / Go", brandHex: 0xF59E0B, symbol: "terminal",
+                                dashboardURL: URL(string: "https://opencode.ai/console")),
+        .zai: ProviderInfo(displayName: "GLM (z.ai)", subtitle: "Coding plan", brandHex: 0x6366F1, symbol: "brain.head.profile",
+                           dashboardURL: URL(string: "https://bigmodel.cn/coding-plan/personal/usage")),
+    ]
 }
 
 public enum ProviderKind: String, Codable, Sendable {
@@ -328,10 +360,12 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
     /// Who took this reading, set only by the gateway hub: `reader` (phm), `gateway` (the Worker), `mac` (this app's own report coming back).
     /// nil is a reading this app took itself.
     public var source: String?
+    /// How to draw this provider, stamped by the Mac that read it. Absent in snapshots from older Macs and the gateway; see `display`.
+    public var info: ProviderInfo?
 
     public init(id: ProviderID, fetchedAt: Date, status: ProviderStatus = .ok, account: AccountInfo? = nil,
                 windows: [UsageWindow] = [], balance: Balance? = nil, extraUsage: ExtraUsage? = nil,
-                forecasts: [String: Forecast] = [:], lastSuccessAt: Date? = nil, source: String? = nil) {
+                forecasts: [String: Forecast] = [:], lastSuccessAt: Date? = nil, source: String? = nil, info: ProviderInfo? = nil) {
         self.id = id
         self.fetchedAt = fetchedAt
         self.status = status
@@ -342,7 +376,11 @@ public struct ProviderSnapshot: Codable, Sendable, Identifiable, Hashable {
         self.forecasts = forecasts
         self.lastSuccessAt = lastSuccessAt ?? (status.isOK ? fetchedAt : nil)
         self.source = source
+        self.info = info
     }
+
+    /// What the UI draws: the description the reading Mac published, else what this build knows, else a neutral style.
+    public var display: ProviderInfo { info ?? id.fallbackInfo }
 
     /// The window that is closest to running out (highest utilization), used for the menu bar label.
     public var primaryWindow: UsageWindow? { primaryWindow(now: Date()) }
@@ -387,6 +425,16 @@ public struct QuotaSnapshot: Codable, Sendable, Hashable {
 
     public func provider(_ id: ProviderID) -> ProviderSnapshot? {
         providers.first { $0.id == id }
+    }
+
+    /// How to draw a provider known only by id (a picker, a navigation title): its snapshot's description when there is one.
+    public func info(_ id: ProviderID) -> ProviderInfo { provider(id)?.display ?? id.fallbackInfo }
+
+    /// Only the providers every released build can decode. Older builds fail on the whole snapshot when one id is new to them.
+    public var legacyCompatible: QuotaSnapshot {
+        var copy = self
+        copy.providers = providers.filter { ProviderID.legacy.contains($0.id) }
+        return copy
     }
 
     /// The provider/window pair under the most pressure, for the menu bar glyph.

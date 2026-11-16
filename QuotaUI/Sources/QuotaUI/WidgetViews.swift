@@ -43,16 +43,16 @@ public struct WidgetSmallView: View {
             let primary = p.primaryWindow
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    ProviderGlyph(p.id, size: 20)
+                    ProviderGlyph(p, size: 20)
                     // The name wins over the plan badge on narrow (systemSmall) widgets.
-                    Text(p.id.localizedName).font(.caption.weight(.semibold)).lineLimit(1).fixedSize()
+                    Text(p.localizedName).font(.caption.weight(.semibold)).lineLimit(1).fixedSize()
                     Spacer(minLength: 0)
                     if let plan = p.account?.plan { PlanBadge(plan).layoutPriority(-1) }
                 }
                 Spacer(minLength: 2)
                 HStack(alignment: .center, spacing: 10) {
                     if let w = primary {
-                        UsageRing(percent: w.currentUtilization(), color: p.id.color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
+                        UsageRing(percent: w.currentUtilization(), color: p.color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(QuotaFormat.percent(w.currentUtilization())).font(.system(.title3, design: .rounded).weight(.bold)).monospacedDigit()
                             Text(w.title).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
@@ -99,8 +99,8 @@ public struct WidgetMediumView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(providers)) { p in
                     HStack(spacing: 8) {
-                        ProviderGlyph(p.id, size: 18)
-                        Text(p.id.localizedName).font(.caption.weight(.semibold)).frame(width: 64, alignment: .leading).lineLimit(1)
+                        ProviderGlyph(p, size: 18)
+                        Text(p.localizedName).font(.caption.weight(.semibold)).frame(width: 64, alignment: .leading).lineLimit(1)
                         if let b = p.balance, p.windows.isEmpty {
                             Text(b.formatted).font(.caption.monospacedDigit().weight(.semibold))
                             Spacer()
@@ -111,7 +111,7 @@ public struct WidgetMediumView: View {
                             ForEach(p.displayWindows.prefix(2)) { w in
                                 VStack(alignment: .leading, spacing: 2) {
                                     if w.isReported {
-                                        UsageBar(percent: w.currentUtilization(), color: p.id.color, height: 5)
+                                        UsageBar(percent: w.currentUtilization(), color: p.color, height: 5)
                                     } else {
                                         Capsule().fill(.quaternary.opacity(0.5)).frame(height: 5)
                                     }
@@ -171,15 +171,15 @@ public struct WidgetLargeView: View {
                 ForEach(Array(providers)) { p in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 8) {
-                            ProviderGlyph(p.id, size: 20)
-                            Text(p.id.localizedName).font(.subheadline.weight(.semibold))
+                            ProviderGlyph(p, size: 20)
+                            Text(p.localizedName).font(.subheadline.weight(.semibold))
                             if let plan = p.account?.plan { PlanBadge(plan) }
                             Spacer()
-                            if let s = sparklines[p.id], s.count >= 2 { Sparkline(values: s, color: p.id.color).frame(width: 70, height: 18) }
+                            if let s = sparklines[p.id], s.count >= 2 { Sparkline(values: s, color: p.color).frame(width: 70, height: 18) }
                             StatusBadge(p.status)
                         }
                         ForEach(p.displayWindows.prefix(2)) { w in
-                            WindowRow(window: w, forecast: p.forecasts[w.id], color: p.id.color, compact: true)
+                            WindowRow(window: w, forecast: p.forecasts[w.id], color: p.color, compact: true)
                         }
                         if let b = p.balance, p.windows.isEmpty {
                             BalanceRow(balance: b, forecast: p.forecasts[Sample.balanceWindowID], compact: true)
@@ -213,18 +213,18 @@ public struct AccessoryCircularView: View {
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
             Gauge(value: min(1, w.currentUtilization() / 100)) {
-                Image(systemName: p.id.symbol)
+                Image(systemName: p.symbol)
             } currentValueLabel: {
                 Text("\(Int(w.currentUtilization().rounded()))").font(.system(.body, design: .rounded).weight(.semibold))
             }
             .gaugeStyle(.accessoryCircular)
             .tint(Gradient(colors: [UsageLevel.calm.color, UsageLevel.warm.color, UsageLevel.critical.color]))
         } else if let p = provider, let b = p.balance {
-            Gauge(value: 1) { Image(systemName: p.id.symbol) } currentValueLabel: {
+            Gauge(value: 1) { Image(systemName: p.symbol) } currentValueLabel: {
                 Text(b.isCredits ? "\(Int(b.total / 1000))k" : QuotaFormat.money(b.total, symbol: b.symbol)).font(.system(.caption2, design: .rounded).weight(.semibold)).minimumScaleFactor(0.5)
             }
             .gaugeStyle(.accessoryCircular)
-            .tint(p.id.color)
+            .tint(p.color)
         } else {
             Image(systemName: "gauge.with.dots.needle.33percent")
         }
@@ -244,8 +244,8 @@ public struct AccessoryRectangularView: View {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(Array(shown)) { p in
                     HStack(spacing: 4) {
-                        Image(systemName: p.id.symbol).font(.caption2)
-                        Text(p.id.localizedName).font(.caption2.weight(.semibold)).lineLimit(1)
+                        Image(systemName: p.symbol).font(.caption2)
+                        Text(p.localizedName).font(.caption2.weight(.semibold)).lineLimit(1)
                         Spacer(minLength: 2)
                         if let w = p.primaryWindow {
                             Text(QuotaFormat.percent(w.currentUtilization())).font(.caption2.monospacedDigit().weight(.semibold))
@@ -266,9 +266,9 @@ public struct AccessoryInlineView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Text("\(Image(systemName: p.id.symbol)) \(p.id.localizedName) \(QuotaFormat.percent(w.currentUtilization())) · \(Present.resetShort(w))")
+            Text("\(Image(systemName: p.symbol)) \(p.localizedName) \(QuotaFormat.percent(w.currentUtilization())) · \(Present.resetShort(w))")
         } else if let p = provider, let b = p.balance {
-            Text("\(Image(systemName: p.id.symbol)) \(p.id.localizedName) \(b.formatted)")
+            Text("\(Image(systemName: p.symbol)) \(p.localizedName) \(b.formatted)")
         } else {
             Text("QuotaPulse")
         }
@@ -283,7 +283,7 @@ public struct AccessoryCornerView: View {
         if let p = provider, let w = p.primaryWindow {
             Text("\(Int(w.currentUtilization().rounded()))%")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
-                .widgetCurvedLabel { Text(p.id.localizedName) }
+                .widgetCurvedLabel { Text(p.localizedName) }
                 .widgetCurvedGauge(value: min(1, w.currentUtilization() / 100))
         } else {
             Image(systemName: "gauge.with.dots.needle.33percent")

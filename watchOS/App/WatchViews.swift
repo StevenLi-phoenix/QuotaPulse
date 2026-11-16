@@ -46,12 +46,12 @@ struct WatchProviderRow: View {
     var body: some View {
         HStack(spacing: 8) {
             if let w = provider.primaryWindow {
-                UsageRing(percent: w.currentUtilization(now: now), color: provider.id.color, lineWidth: 4, showsLabel: false).frame(width: 30, height: 30)
+                UsageRing(percent: w.currentUtilization(now: now), color: provider.color, lineWidth: 4, showsLabel: false).frame(width: 30, height: 30)
             } else {
-                ProviderGlyph(provider.id, size: 26)
+                ProviderGlyph(provider, size: 26)
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(provider.id.displayName).font(.headline)
+                Text(provider.localizedName).font(.headline)
                 if let w = provider.primaryWindow {
                     Text("\(QuotaFormat.percent(w.currentUtilization(now: now))) · \(Present.resetShort(w, now: now))").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 } else if let b = provider.balance {
@@ -72,9 +72,9 @@ struct WatchDetailView: View {
         ScrollView {
             if let p = model.snapshot.provider(provider) {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack { ProviderGlyph(p.id, size: 22); Text(p.id.displayName).font(.headline); if let plan = p.account?.plan { PlanBadge(plan) } }
+                    HStack { ProviderGlyph(p, size: 22); Text(p.localizedName).font(.headline); if let plan = p.account?.plan { PlanBadge(plan) } }
                     ForEach(p.displayWindows) { w in
-                        WindowRow(window: w, forecast: p.forecasts[w.id], color: p.id.color, compact: true, now: now)
+                        WindowRow(window: w, forecast: p.forecasts[w.id], color: p.color, compact: true, now: now)
                         if let t = Present.forecastText(window: w, forecast: p.forecasts[w.id], now: now) {
                             Text(t).font(.caption2).foregroundStyle(p.forecasts[w.id]?.willExhaustBeforeReset == true ? UsageLevel.critical.color : .secondary)
                         }
@@ -85,6 +85,6 @@ struct WatchDetailView: View {
                 .padding(.horizontal, 4)
             }
         }
-        .navigationTitle(provider.displayName)
+        .navigationTitle(model.snapshot.info(provider).localizedName)
     }
 }

@@ -60,13 +60,36 @@ public struct FetchContext: Sendable {
         for k in envKeys {
             if let v = environment[k]?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { return v }
         }
-        throw ProviderError.notConfigured("\(provider.displayName) API key not set. Add it in Settings.")
+        throw ProviderError.notConfigured("\(provider.fallbackInfo.displayName) API key not set. Add it in Settings.")
     }
 }
 
+/// Everything about a provider except how to read it: its id, how it looks, and how this Mac treats it.
+public struct ProviderDescriptor: Sendable, Hashable, Identifiable {
+    public var id: ProviderID
+    public var info: ProviderInfo
+    /// On for a fresh install, and for a provider that arrives with an update until the user turns it off.
+    public var defaultEnabled: Bool
+    /// Needs a user-entered API key (vs. reading a CLI's or app's own credentials).
+    public var usesAPIKey: Bool
+
+    public init(id: ProviderID, info: ProviderInfo? = nil, defaultEnabled: Bool = false, usesAPIKey: Bool = false) {
+        self.id = id
+        self.info = info ?? id.fallbackInfo
+        self.defaultEnabled = defaultEnabled
+        self.usesAPIKey = usesAPIKey
+    }
+}
+
+/// A source of usage numbers. Adding a provider means one type conforming to this and a line in `ProviderRegistry`; the
+/// iPhone, the Watch and the widgets draw it from the `info` in its snapshots without an update.
 public protocol UsageProvider: Sendable {
-    var id: ProviderID { get }
+    var descriptor: ProviderDescriptor { get }
     func fetch(_ context: FetchContext) async throws -> ProviderSnapshot
+}
+
+public extension UsageProvider {
+    var id: ProviderID { descriptor.id }
 }
 
 public extension HTTPResponse {
@@ -89,7 +112,7 @@ public extension HTTPResponse {
 }
 
 public enum ProviderRegistry {
-    /// All built-in providers, in display order.
+    /// All providers this build can read, in display order.
     public static func all(claude: any ClaudeCredentialLoading = ClaudeCredentialLoader(),
                            codex: any CodexCredentialLoading = CodexCredentialLoader(),
                            grokBot: any GrokBotCredentialLoading = GrokBotCredentialLoader()) -> [any UsageProvider] {

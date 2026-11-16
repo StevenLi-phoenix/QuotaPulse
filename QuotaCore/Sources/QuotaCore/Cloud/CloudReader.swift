@@ -10,15 +10,42 @@ public struct CloudReader: Sendable {
     public func accountID() async -> String? { await store.accountID() }
 
     /// Built from one record per provider. nil means no Mac has published a provider yet. The snapshot's time is the newest
-    /// reading, and its hub name is the Mac that wrote that reading.
+    /// reading, and its hub name is the Mac that wrote that reading. Providers are whatever the Macs published, including ones
+    /// this build has never heard of; a record that can't be read is left out rather than hiding the others.
     public func snapshot() async throws -> QuotaSnapshot? {
-        let records = try await store.fetch(ProviderID.allCases.map(CloudPayload.providerRecord))
-        let readings: [(provider: ProviderSnapshot, record: CloudRecord)] = try ProviderID.allCases.compactMap { id in
-            guard let record = records[CloudPayload.providerRecord(id)] else { return nil }
-            return (try record.decode(ProviderSnapshot.self), record)
+        let ids = await publishedProviders()
+        let records = try await store.fetch(ids.map(CloudPayload.providerRecord))
+        var readings: [(provider: ProviderSnapshot, record: CloudRecord)] = []
+        var firstError: Error?
+        for id in ids {
+            guard let record = records[CloudPayload.providerRecord(id)] else { continue }
+            do {
+                readings.append((try record.decode(ProviderSnapshot.self), record))
+            } catch {
+                QPLog.cloud.error("provider record \(id.rawValue, privacy: .public) unreadable (schema \(record.schema)): \(error.localizedDescription, privacy: .public)")
+                firstError = firstError ?? error
+            }
         }
+        // Nothing readable at all is worth an error the user sees ("Update this device"); one bad record among good ones is not.
+        if readings.isEmpty, let firstError { throw firstError }
         guard let newest = readings.max(by: { $0.record.generatedAt < $1.record.generatedAt }) else { return nil }
+        QPLog.cloud.debug("snapshot from iCloud: \(readings.map(\.provider.id.rawValue).joined(separator: ","), privacy: .public)")
         return QuotaSnapshot(generatedAt: newest.record.generatedAt, hubName: newest.record.hubName, providers: readings.map(\.provider))
+    }
+
+    /// Every provider with a record in iCloud, plus the original five so a failed listing still finds those, in display order.
+    public func publishedProviders() async -> [ProviderID] {
+        var ids = Set(ProviderID.legacy)
+        do {
+            for name in try await store.recordNames(prefix: CloudPayload.providerPrefix) {
+                if let id = CloudPayload.provider(fromRecord: name) { ids.insert(id) } else {
+                    QPLog.cloud.notice("ignored record \(name, privacy: .public): not a provider id")
+                }
+            }
+        } catch {
+            QPLog.cloud.notice("listing provider records failed, reading the built-in ones: \(error.localizedDescription, privacy: .public)")
+        }
+        return ids.sorted(by: ProviderID.displayOrder)
     }
 
     public func histories(for providers: [ProviderID]) async throws -> [ProviderID: [Sample]] {

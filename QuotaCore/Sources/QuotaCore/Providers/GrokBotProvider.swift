@@ -1,9 +1,18 @@
 import Foundation
 
+public extension ProviderID {
+    static let grokbot: ProviderID = "grokbot"
+}
+
 /// Grok Bot (xAI's desktop agent, built on Cursor's backend) usage via the app's own Connect RPC
 /// `POST https://api2.cursor.sh/aiserver.v1.DashboardService/GetSandUsageStatus`: one percent-used number for a weekly window.
+/// Everything the other devices need to draw it travels in its snapshots (`info`): no display code knows this provider.
 public struct GrokBotProvider: UsageProvider {
-    public let id: ProviderID = .grokbot
+    public let descriptor = ProviderDescriptor(
+        id: .grokbot,
+        info: ProviderInfo(displayName: "Grok Bot", subtitle: "Desktop app", kind: .rateWindows, brandHex: 0x8E8E93, symbol: "scope",
+                           dashboardURL: URL(string: "https://cursor.com/dashboard/spending")),
+        defaultEnabled: true)
     public static let usageURL = URL(string: "https://api2.cursor.sh/aiserver.v1.DashboardService/GetSandUsageStatus")!
 
     public var credentials: any GrokBotCredentialLoading

@@ -14,21 +14,21 @@ public extension Color {
     }
 }
 
-public extension ProviderID {
+/// Drawing comes from `ProviderInfo`, which the reading Mac publishes with each snapshot: nothing here names a provider, so a
+/// provider added after this build still gets its name, colour and symbol.
+public extension ProviderInfo {
     var color: Color { Color(hex: brandHex) }
-
-    var symbol: String {
-        switch self {
-        case .claude: "sparkles"
-        case .codex: "chevron.left.forwardslash.chevron.right"
-        case .deepseek: "water.waves"
-        case .opencode: "terminal"
-        case .zai: "brain.head.profile"
-        case .grokbot: "scope"
-        }
-    }
-
+    /// Names are brands and stay as published; subtitles go through the string table, so known ones are translated.
     var localizedName: String { displayName }
+    var localizedSubtitle: String { subtitle.isEmpty ? "" : String(localized: String.LocalizationValue(subtitle), bundle: .module) }
+}
+
+public extension ProviderSnapshot {
+    var color: Color { display.color }
+    var symbol: String { display.symbol }
+    var localizedName: String { display.localizedName }
+    var localizedSubtitle: String { display.localizedSubtitle }
+    var dashboardURL: URL? { display.dashboardURL }
 }
 
 /// Semantic colour for how close a window is to exhaustion.

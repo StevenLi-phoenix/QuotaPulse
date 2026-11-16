@@ -190,7 +190,7 @@ public struct GatewayLink: Sendable {
             throw e
         case let .success(snap):
             guard let p = snap.provider(id) else {
-                throw ProviderError.notConfigured("The gateway has no \(id.displayName) reading yet.")
+                throw ProviderError.notConfigured("The gateway has no \(id.fallbackInfo.displayName) reading yet.")
             }
             return p
         }
@@ -219,6 +219,7 @@ public enum GatewayReport {
                 if case .notConfigured = p.status { continue }
                 var copy = p
                 copy.account?.label = nil
+                copy.info = nil // the gateway knows its own providers; the report stays the shape it always was
                 out.append(copy)
             } else if forecastOnly.contains(p.id), !p.forecasts.isEmpty {
                 out.append(ProviderSnapshot(id: p.id, fetchedAt: p.fetchedAt, status: .ok, forecasts: p.forecasts))

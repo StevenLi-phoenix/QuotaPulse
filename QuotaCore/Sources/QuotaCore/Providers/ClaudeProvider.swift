@@ -2,7 +2,7 @@ import Foundation
 
 /// Claude Code subscription usage via `GET https://api.anthropic.com/api/oauth/usage`.
 public struct ClaudeProvider: UsageProvider {
-    public let id: ProviderID = .claude
+    public let descriptor = ProviderDescriptor(id: .claude, defaultEnabled: true)
     public static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     public static let betaHeader = "oauth-2025-04-20"
     public static let refreshURL = URL(string: "https://platform.claude.com/v1/oauth/token")!

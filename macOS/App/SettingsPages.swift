@@ -10,16 +10,16 @@ struct ProvidersPage: View {
 
     var body: some View {
         Form {
-            ForEach(ProviderID.allCases) { id in
+            ForEach(model.lineup) { p in
                 Section {
-                    ProviderSettingsRow(id: id)
+                    ProviderSettingsRow(id: p.id, info: p.info)
                 } header: {
                     HStack(spacing: 8) {
-                        ProviderGlyph(id, size: 20)
-                        Text(id.displayName)
-                        Text(id.subtitle).foregroundStyle(.secondary).font(.caption)
+                        ProviderGlyph(p.info, size: 20)
+                        Text(p.info.localizedName)
+                        Text(p.info.localizedSubtitle).foregroundStyle(.secondary).font(.caption)
                         Spacer()
-                        if let s = model.snapshot.provider(id) { StatusBadge(s.status) }
+                        if let s = model.snapshot.provider(p.id) { StatusBadge(s.status) }
                     }
                 }
             }
@@ -31,11 +31,12 @@ struct ProvidersPage: View {
 struct ProviderSettingsRow: View {
     @Environment(AppModel.self) private var model
     let id: ProviderID
+    let info: ProviderInfo
     @State private var keyDraft = ""
     @State private var showKey = false
 
     var body: some View {
-        Toggle(L("Enabled"), isOn: Binding(get: { model.settings.isEnabled(id) }, set: { model.setEnabled(id, $0) }))
+        Toggle(L("Enabled"), isOn: Binding(get: { model.isEnabled(id) }, set: { model.setEnabled(id, $0) }))
 
         if model.gatewayActive, [ProviderID.claude, .codex, .zai].contains(id) {
             LabeledContent(L("Gateway")) {
@@ -92,7 +93,7 @@ struct ProviderSettingsRow: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if model.apiKeyPresence[id] == true { Button(L("Remove key"), role: .destructive) { model.setAPIKey(id, "") } }
-                Link(L("Get a key"), destination: id.dashboardURL).font(.caption)
+                if let url = info.dashboardURL { Link(L("Get a key"), destination: url).font(.caption) }
             }
             if id == .zai {
                 Picker(L("Region"), selection: Binding(get: { model.settings.options(id)[ZaiProvider.optionRegion] ?? "cn" },
@@ -101,6 +102,9 @@ struct ProviderSettingsRow: View {
                     Text("z.ai (global)").tag("global")
                 }
             }
+        default:
+            // A provider with no settings of its own: the toggle above is all there is.
+            EmptyView()
         }
     }
 }

@@ -62,6 +62,13 @@ final class FakeCloudStore: CloudRecordStore, @unchecked Sendable {
             return _records.filter { names.contains($0.key) }
         }
     }
+    func recordNames(prefix: String) async throws -> [String] {
+        if let fetchDelay { try await Task.sleep(for: fetchDelay) }
+        return try lock.withLock {
+            if let e = _fetchError { throw e }
+            return _records.keys.filter { $0.hasPrefix(prefix) }.sorted()
+        }
+    }
     func subscribeToChanges() async throws { lock.withLock { _subscribes += 1 } }
     func removeAll() async throws {
         lock.withLock {
@@ -545,7 +552,7 @@ final class SampleHolder: @unchecked Sendable {
         let back = try JSON.decoder.decode(AppSettings.self, from: legacy)
         #expect(back.pollInterval == 600)
         #expect(back.retentionDays == 90)
-        #expect(back.isEnabled(.deepseek))
+        #expect(back.isEnabled(.deepseek, default: false))
         #expect(back.cloud.enabled, "iCloud sync is on by default after upgrading")
     }
 

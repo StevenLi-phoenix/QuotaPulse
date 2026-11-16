@@ -19,6 +19,10 @@ final class AppModel {
     private(set) var pairing: HubPairing?
     private(set) var hubAddresses: [String] = []
     private(set) var apiKeyPresence: [ProviderID: Bool] = [:]
+    /// The providers this Mac can read, in display order (Settings lists these; other devices show whatever iCloud has).
+    var lineup: [ProviderDescriptor] { engine.lineup }
+    var enabledProviders: [ProviderID] { settings.enabledProviders(in: lineup) }
+    func isEnabled(_ id: ProviderID) -> Bool { lineup.first { $0.id == id }.map { settings.isEnabled($0) } ?? false }
     /// `gateway.json` exists: DeepSeek and OpenCode come from the gateway, so no key is asked for.
     private(set) var gatewayActive = false
     private(set) var devices: [TelemetryStore.DeviceRecord] = []
@@ -84,6 +88,23 @@ final class AppModel {
         await startHubIfNeeded()
         await engine.start()
         QPLog.ui.info("app bootstrapped")
+        if UserDefaults.standard.bool(forKey: "QPCloudProbe") { Task.detached { await Self.probeCloud() } }
+    }
+
+    /// `open -n QuotaPulse.app --args -QPCloudProbe YES`: reads iCloud the way the iPhone does and logs what it would show.
+    /// Read-only; for checking that a provider this Mac publishes reaches the other devices.
+    private nonisolated static func probeCloud() async {
+        guard let store = CloudKitRecordStore.standard() else { return }
+        let reader = CloudReader(store: store)
+        try? await Task.sleep(for: .seconds(20)) // let the first refresh publish
+        let listed = await reader.publishedProviders()
+        do {
+            let snap = try await reader.snapshot()
+            let shown = snap?.providers.map { "\($0.id.rawValue)=\($0.display.displayName)\($0.info == nil ? "(fallback)" : "")" } ?? []
+            QPLog.cloud.notice("cloud probe: listed [\(listed.map(\.rawValue).joined(separator: ","), privacy: .public)], a reader shows [\(shown.joined(separator: ", "), privacy: .public)]")
+        } catch {
+            QPLog.cloud.error("cloud probe: listed [\(listed.map(\.rawValue).joined(separator: ","), privacy: .public)], read failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func refreshGatewayState() {
@@ -146,9 +167,10 @@ final class AppModel {
     }
 
     func setOption(_ provider: ProviderID, key: String, value: String?) {
+        let on = isEnabled(provider) // an option set before the first toggle must not flip the provider
         Task {
             await engine.update {
-                var s = $0.providers[provider] ?? ProviderSettings(enabled: provider.defaultEnabled)
+                var s = $0.providers[provider] ?? ProviderSettings(enabled: on)
                 s.options[key] = value
                 $0.providers[provider] = s
             }
@@ -170,7 +192,7 @@ final class AppModel {
 
     private func refreshAPIKeyPresence() {
         var p: [ProviderID: Bool] = [:]
-        for id in ProviderID.allCases where id.usesAPIKey {
+        for id in lineup.filter(\.usesAPIKey).map(\.id) {
             p[id] = ((try? secrets.get(SecretKey.apiKey(id))) ?? nil)?.isEmpty == false
         }
         apiKeyPresence = p
@@ -334,7 +356,7 @@ final class AppModel {
                 for t in settings.alerts.thresholds where w.utilization >= t && last < t {
                     alertedThresholds[key] = t
                     let content = UNMutableNotificationContent()
-                    content.title = "\(p.id.displayName) \(w.title) at \(QuotaFormat.percent(w.utilization))"
+                    content.title = "\(p.localizedName) \(w.title) at \(QuotaFormat.percent(w.utilization))"
                     content.body = Present.resetText(w)
                     if let f = p.forecasts[w.id], let ex = f.exhaustionAt { content.body += " · " + String(localized: "Out at \(Present.resetClock(ex))") }
                     content.sound = .default

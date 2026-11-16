@@ -55,7 +55,7 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
         let client = HubClient(pairing: HubPairing(baseURL: gatewayBase, token: "t", hubName: "llmgateway"), transport: transport)
         _ = try await client.health()
         _ = try await client.snapshot()
-        #expect(transport.requests.map { $0.url!.absoluteString } == ["https://llm.lishuyu.app/llm/hub/v1/health", "https://llm.lishuyu.app/llm/hub/v1/snapshot"])
+        #expect(transport.requests.map { $0.url!.absoluteString } == ["https://llm.lishuyu.app/llm/hub/v1/health", "https://llm.lishuyu.app/llm/hub/v1/snapshot?providers=all"])
     }
 
     @Test func telemetryUploadSkippedForGateway() async {
@@ -234,6 +234,7 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
 
     private struct Static: UsageProvider {
         let id: ProviderID
+        var descriptor: ProviderDescriptor { ProviderDescriptor(id: id, defaultEnabled: [.claude, .codex].contains(id)) }
         func fetch(_ context: FetchContext) async throws -> ProviderSnapshot {
             ProviderSnapshot(id: id, fetchedAt: context.now, account: AccountInfo(plan: "P", label: "me@example.com"),
                              windows: [UsageWindow(id: "w", title: "W", utilization: 10, resetsAt: context.now.addingTimeInterval(3600), duration: 18000)])
@@ -242,7 +243,7 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
 
     private func engine(_ dir: URL, transport: StubTransport) -> QuotaEngine {
         QuotaEngine(location: DataLocation(root: dir),
-                    providers: [Static(id: .claude), Static(id: .zai), Static(id: .opencode), Static(id: .deepseek)],
+                    providers: [Static(id: .claude), Static(id: .deepseek), Static(id: .opencode), Static(id: .zai)], // the registry's order
                     secrets: InMemorySecretStore(), transport: transport, hubName: "t")
     }
 
@@ -254,8 +255,8 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
         await e.update { $0.providers[.zai] = ProviderSettings(enabled: true) }
         _ = await e.refresh(reason: "t", now: now)
         // gateway file present: deepseek and opencode are enabled by default
-        let enabled = await e.settings.enabledProviders
-        #expect(Set(enabled) == [.claude, .codex, .zai, .opencode, .deepseek, .grokbot])
+        let enabled = await e.settings.enabledProviders(in: e.lineup)
+        #expect(Set(enabled) == [.claude, .zai, .opencode, .deepseek])
         let posts = transport.requests.filter { $0.httpMethod == "POST" }
         #expect(posts.count == 1)
         let req = try #require(posts.first)
@@ -289,7 +290,7 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
         let e = engine(tempDir(), transport: transport)
         _ = await e.refresh(reason: "t", now: now)
         #expect(transport.requests.isEmpty)
-        #expect(await e.settings.isEnabled(.opencode) == false)
+        #expect(await e.settings.isEnabled(.opencode, default: false) == false)
     }
 
     @Test func userChoiceSurvivesSeeding() async throws {
@@ -299,7 +300,7 @@ private func ctx(_ transport: StubTransport, link: GatewayLink? = nil, now: Date
         _ = await e.refresh(reason: "t1", now: now)
         await e.update { $0.providers[.deepseek] = ProviderSettings(enabled: false) }
         _ = await e.refresh(reason: "t2", force: true, now: now.addingTimeInterval(400))
-        #expect(await e.settings.isEnabled(.deepseek) == false)
+        #expect(await e.settings.isEnabled(.deepseek, default: false) == false)
         // a settings file written before gatewaySeeded existed still decodes
         let legacy = try JSON.decoder.decode(AppSettings.self, from: JSON.encoder.encode(AppSettings()).replacingKey("gatewaySeeded"))
         #expect(legacy.gatewaySeeded == false)

@@ -22,18 +22,30 @@ enum WidgetData {
 
 // MARK: - Configuration intent (pick a provider for the small widget)
 
+/// Names come from the shared snapshot, so a provider added after this build can be picked too.
 struct ProviderEntity: AppEntity {
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Provider")
     static let defaultQuery = ProviderQuery()
     var id: String
-    var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(ProviderID(rawValue: id)?.displayName ?? id)")
+    var name: String
+    var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(name)") }
+
+    init(id: String, snapshot: QuotaSnapshot) {
+        self.id = id
+        self.name = snapshot.info(ProviderID(id)).localizedName
     }
 }
 
 struct ProviderQuery: EntityQuery {
-    func entities(for identifiers: [String]) async throws -> [ProviderEntity] { identifiers.map { ProviderEntity(id: $0) } }
-    func suggestedEntities() async throws -> [ProviderEntity] { ProviderID.allCases.map { ProviderEntity(id: $0.rawValue) } }
+    func entities(for identifiers: [String]) async throws -> [ProviderEntity] {
+        let snap = WidgetData.load()
+        return identifiers.map { ProviderEntity(id: $0, snapshot: snap) }
+    }
+    func suggestedEntities() async throws -> [ProviderEntity] {
+        let snap = WidgetData.load()
+        let ids = Set(snap.providers.map(\.id)).union(ProviderID.legacy).sorted(by: ProviderID.displayOrder)
+        return ids.map { ProviderEntity(id: $0.rawValue, snapshot: snap) }
+    }
     func defaultResult() async -> ProviderEntity? { nil }
 }
 
@@ -61,13 +73,13 @@ struct QuotaTimelineProvider: AppIntentTimelineProvider {
     func snapshot(for configuration: SelectProviderIntent, in context: Context) async -> QuotaEntry {
         let snap = WidgetData.load()
         return QuotaEntry(date: .now, snapshot: snap.providers.isEmpty ? .placeholder : snap,
-                          preferred: configuration.provider.flatMap { ProviderID(rawValue: $0.id) }, sparklines: [:])
+                          preferred: configuration.provider.flatMap { ProviderID(validating: $0.id) }, sparklines: [:])
     }
 
     func timeline(for configuration: SelectProviderIntent, in context: Context) async -> Timeline<QuotaEntry> {
         let snap = WidgetData.load()
         let spark = context.family == .systemLarge ? WidgetData.sparklines(for: snap) : [:]
-        let entry = QuotaEntry(date: .now, snapshot: snap, preferred: configuration.provider.flatMap { ProviderID(rawValue: $0.id) }, sparklines: spark)
+        let entry = QuotaEntry(date: .now, snapshot: snap, preferred: configuration.provider.flatMap { ProviderID(validating: $0.id) }, sparklines: spark)
         return Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(15 * 60)))
     }
 }
