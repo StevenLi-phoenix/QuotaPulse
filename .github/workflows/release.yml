@@ -1,5 +1,6 @@
-# Every push to main with a line under CHANGELOG.md's [Unreleased] ships a signed, notarized macOS build to
-# GitHub Releases (scripts/release.sh, bump "auto"); installed copies update themselves within an hour.
+# Every pushed v<x.y.z> tag (scripts/release.sh makes them) ships that commit as a signed, notarized macOS build
+# to GitHub Releases (scripts/publish.sh); installed copies update themselves within an hour. Pushes to main
+# release nothing. "Run workflow" builds, notarizes and signs the chosen ref as a dry run without publishing.
 # Secrets: MACOS_CERT_P12_BASE64 / MACOS_CERT_P12_PASSWORD (Developer ID Application identity),
 # MACOS_APP_PROFILE_BASE64 (Developer ID provisioning profile for app.lishuyu.quotapulse), ASC_API_KEY_P8
 # (App Store Connect API key, Developer role, for notarytool), SPARKLE_ED_PRIVATE_KEY (appcast signatures).
@@ -8,22 +9,13 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
   workflow_dispatch:
-    inputs:
-      bump:
-        description: "auto (minor if [Unreleased] has ### Added, else patch), patch, minor, major or x.y.z"
-        default: auto
-        required: true
-      dry_run:
-        description: "Build, notarize and sign, but don't commit, tag or publish"
-        type: boolean
-        default: false
 
 permissions:
   contents: write
 
-# One release at a time; a push during a run queues the next run, which releases from the newest main.
+# One release at a time; a tag pushed during a run waits for it.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -37,22 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
           fetch-depth: 0
 
-      - name: Anything to release?
-        id: decide
-        run: |
-          if awk '/^## \[Unreleased\]/ {f=1; next} /^## \[/ {f=0} f && /^- /' CHANGELOG.md | grep -q .; then
-            echo "release=true" >> "$GITHUB_OUTPUT"
-            echo "main at $(git log -1 --format='%h %s')"
-          else
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::CHANGELOG.md [Unreleased] is empty at $(git rev-parse --short HEAD); nothing to release"
-          fi
-
       - name: Toolchain
-        if: steps.decide.outputs.release == 'true'
         run: |
           xcodebuild -version
           curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
@@ -61,13 +40,11 @@ jobs:
           echo "XCODEGEN=$RUNNER_TEMP/xcodegen/bin/xcodegen" >> "$GITHUB_ENV"
 
       - name: Tests
-        if: steps.decide.outputs.release == 'true'
         run: |
           swift test --package-path QuotaCore 2>&1 | tail -n 5
           swift test --package-path QuotaUI 2>&1 | tail -n 5
 
       - name: Signing keychain, profile and keys
-        if: steps.decide.outputs.release == 'true'
         env:
           P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.MACOS_CERT_P12_PASSWORD }}
@@ -110,21 +87,16 @@ jobs:
             echo "SPARKLE_KEY_FILE=$RUNNER_TEMP/sparkle.key"
           } >> "$GITHUB_ENV"
 
-      - name: Release
-        if: steps.decide.outputs.release == 'true'
+      - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           NOTARY_KEY_ID: ${{ vars.ASC_API_KEY_ID }}
           NOTARY_ISSUER: ${{ vars.ASC_API_ISSUER_ID }}
-          BUMP: ${{ inputs.bump || 'auto' }}
-          DRY_RUN_FLAG: ${{ inputs.dry_run && '--dry-run' || '' }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          scripts/release.sh "$BUMP" $DRY_RUN_FLAG
+          DRY_RUN_FLAG: ${{ github.event_name == 'workflow_dispatch' && '--dry-run' || '' }}
+        run: scripts/publish.sh $DRY_RUN_FLAG
 
       - name: Release log
-        if: failure() && steps.decide.outputs.release == 'true'
+        if: failure()
         run: |
           for f in build/release/*/release.log build/release/*/smoke.log; do
             [ -f "$f" ] || continue

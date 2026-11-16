@@ -24,7 +24,7 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     DEAD_CODE_STRIPPING: YES
 settingGroups:
-  # Hardened runtime: notarization (scripts/release.sh) requires it; local builds use it too.
+  # Hardened runtime: notarization (scripts/publish.sh) requires it; local builds use it too.
   macSigning:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Apple Development"
@@ -43,7 +43,7 @@ packages:
     path: QuotaCore
   QuotaUI:
     path: QuotaUI
-  # Auto-update for the macOS app (GitHub Releases + appcast, see scripts/release.sh).
+  # Auto-update for the macOS app (GitHub Releases + appcast; scripts/release.sh tags, scripts/publish.sh publishes).
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.1

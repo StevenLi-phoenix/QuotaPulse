@@ -5,7 +5,7 @@ import Sparkle
 
 /// Sparkle auto-update from GitHub Releases.
 ///
-/// `SUFeedURL` points at the `appcast.xml` asset of the latest release; `scripts/release.sh` publishes it
+/// `SUFeedURL` points at the `appcast.xml` asset of the latest release; `scripts/publish.sh` publishes it
 /// with an EdDSA signature that `SUPublicEDKey` verifies. A menu-bar app almost never quits, so instead of
 /// Sparkle's "install on quit" a downloaded update installs as soon as QuotaPulse is in the background
 /// (immediately, or once the user switches away from its window), and QuotaPulse relaunches itself.

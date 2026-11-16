@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- A release is a pushed `v<x.y.z>` tag; pushes to `main` no longer release. `scripts/release.sh auto` bumps the version, rolls the changelog, commits, tags and pushes `main` with the tag, and prints the tag's workflow run.
+- The tag's workflow runs `scripts/publish.sh`. It checks that the tag is `HEAD`, matches `project.yml`, is on `main` and unpublished, and has a build number above the feed's. Then it builds, signs, notarizes and publishes. *Run workflow* is a dry run.
+- Release notes include every tagged version since the one the feed serves, so a version whose run failed still shows up in the next release.
+
 ## [0.4.1] - 2026-11-16
 
 ### Changed
