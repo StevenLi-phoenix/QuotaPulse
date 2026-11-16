@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - iCloud records are per provider (schema 2). iPhone, Watch and widgets built before this change read the old `snapshot` record, which is no longer written, so update them together with the Mac app.
 
 ### Fixed
+- The macOS menu-bar dropdown showed only its header and footer (no provider numbers) because its scrolling card stack collapsed; it is now a plain compact column: one group per provider, one line per window with used percent and reset countdown, plus balance and extra usage. The header keeps "updated …" and refresh, and loading, empty and error states each read as one line instead of a blank menu.
 - Two Macs on one iCloud account no longer erase each other's data: iCloud holds one record per provider (`provider.<id>`) and per-provider history (`history.<id>`), so a Mac without a gateway no longer wipes OpenCode and DeepSeek, and history from two Macs is merged.
 - Deleting history cuts it off in iCloud with `clearedAt`, so another Mac's copy can't bring it back.
 - Samples from two Macs are merged by provider, window and second, so a point both Macs took counts once, and a `balance` window of two providers stays separate.

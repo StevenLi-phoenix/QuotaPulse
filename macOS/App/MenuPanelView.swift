@@ -3,50 +3,50 @@ import QuotaCore
 import QuotaUI
 
 /// The menu-bar dropdown. Renders instantly from the cached snapshot; refresh happens off-main.
+///
+/// The old body was a `ScrollView` + `LazyVStack` of tall cards, and the panel showed only its
+/// header and footer. This is a plain, non-scrolling column instead: a compact group per provider
+/// and one line per window, so every number fits without opening the main window.
 struct MenuPanelView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         let now = model.ticker.now
+        let groups = MenuSummary.groups(for: model.snapshot, now: now)
         VStack(spacing: 0) {
             header(now: now)
             Divider().padding(.horizontal, 12)
-            ScrollView {
-                LazyVStack(spacing: 10) {
-                    if model.snapshot.providers.isEmpty {
-                        EmptyStateView(title: L("Nothing to show yet"),
-                                       message: L("Enable a provider in Settings or wait for the first refresh."))
-                    }
-                    ForEach(model.snapshot.providers) { p in
-                        ProviderCard(snapshot: p, sparkline: model.sparklines[p.id] ?? [], style: .menu, now: now)
-                            .contentShape(Rectangle())
-                            .onTapGesture { if let url = p.dashboardURL { NSWorkspace.shared.open(url) } }
-                            .help(L("Open the provider's usage dashboard"))
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+            VStack(alignment: .leading, spacing: 10) {
+                if groups.isEmpty {
+                    placeholder
+                } else {
+                    ForEach(groups) { group in
+                        providerGroup(group)
                     }
                 }
-                .padding(12)
-                .animation(QPDesign.spring, value: model.snapshot.providers.map(\.id))
             }
-            .frame(maxHeight: 520)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Divider().padding(.horizontal, 12)
             footer
         }
-        .frame(width: 360)
+        .frame(width: 340)
         .background(.regularMaterial)
     }
+
+    // MARK: Header
 
     private func header(now: Date) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "gauge.with.dots.needle.33percent").font(.title3).foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 0) {
-                Text("QuotaPulse").font(.headline)
-                Text(model.lastRefreshAt.map { Present.updatedText($0, now: now) } ?? L("Waiting for first refresh…"))
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .contentTransition(.opacity)
-            }
-            Spacer()
+            Text("QuotaPulse").font(.headline)
+            Spacer(minLength: 8)
+            Text(model.lastRefreshAt.map { Present.updatedText($0, now: now) } ?? L("Waiting for first refresh…"))
+                .font(.caption2).foregroundStyle(.secondary)
+                .lineLimit(1)
+                .contentTransition(.opacity)
             Button {
                 Task { await model.refreshNow() }
             } label: {
@@ -61,6 +61,90 @@ struct MenuPanelView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
     }
+
+    // MARK: Body
+
+    /// One clear line for the two states that have no rows yet: still reading, or nothing enabled.
+    @ViewBuilder
+    private var placeholder: some View {
+        HStack(spacing: 8) {
+            if model.lastRefreshAt == nil {
+                ProgressView().controlSize(.small)
+                Text(L("Reading quotas…")).font(.callout).foregroundStyle(.secondary)
+            } else {
+                Image(systemName: "tray").foregroundStyle(.secondary)
+                Text(L("No data yet — enable a provider in Settings.")).font(.callout).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 6)
+    }
+
+    private func providerGroup(_ group: MenuSummary.Group) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                ProviderGlyph(group.info, size: 18)
+                Text(group.info.localizedName)
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                if let plan = group.plan, !plan.isEmpty { PlanBadge(plan) }
+                Spacer(minLength: 4)
+                if group.status.isError {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(UsageLevel.hot.color)
+                        .help(group.status.message)
+                }
+            }
+            ForEach(group.lines) { line in
+                lineRow(line)
+            }
+            // Error, or a provider that has not answered yet: one line instead of a blank group.
+            if !group.hasLines {
+                Text(group.status.isError
+                     ? "\(Present.statusTitle(group.status)) · \(group.status.message)"
+                     : L("Waiting for first refresh…"))
+                    .font(.caption)
+                    .foregroundStyle(group.status.isError ? UsageLevel.hot.color : .secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .padding(.leading, 24)
+                    .help(group.status.message)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { if let url = group.info.dashboardURL { NSWorkspace.shared.open(url) } }
+        .help(L("Open the provider's usage dashboard"))
+    }
+
+    private func lineRow(_ line: MenuSummary.Line) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(line.title)
+                .font(.caption)
+                .foregroundStyle(line.isReported ? .secondary : .tertiary)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Text(line.value)
+                .font(.system(.caption, design: .rounded).weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(valueStyle(line))
+                .contentTransition(.numericText())
+            Text(line.reset)
+                .font(.caption2)
+                .monospacedDigit()
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .frame(minWidth: 56, alignment: .trailing)
+        }
+        .padding(.leading, 24)
+    }
+
+    private func valueStyle(_ line: MenuSummary.Line) -> AnyShapeStyle {
+        if let percent = line.percent { return AnyShapeStyle(UsageLevel(percent: percent).color) }
+        return AnyShapeStyle(line.isReported ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.tertiary)
+    }
+
+    // MARK: Footer
 
     private var footer: some View {
         HStack {
@@ -77,8 +161,9 @@ struct MenuPanelView: View {
                     .help(model.cloudStatus.lastError ?? "iCloud")
             }
             if model.settings.hub.enabled {
-                Label(model.hubState.hasPrefix("listening") ? L("Hub on") : model.hubState, systemImage: "antenna.radiowaves.left.and.right")
-                    .font(.caption2).foregroundStyle(.secondary)
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.caption2)
+                    .foregroundStyle(model.hubState.hasPrefix("listening") ? .secondary : UsageLevel.warm.color)
                     .help(model.hubState)
             }
             Button {

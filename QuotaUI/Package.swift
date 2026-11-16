@@ -22,5 +22,10 @@ let package = Package(
             dependencies: ["QuotaUI", "QuotaCore"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
+        .testTarget(
+            name: "QuotaUITests",
+            dependencies: ["QuotaUI", "QuotaCore"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
     ]
 )
