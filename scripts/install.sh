@@ -1,9 +1,9 @@
 #!/bin/bash
 # Builds the Release macOS app and installs it to $QUOTAPULSE_INSTALL_DIR (default ~/Applications).
-# Run by hand, or by `ams watch` after every push to main (it runs as a LaunchAgent: PATH has no Homebrew).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 # The .xcodeproj is generated from project.yml and not in git, so regenerate it before every build.
+# xcodegen: next to the repo, on PATH, or Homebrew's (a non-login shell may not have Homebrew on PATH).
 XCODEGEN="../tools/xcodegen/bin/xcodegen"
 [ -x "$XCODEGEN" ] || XCODEGEN="$(command -v xcodegen || true)"
 [ -n "$XCODEGEN" ] || [ ! -x /opt/homebrew/bin/xcodegen ] || XCODEGEN=/opt/homebrew/bin/xcodegen
