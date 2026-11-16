@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-16
+
 ### Added
 - The Mac app updates itself from GitHub Releases (Sparkle 2.10.1): it checks the feed every hour, downloads in the background, installs as soon as QuotaPulse is in the background and reopens by itself.
 - General → Updates: automatic checks and installs on/off, last check, *Check for Updates…* (also in the app menu); with automatic installs off, the menu-bar panel shows *Update available* instead of opening a window.
