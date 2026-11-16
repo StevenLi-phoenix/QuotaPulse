@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- The update log no longer records "you're up to date" as an error.
+
 ## [0.4.0] - 2026-11-16
 
 ### Added

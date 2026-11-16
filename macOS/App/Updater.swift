@@ -56,8 +56,8 @@ final class Updater: NSObject {
         }
         let controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: self, userDriverDelegate: self)
         self.controller = controller
-        canCheckObservation = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] updater, _ in
-            let value = updater.canCheckForUpdates
+        canCheckObservation = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] _, change in
+            guard let value = change.newValue else { return }
             Task { @MainActor in self?.canCheckForUpdates = value }
         }
         controller.startUpdater()
@@ -125,12 +125,19 @@ extension Updater: SPUUpdaterDelegate {
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+        guard !Self.isNoUpdate(error) else { return } // "up to date" is logged by updaterDidNotFindUpdate
         QPLog.update.error("update cycle aborted: \(error.localizedDescription, privacy: .public)")
     }
 
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
-        if let error { QPLog.update.notice("update cycle ended: \(error.localizedDescription, privacy: .public)") }
+        if let error, !Self.isNoUpdate(error) { QPLog.update.notice("update cycle ended: \(error.localizedDescription, privacy: .public)") }
         noteCycleEnded(updater)
+    }
+
+    /// Sparkle reports "you're up to date" as an error (SUNoUpdateError).
+    private static func isNoUpdate(_ error: any Error) -> Bool {
+        let ns = error as NSError
+        return ns.domain == SUSparkleErrorDomain && ns.code == Int(SUError.noUpdateError.rawValue)
     }
 
     /// Sparkle would wait for a quit that a menu-bar app rarely does; install now instead.
