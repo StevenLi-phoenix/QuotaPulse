@@ -123,16 +123,31 @@ private struct NoGrokBot: GrokBotCredentialLoading {
     private func record(_ p: ProviderSnapshot, hub: String = "macm4") throws -> CloudRecord {
         try CloudRecord(name: CloudPayload.providerRecord(p.id), generatedAt: p.fetchedAt, hubName: hub, encoding: p)
     }
+    private func index(_ ids: [ProviderID], at date: Date = now) throws -> CloudRecord {
+        try CloudRecord(name: CloudPayload.providerIndexRecord, generatedAt: date, hubName: "macm4", encoding: CloudProviderIndex(providers: ids))
+    }
+    private func storedIndex(_ store: FakeCloudStore) throws -> [ProviderID]? {
+        try store.records[CloudPayload.providerIndexRecord]?.decode(CloudProviderIndex.self).providers
+    }
 
     @Test func aReaderShowsProvidersItHasNeverHeardOf() async throws {
         let store = FakeCloudStore()
         store.put(try record(reading(.claude, info: ProviderInfo.builtIn[.claude])))
         store.put(try record(reading("acme", info: acmeInfo, at: now.addingTimeInterval(60))))
-        store.put(try CloudRecord(name: CloudPayload.historyRecord("acme"), generatedAt: now, hubName: "macm4", encoding: [String]()))
+        store.put(try index([.claude, "acme"]))
         let snap = try #require(try await CloudReader(store: store).snapshot())
         #expect(snap.providers.map(\.id) == [.claude, "acme"])
         #expect(snap.provider("acme")?.display == acmeInfo)
         #expect(snap.generatedAt == now.addingTimeInterval(60))
+    }
+
+    @Test func withoutAnIndexTheBuiltInFiveStillShow() async throws {
+        // What an older Mac leaves behind: records, no index.
+        let store = FakeCloudStore()
+        store.put(try record(reading(.codex)))
+        store.put(try record(reading("acme", info: acmeInfo)))
+        let snap = try #require(try await CloudReader(store: store).snapshot())
+        #expect(snap.providers.map(\.id) == [.codex])
     }
 
     @Test func publishedGrokBotReachesAReaderThatHasNoCodeForIt() async throws {
@@ -141,16 +156,48 @@ private struct NoGrokBot: GrokBotCredentialLoading {
         let info = GrokBotProvider().descriptor.info
         await publisher.publish(QuotaSnapshot(generatedAt: now, hubName: "macm4", providers: [reading(.claude, info: ProviderInfo.builtIn[.claude]), reading(.grokbot, info: info)]), now: now)
         #expect(store.records["provider.grokbot"] != nil)
+        #expect(try storedIndex(store) == [.claude, .grokbot])
         let snap = try #require(try await CloudReader(store: store).snapshot())
         #expect(snap.providers.map(\.id) == [.claude, .grokbot])
         #expect(snap.provider(.grokbot)?.display == info)
+    }
+
+    @Test func theIndexOnlyGrowsAndIsWrittenOnlyWhenItDoes() async throws {
+        let store = FakeCloudStore()
+        store.put(try index([.codex, "acme"])) // another Mac's providers
+        let publisher = CloudPublisher(store: store, history: { _, _ in [] })
+        await publisher.publish(QuotaSnapshot(generatedAt: now, hubName: "macm4", providers: [reading(.grokbot)]), now: now)
+        #expect(try storedIndex(store) == [.codex, "acme", .grokbot])
+        // Same provider, new numbers: the reading is rewritten, the index is not.
+        await publisher.publish(QuotaSnapshot(generatedAt: now.addingTimeInterval(60), hubName: "macm4", providers: [reading(.grokbot, util: 50, at: now.addingTimeInterval(60))]), now: now.addingTimeInterval(60))
+        #expect(store.saves.last == ["provider.grokbot"])
+    }
+
+    @Test func aKeptNewerReadingIsIndexedToo() async throws {
+        let store = FakeCloudStore()
+        store.put(try record(reading("acme", info: acmeInfo, at: now.addingTimeInterval(600)), hub: "mini"))
+        let publisher = CloudPublisher(store: store, history: { _, _ in [] })
+        await publisher.publish(QuotaSnapshot(generatedAt: now, hubName: "macm4", providers: [reading("acme", info: acmeInfo)]), now: now)
+        #expect(store.records["provider.acme"]?.hubName == "mini", "the newer reading stays")
+        #expect(try storedIndex(store) == ["acme"], "and readers can still find it")
+    }
+
+    @Test func anIndexFromANewerBuildIsLeftAlone() async throws {
+        let store = FakeCloudStore()
+        var newer = try index(["future"])
+        newer.schema = CloudPayload.schema + 1
+        store.put(newer)
+        let publisher = CloudPublisher(store: store, history: { _, _ in [] })
+        await publisher.publish(QuotaSnapshot(generatedAt: now, hubName: "macm4", providers: [reading(.grokbot)]), now: now)
+        #expect(store.records[CloudPayload.providerIndexRecord]?.schema == CloudPayload.schema + 1)
+        #expect(store.records["provider.grokbot"] != nil)
     }
 
     @Test func oneUnreadableRecordDoesNotHideTheOthers() async throws {
         let store = FakeCloudStore()
         store.put(try record(reading(.codex)))
         store.put(CloudRecord(name: "provider.acme", schema: CloudPayload.schema, generatedAt: now, hubName: "m", payload: Data("junk".utf8)))
-        store.put(CloudRecord(name: "provider.Bad Name", schema: CloudPayload.schema, generatedAt: now, hubName: "m", payload: Data()))
+        store.put(try index([.codex, "acme", "Bad Name", "../x"]))
         let snap = try #require(try await CloudReader(store: store).snapshot())
         #expect(snap.providers.map(\.id) == [.codex])
     }
@@ -160,13 +207,8 @@ private struct NoGrokBot: GrokBotCredentialLoading {
         var newer = try record(reading("acme", info: acmeInfo))
         newer.schema = CloudPayload.schema + 1
         store.put(newer)
+        store.put(try index(["acme"]))
         await #expect(throws: CloudError.incompatible(schema: CloudPayload.schema + 1)) { try await CloudReader(store: store).snapshot() }
-    }
-
-    @Test func recordNamesMapBackToProviders() {
-        #expect(CloudPayload.provider(fromRecord: "provider.grokbot") == .grokbot)
-        #expect(CloudPayload.provider(fromRecord: "history.grokbot") == nil)
-        #expect(CloudPayload.provider(fromRecord: "provider.") == nil)
     }
 }
 

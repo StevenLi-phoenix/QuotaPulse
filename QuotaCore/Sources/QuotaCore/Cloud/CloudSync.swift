@@ -105,9 +105,6 @@ public protocol CloudRecordStore: Sendable {
     func save(_ records: [CloudRecord]) async throws
     /// Missing records are simply absent from the result.
     func fetch(_ names: [String]) async throws -> [String: CloudRecord]
-    /// Names of the stored records that start with `prefix`, without their contents. This is how a reader finds providers
-    /// that were added after it was built.
-    func recordNames(prefix: String) async throws -> [String]
     /// Asks iCloud to wake this device with a silent push when records change.
     func subscribeToChanges() async throws
     func removeAll() async throws
@@ -119,11 +116,9 @@ public enum CloudPayload {
     /// The account's reading of one provider. Every Mac that has that provider writes the same record; the newer reading wins.
     public static func providerRecord(_ provider: ProviderID) -> String { providerPrefix + provider.rawValue }
     public static let providerPrefix = "provider."
-    /// The provider a `provider.<id>` record belongs to; nil for any other name or an id that doesn't validate.
-    public static func provider(fromRecord name: String) -> ProviderID? {
-        guard name.hasPrefix(providerPrefix) else { return nil }
-        return ProviderID(validating: String(name.dropFirst(providerPrefix.count)))
-    }
+    /// Which providers have a `provider.<id>` record (`CloudProviderIndex`). CloudKit can't list a zone cheaply (its change feed
+    /// walks every past write), so the publishing Macs keep this one record and readers fetch it with the providers they know.
+    public static let providerIndexRecord = "providers"
     /// The account's settings. One record, newest `updatedAt` wins.
     public static let settingsRecord = "settings"
     public static func historyRecord(_ provider: ProviderID) -> String { "history.\(provider.rawValue)" }
@@ -163,6 +158,25 @@ public struct CloudSyncPolicy: Sendable, Equatable {
     public var samplesPerRecord = 10_000
 
     public static let standard = CloudSyncPolicy()
+}
+
+/// The providers published to this account. Every Mac adds the ones it writes and never removes any, so two Macs racing can
+/// only lose an entry until the loser's next heartbeat puts it back.
+public struct CloudProviderIndex: Codable, Sendable, Equatable {
+    public var providers: [ProviderID]
+
+    public init(providers: [ProviderID]) {
+        self.providers = Array(Set(providers)).sorted(by: ProviderID.displayOrder)
+    }
+
+    /// Ids that came from iCloud are checked before they become record names.
+    public var valid: [ProviderID] { providers.filter { ProviderID(validating: $0.rawValue) != nil } }
+
+    /// The index with `ids` added, or nil when it already lists them all (nothing to write).
+    public func adding(_ ids: [ProviderID]) -> CloudProviderIndex? {
+        let missing = Set(ids).subtracting(providers)
+        return missing.isEmpty ? nil : CloudProviderIndex(providers: providers + missing)
+    }
 }
 
 /// One provider's recent samples, ready for a chart on another device.

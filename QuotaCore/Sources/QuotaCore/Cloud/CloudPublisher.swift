@@ -90,6 +90,7 @@ public actor CloudPublisher {
             // One read covers everything this pass might write: the current reading of each due provider, and for a history
             // pass the history and first sample piece iCloud holds for each provider.
             var names = due.map { CloudPayload.providerRecord($0.id) }
+            if !due.isEmpty { names.append(CloudPayload.providerIndexRecord) }
             if historyDue {
                 names += snapshot.providers.map { CloudPayload.historyRecord($0.id) }
                 names += CloudSamples.firstPieceNames(snapshot.providers.map(\.id))
@@ -105,6 +106,16 @@ public actor CloudPublisher {
                 }
                 records.append(try CloudRecord(name: CloudPayload.providerRecord(p.id), generatedAt: p.fetchedAt, hubName: snapshot.hubName, encoding: p))
                 written.append(p.id)
+            }
+            // Every due provider has a record in iCloud now (ours, or a newer one we kept): make sure readers can find it.
+            var indexAdded: [ProviderID] = []
+            if !due.isEmpty {
+                // An index this build can't read (a newer schema) is left alone rather than replaced by a shorter one.
+                let stored = current[CloudPayload.providerIndexRecord].map { try? $0.decode(CloudProviderIndex.self) } ?? CloudProviderIndex(providers: [])
+                if let stored, let grown = stored.adding(due.map(\.id)) {
+                    records.append(try CloudRecord(name: CloudPayload.providerIndexRecord, generatedAt: now, hubName: snapshot.hubName, encoding: grown))
+                    indexAdded = grown.providers.filter { !stored.providers.contains($0) }
+                }
             }
             var merge: HistoryMerge?
             if historyDue {
@@ -124,7 +135,7 @@ public actor CloudPublisher {
             status.lastError = nil
             retryNotBefore = nil
             let bytes = records.reduce(0) { $0 + $1.payload.count }
-            QPLog.cloud.notice("published \(records.count) records, \(bytes) bytes: providers [\(written.map(\.rawValue).joined(separator: ","), privacy: .public)], history=\(historyDue), samples=\(merge?.sampleCount ?? 0), force=\(force)")
+            QPLog.cloud.notice("published \(records.count) records, \(bytes) bytes: providers [\(written.map(\.rawValue).joined(separator: ","), privacy: .public)], index+[\(indexAdded.map(\.rawValue).joined(separator: ","), privacy: .public)], history=\(historyDue), samples=\(merge?.sampleCount ?? 0), force=\(force)")
         } catch {
             record(failure: error, now: now)
         }

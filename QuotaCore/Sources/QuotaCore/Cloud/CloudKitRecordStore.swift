@@ -107,30 +107,6 @@ public struct CloudKitRecordStore: CloudRecordStore {
         }
     }
 
-    /// Walks the zone's change feed from the start with no fields requested: record names only, a few hundred bytes each.
-    /// A custom zone needs no queryable index for this, unlike a CKQuery.
-    public func recordNames(prefix: String) async throws -> [String] {
-        do {
-            return try await run { db in
-                var names: [String] = []
-                var token: CKServerChangeToken?
-                var pages = 0
-                while true {
-                    let page = try await db.recordZoneChanges(inZoneWith: zoneID, since: token, desiredKeys: [])
-                    for (id, result) in page.modificationResultsByID where id.recordName.hasPrefix(prefix) {
-                        if case .success = result { names.append(id.recordName) }
-                    }
-                    token = page.changeToken
-                    pages += 1
-                    if !page.moreComing || pages >= 20 { break }
-                }
-                return names.sorted()
-            }
-        } catch CloudError.zoneMissing {
-            return [] // nothing published yet
-        }
-    }
-
     public func subscribeToChanges() async throws {
         let subscription = CKRecordZoneSubscription(zoneID: zoneID, subscriptionID: Self.subscriptionID)
         let info = CKSubscription.NotificationInfo()

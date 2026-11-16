@@ -62,13 +62,6 @@ final class FakeCloudStore: CloudRecordStore, @unchecked Sendable {
             return _records.filter { names.contains($0.key) }
         }
     }
-    func recordNames(prefix: String) async throws -> [String] {
-        if let fetchDelay { try await Task.sleep(for: fetchDelay) }
-        return try lock.withLock {
-            if let e = _fetchError { throw e }
-            return _records.keys.filter { $0.hasPrefix(prefix) }.sorted()
-        }
-    }
     func subscribeToChanges() async throws { lock.withLock { _subscribes += 1 } }
     func removeAll() async throws {
         lock.withLock {
@@ -175,7 +168,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         async let second = pub.publish(newer, now: now.addingTimeInterval(1))
         _ = await (first, second)
 
-        #expect(store.saves == [["history.claude", "provider.claude"], ["provider.claude"]])
+        #expect(store.saves == [["history.claude", "provider.claude", "providers"], ["provider.claude"]], "the index is written once")
         #expect(store.savedSnapshotTimes == [now, now.addingTimeInterval(1)])
         #expect(try #require(store.records["provider.claude"]).generatedAt == now.addingTimeInterval(1))
     }
@@ -199,7 +192,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         let samples = [Sample(provider: .claude, window: "five_hour", at: now.addingTimeInterval(-60), value: 12)]
         let status = await publisher(store, samples: samples).publish(snapshot(), now: now)
         #expect(store.prepares == 1)
-        #expect(store.saves == [["history.claude", "provider.claude", "samples.claude.0"]])
+        #expect(store.saves == [["history.claude", "provider.claude", "providers", "samples.claude.0"]])
         #expect(status.lastPublishedAt == now)
         #expect(status.lastHistoryAt == now)
         #expect(status.account == .available)
@@ -298,7 +291,7 @@ private func publisher(_ store: FakeCloudStore, samples: [Sample] = []) -> Cloud
         #expect(store.saves.isEmpty)
         let t11 = now.addingTimeInterval(660)
         let s2 = await pub.publish(snapshot(at: t11), now: t11)
-        #expect(store.saves == [["history.claude", "provider.claude"]])
+        #expect(store.saves == [["history.claude", "provider.claude", "providers"]])
         #expect(s2.lastError == nil)
     }
 

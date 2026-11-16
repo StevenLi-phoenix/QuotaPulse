@@ -97,13 +97,13 @@ final class AppModel {
         guard let store = CloudKitRecordStore.standard() else { return }
         let reader = CloudReader(store: store)
         try? await Task.sleep(for: .seconds(20)) // let the first refresh publish
-        let listed = await reader.publishedProviders()
+        let started = Date()
         do {
             let snap = try await reader.snapshot()
             let shown = snap?.providers.map { "\($0.id.rawValue)=\($0.display.displayName)\($0.info == nil ? "(fallback)" : "")" } ?? []
-            QPLog.cloud.notice("cloud probe: listed [\(listed.map(\.rawValue).joined(separator: ","), privacy: .public)], a reader shows [\(shown.joined(separator: ", "), privacy: .public)]")
+            QPLog.cloud.notice("cloud probe: a reader shows [\(shown.joined(separator: ", "), privacy: .public)] in \(Int(Date().timeIntervalSince(started) * 1000)) ms")
         } catch {
-            QPLog.cloud.error("cloud probe: listed [\(listed.map(\.rawValue).joined(separator: ","), privacy: .public)], read failed: \(error.localizedDescription, privacy: .public)")
+            QPLog.cloud.error("cloud probe: read failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
