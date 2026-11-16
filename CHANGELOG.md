@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 - The update log no longer records "you're up to date" as an error.
+- GitHub Actions publishes the release on every push to `main` that has an `[Unreleased]` line. It runs the tests, signs with Developer ID from repository secrets, notarizes with an App Store Connect API key, launch-checks the app, then publishes the EdDSA-signed zip and appcast.
+- `scripts/release.sh auto` picks minor when `[Unreleased]` has `### Added` and patch otherwise. Every release verifies the zip's EdDSA signature against `SUPublicEDKey` and checks the CloudKit Production entitlement and the embedded profile.
 
 ## [0.4.0] - 2026-11-16
 

@@ -33,6 +33,8 @@ settingGroups:
   macAppSigning:
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: "Apple Development"
+    # Empty locally (automatic signing); the release workflow signs manually and names its Developer ID profile.
+    PROVISIONING_PROFILE_SPECIFIER: $(QP_APP_PROFILE)
     ENABLE_HARDENED_RUNTIME: YES
   simSigning:
     CODE_SIGN_STYLE: Automatic
