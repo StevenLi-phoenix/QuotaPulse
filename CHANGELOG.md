@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- The Mac app updates itself from GitHub Releases (Sparkle 2.10.1): it checks the feed every hour, downloads in the background, installs as soon as QuotaPulse is in the background and reopens by itself.
+- General → Updates: automatic checks and installs on/off, last check, *Check for Updates…* (also in the app menu); with automatic installs off, the menu-bar panel shows *Update available* instead of opening a window.
+- `scripts/release.sh <x.y.z|patch|minor|major> [--dry-run]`: version bump, changelog section, archive, Developer ID export, notarization through the Xcode account, staple, EdDSA-signed zip, appcast, tag and GitHub release.
 - New providers need no update on the iPhone, Watch, widgets or other Macs: each snapshot carries the provider's name, subtitle, colour, symbol and dashboard link (`ProviderSnapshot.info`), and a provider without it draws in a neutral style.
 - iCloud keeps a `providers` index record that the publishing Macs only add to; readers fetch it with the original five providers and fetch any others in a second request.
 - The hub's `/v1/snapshot` sends only the original five providers unless the client asks with `?providers=all`, so iPhones on older builds keep decoding it; this build's clients ask for all.
@@ -21,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API keys, the hub token and the gateway link sync through iCloud Keychain, so a second Mac needs no re-entry.
 
 ### Changed
+- Every app and widget uses CloudKit's Production environment, the only one Developer ID builds may use, so release builds, source builds, the iPhone and the Watch share one database; the Macs fill it again on their next refreshes.
+- The Mac app and its widget are built with the hardened runtime (required for notarization).
+- General → About shows the build number next to the version.
 - `scripts/install.sh` installs to `$QUOTAPULSE_INSTALL_DIR` (default `~/Applications`), finds xcodegen in `/opt/homebrew/bin` when it is not on PATH, stops when it has neither xcodegen nor a generated project, and logs which commit it builds.
 - `ProviderID` is a string struct instead of an enum; JSON is unchanged, including the array form of `[ProviderID: …]` in settings, and ids from outside are checked with `ProviderID(validating:)`.
 - A provider is one `UsageProvider` with a `ProviderDescriptor` (id, info, default on/off, API key or not) plus a line in `ProviderRegistry`; Grok Bot's look lives only in `GrokBotProvider.swift`.
@@ -35,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - iCloud records are per provider (schema 2). iPhone, Watch and widgets built before this change read the old `snapshot` record, which is no longer written, so update them together with the Mac app.
 
 ### Fixed
+- The Mac app's own text (settings, menus, the menu-bar panel) appears in Chinese on a Chinese system: `L()` looks keys up in QuotaUI's catalog, which now also carries the app and widget keys.
 - The macOS menu-bar dropdown showed only its header and footer (no provider numbers) because its scrolling card stack collapsed; it is now a plain compact column: one group per provider, one line per window with used percent and reset countdown, plus balance and extra usage. The header keeps "updated …" and refresh, and loading, empty and error states each read as one line instead of a blank menu.
 - Two Macs on one iCloud account no longer erase each other's data: iCloud holds one record per provider (`provider.<id>`) and per-provider history (`history.<id>`), so a Mac without a gateway no longer wipes OpenCode and DeepSeek, and history from two Macs is merged.
 - Deleting history cuts it off in iCloud with `clearedAt`, so another Mac's copy can't bring it back.

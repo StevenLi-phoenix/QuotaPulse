@@ -46,6 +46,8 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.1
 targets:
+  # Every build uses CloudKit Production: Developer ID (release) builds can't use Development, and all
+  # devices must read one database. Production has no just-in-time schema; see README → Known limits.
   # ───────────── macOS ─────────────
   QuotaPulse:
     type: application
@@ -74,6 +76,7 @@ targets:
         keychain-access-groups: [88U7V98QAC.app.lishuyu.quotapulse]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-container-environment: Production
     info:
       path: macOS/App/Info.plist
       properties:
@@ -172,6 +175,7 @@ targets:
         aps-environment: development
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-container-environment: Production
   QuotaPulseWidget-iOS:
     type: app-extension
     platform: iOS
@@ -199,6 +203,7 @@ targets:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-container-environment: Production
   QuotaPulseUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -246,6 +251,7 @@ targets:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-container-environment: Production
   QuotaPulseWidget-watchOS:
     type: app-extension
     platform: watchOS
@@ -272,6 +278,7 @@ targets:
         com.apple.security.application-groups: [group.app.lishuyu.quotapulse]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [iCloud.app.lishuyu.quotapulse]
+        com.apple.developer.icloud-container-environment: Production
 schemes:
   QuotaPulse-macOS:
     build:

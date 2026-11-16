@@ -61,14 +61,20 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 
 ## Install (macOS)
 
+Download `QuotaPulse-<version>.zip` from the [latest release](https://github.com/StevenLi-phoenix/QuotaPulse/releases/latest), unzip it and move `QuotaPulse.app` to `/Applications` (or `~/Applications`). Release builds are signed with a Developer ID and notarized by Apple, so they open without a Gatekeeper warning.
+
+**Updates install themselves.** QuotaPulse checks the release feed every hour ([Sparkle](https://sparkle-project.org)), downloads a new version in the background, and installs it as soon as you switch away from QuotaPulse; it then reopens by itself. **General → Updates** turns automatic checks or automatic installs off, shows the last check and has *Check for Updates…* (also in the app menu). When automatic installs are off, a scheduled check shows *Update available* in the menu-bar panel instead of opening a window over your work.
+
+Build from source:
+
 ```bash
-git clone git@github.com:StevenLi-phoenix/QuotaPulse.git && cd QuotaPulse
+git clone https://github.com/StevenLi-phoenix/QuotaPulse.git && cd QuotaPulse
 # needs xcodegen at ../tools/xcodegen/bin/xcodegen, on PATH, or in /opt/homebrew/bin
 scripts/install.sh      # Release build → ~/Applications/QuotaPulse.app → launch
 QUOTAPULSE_INSTALL_DIR=/Applications scripts/install.sh   # install somewhere else
 ```
 
-Requirements: macOS 26+, Xcode 27.1, Swift 6.4, and Xcode signed in to an Apple ID on a paid Apple Developer team (iCloud needs a provisioning profile; `install.sh` registers the Mac and fetches it). The app is signed with an Apple Development certificate (team `88U7V98QAC`). To build under your own team, change `DEVELOPMENT_TEAM` in `project.yml`, and rename the iCloud container in `project.yml` and `CloudKitRecordStore.containerID`, since container IDs are global.
+Requirements: macOS 26+, Xcode 27.1, Swift 6.4, and Xcode signed in to an Apple ID on a paid Apple Developer team (iCloud needs a provisioning profile; `install.sh` registers the Mac and fetches it). Source builds are signed with an Apple Development certificate (team `88U7V98QAC`) and, like release builds, update themselves to the next release. To build under your own team, change `DEVELOPMENT_TEAM` in `project.yml`, rename the iCloud container in `project.yml` and `CloudKitRecordStore.containerID` (container IDs are global), and remove `SUFeedURL` / `SUPublicEDKey` (or point them at your own feed and key).
 
 First launch: Claude, Codex and Grok Bot are enabled by default and read your CLI sign-ins — if Claude Code is signed in you'll see numbers within seconds. Add API keys for DeepSeek / OpenCode / GLM under **Providers**. QuotaPulse is a menu-bar app: look for the ring + percentage top right (the first launch also opens the main window; *Show in Dock* is under General). The hub starts on port 48422 and writes `pairing.json` (0600) in the app's group container so local scripts can use it:
 
@@ -136,6 +142,16 @@ cd QuotaUI && swift run WidgetRender ../docs/screenshots   # widget PNGs from th
 
 Layout: `QuotaCore` (models, providers, credentials, forecasting, store, hub, gateway, iCloud sync) · `QuotaUI` (shared SwiftUI) · `macOS/`, `iOS/`, `watchOS/` (apps + widget extensions) · `docs/research.md` (provider endpoints and design decisions).
 
+### Releasing (macOS)
+
+```bash
+scripts/release.sh patch            # or minor / major / 0.5.0; --dry-run stops before commit, tag and upload
+```
+
+From a clean `main` that matches GitHub, the script bumps `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` (Sparkle compares the build number), turns `CHANGELOG.md`'s `[Unreleased]` into `[<version>] - <date>`, archives, exports with the Developer ID certificate, notarizes through Xcode's account (no app-specific password), staples, zips, signs the zip with the Sparkle EdDSA key, writes `appcast.xml` with the changelog section as release notes, commits `chore(release): <version>`, pushes the `v<version>` tag and publishes both files as a GitHub release. The app's feed is `https://github.com/StevenLi-phoenix/QuotaPulse/releases/latest/download/appcast.xml`, so every installed copy picks the release up within an hour. Artifacts and the log stay in `build/release/<version>/`.
+
+It runs on the Mac that holds the Developer ID certificate and the Sparkle private key (login keychain, account `quotapulse`; `generate_keys --account quotapulse -p` from `build/DerivedData-release/SourcePackages/artifacts/sparkle/Sparkle/bin` prints the public key that `SUPublicEDKey` in `project.yml` must match). The first release from a new checkout makes macOS ask whether `sign_update` may use that key; choose *Always Allow*. Losing the key means existing installs can't verify later updates and have to be reinstalled by hand once. iPhone and Watch builds are not part of the release.
+
 Logs: `log stream --predicate 'subsystem == "app.lishuyu.quotapulse"'`. Secrets are always redacted (`sk-ant…(len 108)`). `open -n QuotaPulse.app --args -QPCloudProbe YES` makes the Mac read iCloud the way the iPhone does and log `cloud probe: a reader shows [...]`.
 
 ### Adding a provider
@@ -156,7 +172,7 @@ Only the Mac that reads it needs the new build. Write one `UsageProvider` whose 
 - OpenCode pay-as-you-go spend and DeepSeek per-model usage require web-session cookies and are not supported.
 - Widgets on a real iPhone/Watch need the App Group capability on your team; the simulator doesn't check it.
 - Right after an App ID first gets the iCloud container, CloudKit can answer `Invalid bundle ID for container`, sometimes for only some requests. On our first iPhone install it lasted about 8 minutes and then stopped. The apps say so and retry every 30 seconds while open.
-- Apple Development builds use CloudKit's Development environment, whose schema is created on first write. A TestFlight or App Store build reads Production and needs the schema deployed in CloudKit Console first.
+- Every build, Apple Development included, uses CloudKit's Production environment (`com.apple.developer.icloud-container-environment` in `project.yml`): Developer ID builds can't use Development, and all devices must share one database. Production creates no schema on first write, so a new record type or field has to be created in CloudKit Console's Development schema and deployed to Production (*Deploy Schema Changes*) before a build that writes it ships. Today everything lives in one record type, `QuotaBlob` (`schema`, `generatedAt`, `hubName`, `payload`), so new kinds of data need no schema change.
 - iCloud keeps one record per provider (`provider.<id>`), one history per provider (`history.<id>`) and the raw samples in pieces (`samples.<id>.<n>`), shared by every Mac on the account. A Mac writes only the providers it has read, a newer reading replaces an older one, and samples from two Macs are merged by provider, window and second. Deleting history leaves a cut-off that every Mac honours. Settings are one record, newest copy wins. Schema 2 needs the iPhone and Watch apps updated together with the Mac app. A `providers` record lists every provider published; readers fetch it with the original five, so a provider added later costs them a second request.
 - iPhones and Watches on builds from before self-describing providers show only the original five providers, from iCloud and from the hub; providers added since appear once they're updated.
 - A provider no Mac reads any more keeps its last record in iCloud, so other devices go on showing its old numbers.
