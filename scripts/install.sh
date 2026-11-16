@@ -1,9 +1,21 @@
 #!/bin/bash
-# Builds the Release macOS app and installs it to ~/Applications (never /Applications).
+# Builds the Release macOS app and installs it to $QUOTAPULSE_INSTALL_DIR (default ~/Applications).
+# Run by hand, or by `ams watch` after every push to main (it runs as a LaunchAgent: PATH has no Homebrew).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The .xcodeproj is generated from project.yml and not in git, so regenerate it before every build.
 XCODEGEN="../tools/xcodegen/bin/xcodegen"
-[ -x "$XCODEGEN" ] && "$XCODEGEN" generate >/dev/null
+[ -x "$XCODEGEN" ] || XCODEGEN="$(command -v xcodegen || true)"
+[ -n "$XCODEGEN" ] || [ ! -x /opt/homebrew/bin/xcodegen ] || XCODEGEN=/opt/homebrew/bin/xcodegen
+if [ -n "$XCODEGEN" ]; then
+  "$XCODEGEN" generate >/dev/null
+elif [ -d QuotaPulse.xcodeproj ]; then
+  echo "WARNING: xcodegen not found; building the existing QuotaPulse.xcodeproj, which may miss new files" >&2
+else
+  echo "xcodegen not found and there is no QuotaPulse.xcodeproj: brew install xcodegen" >&2
+  exit 1
+fi
+echo "Building $(git rev-parse --short HEAD 2>/dev/null || echo '?'): $(git log -1 --format=%s 2>/dev/null || true)"
 LOG="build/xcodebuild-release.log"
 mkdir -p build
 # A failed build must stop here: the steps below delete the installed app before copying the new one.
@@ -15,8 +27,9 @@ if ! xcodebuild -project QuotaPulse.xcodeproj -scheme QuotaPulse-macOS -configur
 fi
 echo "** BUILD SUCCEEDED **"
 SRC="build/DerivedData/Build/Products/Release/QuotaPulse.app"
-DST="$HOME/Applications/QuotaPulse.app"
-mkdir -p "$HOME/Applications"
+DST_DIR="${QUOTAPULSE_INSTALL_DIR:-$HOME/Applications}"
+DST="$DST_DIR/QuotaPulse.app"
+mkdir -p "$DST_DIR"
 if pgrep -f "$DST/Contents/MacOS/QuotaPulse" >/dev/null; then pkill -f "$DST/Contents/MacOS/QuotaPulse"; sleep 1; fi
 rm -rf "$DST"
 cp -R "$SRC" "$DST"

@@ -63,8 +63,9 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 
 ```bash
 git clone git@github.com:StevenLi-phoenix/QuotaPulse.git && cd QuotaPulse
-# needs xcodegen on PATH or at ../tools/xcodegen/bin/xcodegen
+# needs xcodegen at ../tools/xcodegen/bin/xcodegen, on PATH, or in /opt/homebrew/bin
 scripts/install.sh      # Release build → ~/Applications/QuotaPulse.app → launch
+QUOTAPULSE_INSTALL_DIR=/Applications scripts/install.sh   # install somewhere else
 ```
 
 Requirements: macOS 26+, Xcode 27.1, Swift 6.4, and Xcode signed in to an Apple ID on a paid Apple Developer team (iCloud needs a provisioning profile; `install.sh` registers the Mac and fetches it). The app is signed with an Apple Development certificate (team `88U7V98QAC`). To build under your own team, change `DEVELOPMENT_TEAM` in `project.yml`, and rename the iCloud container in `project.yml` and `CloudKitRecordStore.containerID`, since container IDs are global.

@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API keys, the hub token and the gateway link sync through iCloud Keychain, so a second Mac needs no re-entry.
 
 ### Changed
+- `scripts/install.sh` installs to `$QUOTAPULSE_INSTALL_DIR` (default `~/Applications`), finds xcodegen in `/opt/homebrew/bin` when it is not on PATH (a LaunchAgent's PATH has no Homebrew), stops when it has neither xcodegen nor a generated project, and logs which commit it builds.
 - `ProviderID` is a string struct instead of an enum; JSON is unchanged, including the array form of `[ProviderID: …]` in settings, and ids from outside are checked with `ProviderID(validating:)`.
 - A provider is one `UsageProvider` with a `ProviderDescriptor` (id, info, default on/off, API key or not) plus a line in `ProviderRegistry`; Grok Bot's look lives only in `GrokBotProvider.swift`.
 - Settings store only the providers someone toggled; the rest follow their descriptor's default, and keys for providers this Mac can't read are kept.
