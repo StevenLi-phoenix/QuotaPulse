@@ -30,7 +30,12 @@ SRC="build/DerivedData/Build/Products/Release/QuotaPulse.app"
 DST_DIR="${QUOTAPULSE_INSTALL_DIR:-$HOME/Applications}"
 DST="$DST_DIR/QuotaPulse.app"
 mkdir -p "$DST_DIR"
-if pgrep -f "$DST/Contents/MacOS/QuotaPulse" >/dev/null; then pkill -f "$DST/Contents/MacOS/QuotaPulse"; sleep 1; fi
+# Stop the installed copy by PID (exact executable path), so a stale instance never keeps running the old build.
+PIDS=$(pgrep -f "^$DST/Contents/MacOS/QuotaPulse" || true)
+if [ -n "$PIDS" ]; then
+  echo "stopping running QuotaPulse: $(echo $PIDS)"
+  kill $PIDS; sleep 1
+fi
 rm -rf "$DST"
 cp -R "$SRC" "$DST"
 echo "Installed $DST"
