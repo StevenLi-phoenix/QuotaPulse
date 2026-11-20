@@ -53,7 +53,7 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 
 **Forecasts** — a least-squares burn rate over the current window (resets and top-ups start a new cycle automatically) gives projected usage at reset, the exhaustion time if you'll hit 100 % early, and a pace indicator against a linear budget. Balances get a per-day burn and days-remaining. Confidence grows with sample count and span.
 
-**macOS** — menu-bar ring + percent for the most constrained window; instant dropdown listing every provider's percent, reset countdown and balance at a glance; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, iCloud sync, optional hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
+**macOS** — menu-bar ring + percent for the most constrained window; instant dropdown listing every provider's usage bars, reset countdown and balance at a glance; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, iCloud sync, optional hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
 
 **iOS** — open it and your numbers are there, delivered through iCloud on any network, with a silent push when the Mac publishes. Provider cards, detail charts, pull-to-refresh, background refresh, home-screen and lock-screen widgets. A banner tells you when the Mac has gone quiet. Pushes data to the watch. A direct connection (scan the QR code or paste URL + token) is optional.
 

@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- The menu-bar panel has an opaque background, a higher-contrast bar track and stronger label text, so the bars read at a glance.
+
+### Fixed
+- `scripts/install.sh` stops the running app by PID instead of `pkill`, so an install never leaves the old build running.
+
 ## [0.4.3] - 2026-11-20
 
 ### Changed
