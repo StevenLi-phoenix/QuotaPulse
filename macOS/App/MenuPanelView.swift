@@ -127,7 +127,7 @@ struct MenuPanelView: View {
             Spacer(minLength: 8)
             if let percent = line.percent {
                 // Window rows: a bar instead of the number (exact value in the tooltip / VoiceOver).
-                UsageBar(percent: percent, height: 6)
+                UsageBar(percent: percent, height: 9, neutralTrack: true)
                     .frame(width: 120)
                     .help(line.value)
                     .accessibilityElement()

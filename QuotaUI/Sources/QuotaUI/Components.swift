@@ -48,8 +48,11 @@ public struct UsageBar: View {
     public var height: CGFloat
     /// Optional second marker (e.g. projected-at-reset) drawn as a faint extension.
     public var projected: Double?
+    /// Neutral (primary-coloured) track for tight spots such as the menu panel, where a tinted track vanishes on the material.
+    public var neutralTrack: Bool
 
-    public init(percent: Double, color: Color? = nil, height: CGFloat = 8, projected: Double? = nil) {
+    public init(percent: Double, color: Color? = nil, height: CGFloat = 8, projected: Double? = nil, neutralTrack: Bool = false) {
+        self.neutralTrack = neutralTrack
         self.percent = percent
         self.color = color
         self.height = height
@@ -60,7 +63,8 @@ public struct UsageBar: View {
         let tint = color ?? UsageLevel(percent: percent).color
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(tint.opacity(0.15))
+                Capsule().fill(neutralTrack ? Color.primary.opacity(0.30) : tint.opacity(0.15))
+                    .overlay { if neutralTrack { Capsule().strokeBorder(Color.primary.opacity(0.35), lineWidth: 0.5) } }
                 if let projected, projected > percent {
                     Capsule().fill(tint.opacity(0.32))
                         .frame(width: geo.size.width * CGFloat(min(1, projected / 100)))
