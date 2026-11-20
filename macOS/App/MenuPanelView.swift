@@ -125,11 +125,21 @@ struct MenuPanelView: View {
                 .foregroundStyle(line.isReported ? .secondary : .tertiary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Text(line.value)
-                .font(.system(.caption, design: .rounded).weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(valueStyle(line))
-                .contentTransition(.numericText())
+            if let percent = line.percent {
+                // Window rows: a bar instead of the number (exact value in the tooltip / VoiceOver).
+                UsageBar(percent: percent, height: 6)
+                    .frame(width: 120)
+                    .help(line.value)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text(line.title))
+                    .accessibilityValue(Text(line.value))
+            } else {
+                Text(line.value)
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(valueStyle(line))
+                    .contentTransition(.numericText())
+            }
             Text(line.reset)
                 .font(.caption2)
                 .monospacedDigit()
