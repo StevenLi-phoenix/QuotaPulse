@@ -63,8 +63,8 @@ public struct UsageBar: View {
         let tint = color ?? UsageLevel(percent: percent).color
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(neutralTrack ? Color.primary.opacity(0.30) : tint.opacity(0.15))
-                    .overlay { if neutralTrack { Capsule().strokeBorder(Color.primary.opacity(0.35), lineWidth: 0.5) } }
+                Capsule().fill(neutralTrack ? Color.primary.opacity(0.16) : tint.opacity(0.15))
+                    .overlay { if neutralTrack { Capsule().strokeBorder(Color.primary.opacity(0.28), lineWidth: 0.5) } }
                 if let projected, projected > percent {
                     Capsule().fill(tint.opacity(0.32))
                         .frame(width: geo.size.width * CGFloat(min(1, projected / 100)))

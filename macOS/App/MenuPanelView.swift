@@ -34,7 +34,7 @@ struct MenuPanelView: View {
             footer
         }
         .frame(width: 340)
-        .background(.regularMaterial)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     // MARK: Header
@@ -122,7 +122,7 @@ struct MenuPanelView: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(line.title)
                 .font(.caption)
-                .foregroundStyle(line.isReported ? .secondary : .tertiary)
+                .foregroundStyle(line.isReported ? Color.primary.opacity(0.75) : Color.secondary)
                 .lineLimit(1)
             Spacer(minLength: 8)
             if let percent = line.percent {
@@ -143,7 +143,7 @@ struct MenuPanelView: View {
             Text(line.reset)
                 .font(.caption2)
                 .monospacedDigit()
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(minWidth: 56, alignment: .trailing)
         }
@@ -152,7 +152,7 @@ struct MenuPanelView: View {
 
     private func valueStyle(_ line: MenuSummary.Line) -> AnyShapeStyle {
         if let percent = line.percent { return AnyShapeStyle(UsageLevel(percent: percent).color) }
-        return AnyShapeStyle(line.isReported ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.tertiary)
+        return AnyShapeStyle(line.isReported ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
     }
 
     // MARK: Footer
