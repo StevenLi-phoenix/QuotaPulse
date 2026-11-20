@@ -55,3 +55,21 @@ MainActor.assumeIsolated {
     render(AccessoryRectangularView(snapshot: snapshot), size: CGSize(width: 180, height: 76), name: "complication-rectangular.png")
     render(ProviderCard(snapshot: snapshot.providers[0], sparkline: sparks[.claude]!, style: .full, now: now), size: CGSize(width: 380, height: 250), name: "card-claude.png")
 }
+
+// The menu-bar dropdown body (opaque background, as in MacOS/App/MenuPanelView.swift) in light and dark, for contrast checks.
+MainActor.assumeIsolated {
+    let groups = MenuSummary.groups(for: snapshot, now: now)
+    for scheme in [ColorScheme.light, .dark] {
+        let panel = VStack(alignment: .leading, spacing: 10) { ForEach(groups) { MenuGroupView(group: $0) } }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(width: 340, alignment: .leading)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .environment(\.colorScheme, scheme)
+        let r = ImageRenderer(content: panel)
+        r.scale = 2
+        if let cg = r.cgImage, let png = NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:]) {
+            try! png.write(to: outDir.appendingPathComponent("menu-panel-\(scheme == .light ? "light" : "dark").png"))
+            print("wrote menu-panel-\(scheme == .light ? "light" : "dark").png")
+        }
+    }
+}
