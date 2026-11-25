@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-11-24
+
 ### Changed
 - Balance forecasts are in hours: `rate` is the burn per hour and `hoursRemaining` replaces `daysRemaining` in the hub snapshot, the History tab, the menu-bar panel and the widgets, which show hours below 72 h left and days beyond. Records from before the change are converted on read.
 - The menu-bar panel has an opaque background, a higher-contrast bar track and stronger label text, so the bars read at a glance.
