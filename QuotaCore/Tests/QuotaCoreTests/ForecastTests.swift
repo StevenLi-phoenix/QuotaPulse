@@ -91,6 +91,7 @@ import Testing
         #expect(abs((f.daysRemaining ?? 0) - 20.0 / 15.0) < 0.01)
         #expect(abs((f.ratePerHour ?? 0) - 15.0 / 24) < 0.001)           // the hourly pair next to it
         #expect(abs((f.hoursRemaining ?? 0) - 20.0 / 15.0 * 24) < 0.01)
+        #expect(f.schemaVersion == Forecast.balanceSchema)
         #expect(f.sampleCount == 3)
     }
 
@@ -114,9 +115,9 @@ import Testing
         // 0.4.4 sent a per-hour `rate` and `hoursRemaining` only.
         let short = try JSONDecoder().decode(Forecast.self, from: Data(#"{"confidence":"high","rate":1,"hoursRemaining":240,"sampleCount":5,"span":86400}"#.utf8))
         #expect(short.balanceRatePerHour == 1)
-        let both = Forecast(confidence: .high, rate: 24, daysRemaining: 10, ratePerHour: 1, hoursRemaining: 240, sampleCount: 5, span: 86400)
+        let both = Forecast(confidence: .high, rate: 24, daysRemaining: 10, ratePerHour: 1, hoursRemaining: 240, schemaVersion: 2, sampleCount: 5, span: 86400)
         let encoded = String(decoding: try JSONEncoder().encode(both), as: UTF8.self)
-        #expect(encoded.contains("\"daysRemaining\"") && encoded.contains("\"hoursRemaining\"") && encoded.contains("\"ratePerHour\""))
+        #expect(encoded.contains("\"daysRemaining\"") && encoded.contains("\"hoursRemaining\"") && encoded.contains("\"ratePerHour\"") && encoded.contains("\"schemaVersion\":2"))
         #expect(try JSONDecoder().decode(Forecast.self, from: Data(encoded.utf8)) == both)
         let window = try JSONDecoder().decode(Forecast.self, from: Data(#"{"confidence":"low","rate":12.5,"projectedAtReset":88,"sampleCount":2,"span":60}"#.utf8))
         #expect(window.rate == 12.5 && window.ratePerHour == nil && window.balanceHoursRemaining == nil)

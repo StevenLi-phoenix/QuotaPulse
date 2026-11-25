@@ -496,11 +496,15 @@ public struct Forecast: Codable, Sendable, Hashable {
     public var ratePerHour: Double?
     /// Balances: the same remaining time in hours.
     public var hoursRemaining: Double?
+    /// Balances: 2 when both unit pairs above are present. Absent in a forecast from 0.4.5 or earlier (0.4.4 sent a per-hour `rate` with
+    /// `hoursRemaining` and no version; before that, days only).
+    public var schemaVersion: Int?
+    public static let balanceSchema = 2
     public var sampleCount: Int
     public var span: TimeInterval
 
     public init(confidence: Confidence, rate: Double = 0, projectedAtReset: Double? = nil, exhaustionAt: Date? = nil,
-                paceDelta: Double? = nil, daysRemaining: Double? = nil, ratePerHour: Double? = nil, hoursRemaining: Double? = nil,
+                paceDelta: Double? = nil, daysRemaining: Double? = nil, ratePerHour: Double? = nil, hoursRemaining: Double? = nil, schemaVersion: Int? = nil,
                 sampleCount: Int = 0, span: TimeInterval = 0) {
         self.confidence = confidence
         self.rate = rate
@@ -510,6 +514,7 @@ public struct Forecast: Codable, Sendable, Hashable {
         self.daysRemaining = daysRemaining
         self.ratePerHour = ratePerHour
         self.hoursRemaining = hoursRemaining
+        self.schemaVersion = schemaVersion
         self.sampleCount = sampleCount
         self.span = span
     }
@@ -522,6 +527,7 @@ public struct Forecast: Codable, Sendable, Hashable {
     /// sent a per-hour `rate` and `hoursRemaining` without `ratePerHour`.
     public var balanceRatePerHour: Double {
         if let ratePerHour { return ratePerHour }
+        if (schemaVersion ?? 1) >= Self.balanceSchema { return rate / 24 }
         return daysRemaining == nil && hoursRemaining != nil ? rate : rate / 24
     }
 

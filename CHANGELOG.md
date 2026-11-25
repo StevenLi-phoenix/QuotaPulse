@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- Balance forecasts carry `schemaVersion: 2` (both unit pairs present), so the hub and other readers no longer infer the shape from which fields exist.
+
 ## [0.4.5] - 2026-11-24
 
 ### Fixed
@@ -40,7 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.4.0] - 2026-11-16
 
-### Added
+### Changed
 - The Mac app updates itself from GitHub Releases (Sparkle 2.10.1): it checks the feed every hour, downloads in the background, installs as soon as QuotaPulse is in the background and reopens by itself.
 - General → Updates: automatic checks and installs on/off, last check, *Check for Updates…* (also in the app menu); with automatic installs off, the menu-bar panel shows *Update available* instead of opening a window.
 - `scripts/release.sh <x.y.z|patch|minor|major> [--dry-run]`: version bump, changelog section, archive, Developer ID export, notarization through the Xcode account, staple, EdDSA-signed zip, appcast, tag and GitHub release.
@@ -89,7 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.3.0] - 2026-11-05
 
-### Added
+### Changed
 - iCloud sync: the Mac publishes its snapshot and 7 days of history to a private CloudKit database, and iPhone, Apple Watch and their widgets read it from any network with nothing to pair.
 - macOS: **Hub & Devices → iCloud** shows account, last publish and errors, turns sync off and deletes the stored data; the menu panel shows an iCloud status icon.
 - iOS: silent push on every publish; the app opens straight to Home, with empty states for "Waiting for your Mac" and "Sign in to iCloud".
@@ -114,7 +117,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.2.0] - 2026-10-16
 
-### Added
+### Changed
 - Reset semantics per provider (`UsageWindow.resetSemantics`): Claude windows roll from the first request and read "Fresh · next window starts on first request" once expired; Codex windows roll forward by their fixed cadence. Forecast, pace and countdowns follow the semantics (6 new tests).
 - macOS: first launch opens the main window with a dismissible "QuotaPulse lives in the menu bar" tip; "Show in Dock" toggle (General); `quotapulse://open?section=…` deep links.
 - Codex: credits balance shown as credits (not dollars). When `secondary_window` is null the missing 5-hour row is kept as a grey `.notReported` placeholder ("Not reported by Codex API (known bug)") on Plus/Team/Business and fills in automatically once the API returns it; on Pro, which has no 5-hour window, it is `.notApplicable` and hidden. Forecast and pace only run on reported windows. Claude `limits[]` kinds `session` / `weekly_all` / `weekly_scoped` parsed without duplicates.
@@ -128,7 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.1.0] - 2026-10-16
 
-### Added
+### Changed
 - `QuotaCore` Swift package: provider protocol with Claude (Claude Code OAuth, Keychain/file credentials), OpenAI Codex (auth.json + token refresh with write-back), DeepSeek balance, OpenCode Zen/Go usage and z.ai / BigModel coding-plan quota; lenient JSON parsing with fixtures.
 - Burn-rate forecasting (`ForecastEngine`): per-window least-squares rate, projected usage at reset, exhaustion time, pace vs. linear budget; balance burn per day and days remaining; automatic cycle detection across resets and top-ups.
 - Sample history store with retention, per-provider exponential backoff (429 / transient), settings persistence, and the `QuotaEngine` actor that orchestrates polling.

@@ -113,7 +113,8 @@ public enum ForecastEngine {
         let confidence: Forecast.Confidence = span >= 2 * 86400 && segment.count >= 10 ? .high
             : (span >= 6 * 3600 && segment.count >= 4 ? .medium : .low)
         return Forecast(confidence: confidence, rate: burnPerDay, projectedAtReset: nil, exhaustionAt: exhaustion,
-                        paceDelta: nil, daysRemaining: hours.map { $0 / 24 }, ratePerHour: burnPerHour, hoursRemaining: hours, sampleCount: segment.count, span: span)
+                        paceDelta: nil, daysRemaining: hours.map { $0 / 24 }, ratePerHour: burnPerHour, hoursRemaining: hours,
+                        schemaVersion: Forecast.balanceSchema, sampleCount: segment.count, span: span)
     }
 }
 
