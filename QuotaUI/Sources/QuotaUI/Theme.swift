@@ -144,8 +144,8 @@ public enum Present {
 
     public static func balanceForecastText(balance: Balance, forecast: Forecast?) -> String? {
         guard let f = forecast, f.confidence != .insufficient else { return (forecast?.sampleCount ?? 0) > 0 ? L("Learning your spend…") : nil }
-        guard f.rate > 0.0001, let hours = f.hoursRemaining else { return L("No spend observed yet") }
-        let perHour = QuotaFormat.money(f.rate, symbol: balance.symbol)
+        guard f.balanceRatePerHour > 0.0001, let hours = f.balanceHoursRemaining else { return L("No spend observed yet") }
+        let perHour = QuotaFormat.money(f.balanceRatePerHour, symbol: balance.symbol)
         if hours < 1 { return String(localized: "\(perHour)/h — less than an hour left", bundle: .module) }
         if hours < QuotaFormat.balanceHoursLimit {
             return String(localized: "\(perHour)/h — about \(QuotaFormat.wholeHours(hours)) hours left", bundle: .module)

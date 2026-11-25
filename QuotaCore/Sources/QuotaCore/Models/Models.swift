@@ -482,7 +482,7 @@ public struct Forecast: Codable, Sendable, Hashable {
     public enum Confidence: String, Codable, Sendable { case insufficient, low, medium, high }
 
     public var confidence: Confidence
-    /// Per hour: percent (windows) or currency/credits (balances). Positive = consuming.
+    /// Percent per hour (windows) or currency per day (balances); older apps read it that way, so it keeps its unit. Positive = consuming.
     public var rate: Double
     /// Predicted utilization at the next reset (windows only), clamped 0…100.
     public var projectedAtReset: Double?
@@ -490,18 +490,25 @@ public struct Forecast: Codable, Sendable, Hashable {
     public var exhaustionAt: Date?
     /// For windows: current − expected-linear usage (positive = ahead of budget). For balances: nil.
     public var paceDelta: Double?
-    /// Balances: hours until the balance reaches zero at the current burn rate.
+    /// Balances: days until the balance reaches zero at the current burn rate.
+    public var daysRemaining: Double?
+    /// Balances: the same burn per hour (`rate / 24`), added next to the per-day pair so readers can quote hours.
+    public var ratePerHour: Double?
+    /// Balances: the same remaining time in hours.
     public var hoursRemaining: Double?
     public var sampleCount: Int
     public var span: TimeInterval
 
     public init(confidence: Confidence, rate: Double = 0, projectedAtReset: Double? = nil, exhaustionAt: Date? = nil,
-                paceDelta: Double? = nil, hoursRemaining: Double? = nil, sampleCount: Int = 0, span: TimeInterval = 0) {
+                paceDelta: Double? = nil, daysRemaining: Double? = nil, ratePerHour: Double? = nil, hoursRemaining: Double? = nil,
+                sampleCount: Int = 0, span: TimeInterval = 0) {
         self.confidence = confidence
         self.rate = rate
         self.projectedAtReset = projectedAtReset
         self.exhaustionAt = exhaustionAt
         self.paceDelta = paceDelta
+        self.daysRemaining = daysRemaining
+        self.ratePerHour = ratePerHour
         self.hoursRemaining = hoursRemaining
         self.sampleCount = sampleCount
         self.span = span
@@ -509,43 +516,15 @@ public struct Forecast: Codable, Sendable, Hashable {
 
     public static let insufficient = Forecast(confidence: .insufficient)
 
-    private enum CodingKeys: String, CodingKey {
-        case confidence, rate, projectedAtReset, exhaustionAt, paceDelta, hoursRemaining, daysRemaining, sampleCount, span
-    }
-
-    /// Balance forecasts used to be per day (`rate` in currency/day, `daysRemaining`); a record with `daysRemaining` and no
-    /// `hoursRemaining` is converted on read, so history from before the change is not mistaken for a per-hour rate.
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        confidence = try c.decode(Confidence.self, forKey: .confidence)
-        var rate = try c.decodeIfPresent(Double.self, forKey: .rate) ?? 0
-        projectedAtReset = try c.decodeIfPresent(Double.self, forKey: .projectedAtReset)
-        exhaustionAt = try c.decodeIfPresent(Date.self, forKey: .exhaustionAt)
-        paceDelta = try c.decodeIfPresent(Double.self, forKey: .paceDelta)
-        if let hours = try c.decodeIfPresent(Double.self, forKey: .hoursRemaining) {
-            hoursRemaining = hours
-        } else if let days = try c.decodeIfPresent(Double.self, forKey: .daysRemaining) {
-            hoursRemaining = days * 24
-            rate /= 24
-        } else {
-            hoursRemaining = nil
-        }
-        self.rate = rate
-        sampleCount = try c.decodeIfPresent(Int.self, forKey: .sampleCount) ?? 0
-        span = try c.decodeIfPresent(TimeInterval.self, forKey: .span) ?? 0
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(confidence, forKey: .confidence)
-        try c.encode(rate, forKey: .rate)
-        try c.encodeIfPresent(projectedAtReset, forKey: .projectedAtReset)
-        try c.encodeIfPresent(exhaustionAt, forKey: .exhaustionAt)
-        try c.encodeIfPresent(paceDelta, forKey: .paceDelta)
-        try c.encodeIfPresent(hoursRemaining, forKey: .hoursRemaining)
-        try c.encode(sampleCount, forKey: .sampleCount)
-        try c.encode(span, forKey: .span)
-    }
-
     public var willExhaustBeforeReset: Bool { exhaustionAt != nil }
+
+    /// Balances: burn per hour. A forecast from an app that only knew days has `daysRemaining` and a per-day `rate`; 0.4.4 briefly
+    /// sent a per-hour `rate` and `hoursRemaining` without `ratePerHour`.
+    public var balanceRatePerHour: Double {
+        if let ratePerHour { return ratePerHour }
+        return daysRemaining == nil && hoursRemaining != nil ? rate : rate / 24
+    }
+
+    /// Balances: hours until zero, from either pair.
+    public var balanceHoursRemaining: Double? { hoursRemaining ?? daysRemaining.map { $0 * 24 } }
 }

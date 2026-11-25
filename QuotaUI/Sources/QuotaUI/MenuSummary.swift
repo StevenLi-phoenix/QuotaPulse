@@ -75,7 +75,7 @@ public enum MenuSummary {
 
     /// "≈ 20h left" or, from 72 h on, "≈ 4d left" from the balance forecast; "—" while the pace is still unknown.
     static func balanceReset(_ forecast: Forecast?) -> String {
-        guard let f = forecast, f.confidence != .insufficient, f.rate > 0.0001, let hours = f.hoursRemaining else {
+        guard let f = forecast, f.confidence != .insufficient, f.balanceRatePerHour > 0.0001, let hours = f.balanceHoursRemaining else {
             return "—"
         }
         if hours < 1 { return L("under an hour left") }

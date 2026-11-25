@@ -130,7 +130,7 @@ extension QuotaSnapshot {
                 UsageWindow(id: "primary", title: "5-hour", utilization: 18, resetsAt: now.addingTimeInterval(4 * 3600), duration: 5 * 3600),
                 UsageWindow(id: "secondary", title: "Weekly", utilization: 73, resetsAt: now.addingTimeInterval(2 * 86400), duration: 7 * 86400),
             ]),
-            ProviderSnapshot(id: .deepseek, fetchedAt: now, balance: Balance(currency: "CNY", total: 23.45), forecasts: ["balance": Forecast(confidence: .medium, rate: 0.05, hoursRemaining: 468, sampleCount: 10, span: 86400)]),
+            ProviderSnapshot(id: .deepseek, fetchedAt: now, balance: Balance(currency: "CNY", total: 23.45), forecasts: ["balance": Forecast(confidence: .medium, rate: 1.2, daysRemaining: 19.5, ratePerHour: 0.05, hoursRemaining: 468, sampleCount: 10, span: 86400)]),
         ])
     }
 }

@@ -53,7 +53,7 @@ public enum ForecastEngine {
         default: .low
         }
         return Forecast(confidence: confidence, rate: perHour, projectedAtReset: projected, exhaustionAt: exhaustion,
-                        paceDelta: pace, hoursRemaining: nil, sampleCount: cycle.count, span: span)
+                        paceDelta: pace, sampleCount: cycle.count, span: span)
     }
 
     /// Samples belonging to the current reset cycle: after the window start when known, otherwise
@@ -107,12 +107,13 @@ public enum ForecastEngine {
         // A flat series still yields a rounding-noise slope (~1e-26/s); count it as spend only when the
         // fitted line falls by more than the top-up tolerance over the observed span.
         let burnPerHour = -slopePerSec * span > 0.01 ? -slopePerSec * 3600 : 0
+        let burnPerDay = burnPerHour * 24
         let hours: Double? = burnPerHour > 0 ? balance.total / burnPerHour : nil
         let exhaustion = hours.map { now.addingTimeInterval($0 * 3600) }
         let confidence: Forecast.Confidence = span >= 2 * 86400 && segment.count >= 10 ? .high
             : (span >= 6 * 3600 && segment.count >= 4 ? .medium : .low)
-        return Forecast(confidence: confidence, rate: burnPerHour, projectedAtReset: nil, exhaustionAt: exhaustion,
-                        paceDelta: nil, hoursRemaining: hours, sampleCount: segment.count, span: span)
+        return Forecast(confidence: confidence, rate: burnPerDay, projectedAtReset: nil, exhaustionAt: exhaustion,
+                        paceDelta: nil, daysRemaining: hours.map { $0 / 24 }, ratePerHour: burnPerHour, hoursRemaining: hours, sampleCount: segment.count, span: span)
     }
 }
 

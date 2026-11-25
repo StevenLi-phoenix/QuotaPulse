@@ -68,7 +68,7 @@ import QuotaCore
     }
 
     @Test func balanceAndExtraUsageUseUsedOverTotal() {
-        let forecast = Forecast(confidence: .medium, rate: 0.05, hoursRemaining: 470, sampleCount: 20, span: 7200)
+        let forecast = Forecast(confidence: .medium, rate: 1.2, daysRemaining: 19.6, ratePerHour: 0.05, hoursRemaining: 470, sampleCount: 20, span: 7200)
         let deepseek = ProviderSnapshot(id: .deepseek, fetchedAt: now,
                                         balance: Balance(currency: "CNY", total: 23.456, granted: 0, toppedUp: 23.456),
                                         forecasts: [Sample.balanceWindowID: forecast])
@@ -80,9 +80,12 @@ import QuotaCore
         #expect(group.lines[0].reset == L("≈ 20d left"))
         for (hours, text) in [(30.0, L("≈ 30h left")), (0.4, L("under an hour left")), (72.0, L("≈ 3d left")), (9_000.0, L("over a year left"))] {
             let shortHaul = ProviderSnapshot(id: .deepseek, fetchedAt: now, balance: Balance(currency: "CNY", total: 23.456),
-                                             forecasts: [Sample.balanceWindowID: Forecast(confidence: .medium, rate: 1, hoursRemaining: hours, sampleCount: 20, span: 7200)])
+                                             forecasts: [Sample.balanceWindowID: Forecast(confidence: .medium, rate: 24, daysRemaining: hours / 24, ratePerHour: 1, hoursRemaining: hours, sampleCount: 20, span: 7200)])
             #expect(MenuSummary.group(for: shortHaul, now: now).lines[0].reset == text)
         }
+        let daysOnly = ProviderSnapshot(id: .deepseek, fetchedAt: now, balance: Balance(currency: "CNY", total: 23.456),
+                                        forecasts: [Sample.balanceWindowID: Forecast(confidence: .medium, rate: 24, daysRemaining: 1.25, sampleCount: 20, span: 7200)])
+        #expect(MenuSummary.group(for: daysOnly, now: now).lines[0].reset == L("≈ 30h left"))
 
         let claude = ProviderSnapshot(id: .claude, fetchedAt: now,
                                       windows: [window("five_hour", "5-hour", used: 12, resetsIn: 7200)],
