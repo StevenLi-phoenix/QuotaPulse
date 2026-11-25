@@ -214,6 +214,15 @@ public enum QuotaFormat {
         return Int(min(max(days, 0), Double(maxWholeDays)).rounded())
     }
 
+    /// Hours rounded for display, clamped like `wholeDays`.
+    public static func wholeHours(_ hours: Double) -> Int {
+        guard hours.isFinite else { return hours > 0 ? maxWholeDays : 0 }
+        return Int(min(max(hours, 0), Double(maxWholeDays)).rounded())
+    }
+
+    /// A balance forecast is quoted in hours below this many hours left, and in days above it.
+    public static let balanceHoursLimit = 72.0
+
     /// "2h 14m", "38m", "< 1m"
     public static func countdown(to date: Date, from now: Date = Date()) -> String {
         let seconds = Int(date.timeIntervalSince(now).rounded())

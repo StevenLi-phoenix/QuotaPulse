@@ -2021,42 +2021,62 @@
         }
       }
     },
-    "\\(QuotaFormat.wholeDays($0)) days": {
+    "\\(QuotaFormat.wholeDays(hours / 24)) days": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(QuotaFormat.wholeDays($0)) 天"
+            "value": "\\(QuotaFormat.wholeDays(hours / 24)) 天"
           }
         }
       }
     },
-    "\\(perDay)/day — about \\(QuotaFormat.wholeDays(days)) days left": {
+    "\\(QuotaFormat.wholeHours(hours)) hours": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(perDay)/天 —— 约可用 \\(QuotaFormat.wholeDays(days)) 天"
+            "value": "\\(QuotaFormat.wholeHours(hours)) 小时"
           }
         }
       }
     },
-    "\\(perDay)/day — less than a day left": {
+    "\\(perHour)/h — about \\(QuotaFormat.wholeDays(days)) days left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(perDay)/天 —— 不足一天"
+            "value": "\\(perHour)/小时 —— 约可用 \\(QuotaFormat.wholeDays(days)) 天"
           }
         }
       }
     },
-    "\\(perDay)/day — over a year left": {
+    "\\(perHour)/h — about \\(QuotaFormat.wholeHours(hours)) hours left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(perDay)/天 —— 可用一年以上"
+            "value": "\\(perHour)/小时 —— 约可用 \\(QuotaFormat.wholeHours(hours)) 小时"
+          }
+        }
+      }
+    },
+    "\\(perHour)/h — less than an hour left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(perHour)/小时 —— 不足一小时"
+          }
+        }
+      }
+    },
+    "\\(perHour)/h — over a year left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(perHour)/小时 —— 可用一年以上"
           }
         }
       }
@@ -2171,42 +2191,72 @@
         }
       }
     },
-    "under a day left": {
+    "under an hour left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "不足一天"
+            "value": "不足一小时"
           }
         }
       }
     },
-    "~\\(QuotaFormat.wholeDays(d))d": {
+    "~\\(QuotaFormat.wholeDays(h / 24))d": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(QuotaFormat.wholeDays(d)) 天"
+            "value": "约 \\(QuotaFormat.wholeDays(h / 24)) 天"
           }
         }
       }
     },
-    "~\\(QuotaFormat.wholeDays(d))d left": {
+    "~\\(QuotaFormat.wholeDays(h / 24))d left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约剩 \\(QuotaFormat.wholeDays(d)) 天"
+            "value": "约剩 \\(QuotaFormat.wholeDays(h / 24)) 天"
           }
         }
       }
     },
-    "≈ \\(whole)d left": {
+    "~\\(QuotaFormat.wholeHours(h))h": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(whole) 天可用"
+            "value": "约 \\(QuotaFormat.wholeHours(h)) 小时"
+          }
+        }
+      }
+    },
+    "~\\(QuotaFormat.wholeHours(h))h left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约剩 \\(QuotaFormat.wholeHours(h)) 小时"
+          }
+        }
+      }
+    },
+    "≈ \\(QuotaFormat.wholeDays(days))d left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 \\(QuotaFormat.wholeDays(days)) 天可用"
+          }
+        }
+      }
+    },
+    "≈ \\(QuotaFormat.wholeHours(hours))h left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 \\(QuotaFormat.wholeHours(hours)) 小时可用"
           }
         }
       }

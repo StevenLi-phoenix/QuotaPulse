@@ -87,21 +87,44 @@ import Testing
             Sample(provider: .deepseek, window: "balance", at: now, value: 20),
         ]
         let f = ForecastEngine.forecast(balance: b, samples: s, now: now)
-        #expect(abs(f.rate - 15) < 0.01)
-        #expect(abs((f.daysRemaining ?? 0) - 20.0 / 15.0) < 0.01)
+        #expect(abs(f.rate - 15.0 / 24) < 0.001)                        // per hour
+        #expect(abs((f.hoursRemaining ?? 0) - 20.0 / 15.0 * 24) < 0.01)
         #expect(f.sampleCount == 3)
+    }
+
+    @Test func balanceBurnIsQuotedPerHour() {
+        // Credits that burn 300/h for two hours, as when a plan window is exhausted: the forecast is hours, not days.
+        let b = Balance(currency: "credits", total: 68_000)
+        let s = (0...12).map { Sample(provider: .codex, window: "balance", at: now.addingTimeInterval(-Double(12 - $0) * 600), value: 68_600 - Double($0) * 50) }
+        let f = ForecastEngine.forecast(balance: b, samples: s, now: now)
+        #expect(abs(f.rate - 300) < 0.5)
+        #expect(abs((f.hoursRemaining ?? 0) - 68_000.0 / 300) < 1)
+        #expect(abs((f.exhaustionAt?.timeIntervalSince(now) ?? 0) - (f.hoursRemaining ?? 0) * 3600) < 1)
+    }
+
+    @Test func forecastFromBeforeTheHourlyUnitIsConverted() throws {
+        let legacy = #"{"confidence":"high","rate":24,"daysRemaining":10,"sampleCount":5,"span":86400}"#
+        let old = try JSONDecoder().decode(Forecast.self, from: Data(legacy.utf8))
+        #expect(old.rate == 1)
+        #expect(old.hoursRemaining == 240)
+        let current = try JSONDecoder().decode(Forecast.self, from: JSONEncoder().encode(old))
+        #expect(current == old)
+        let window = #"{"confidence":"low","rate":12.5,"projectedAtReset":88,"sampleCount":2,"span":60}"#
+        #expect(try JSONDecoder().decode(Forecast.self, from: Data(window.utf8)).rate == 12.5)
+        let encoded = String(decoding: try JSONEncoder().encode(old), as: UTF8.self)
+        #expect(encoded.contains("hoursRemaining") && !encoded.contains("daysRemaining"))
     }
 
     @Test func flatBalanceHasNoBurn() {
         // Codex credits after a top-up, unchanged for hours. With fractional-second timestamps the OLS
         // slope of a constant series is rounding noise (-4.6e-26/s for this input), which used to become
-        // daysRemaining ≈ 1.9e25 and trap in Int().
+        // hoursRemaining ≈ 4.6e26 and trap in Int().
         let b = Balance(currency: "credits", total: 74984.431055)
         let s = (0..<76).map { Sample(provider: .codex, window: "balance", at: now.addingTimeInterval(-Double($0) * 303.137), value: 74984.431055) }
         let f = ForecastEngine.forecast(balance: b, samples: s, now: now)
         #expect(f.confidence != .insufficient)
         #expect(f.rate == 0)
-        #expect(f.daysRemaining == nil)
+        #expect(f.hoursRemaining == nil)
         #expect(f.exhaustionAt == nil)
     }
 

@@ -51,7 +51,7 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 
 **Reset semantics** — Claude's windows start with your first request and are merely *cleared* at `resets_at` (the next window starts when you next use it), so an expired window reads "Fresh · next window starts on first request" rather than a negative countdown. Codex windows reset on a fixed cadence and roll forward automatically.
 
-**Forecasts** — a least-squares burn rate over the current window (resets and top-ups start a new cycle automatically) gives projected usage at reset, the exhaustion time if you'll hit 100 % early, and a pace indicator against a linear budget. Balances get a per-day burn and days-remaining. Confidence grows with sample count and span.
+**Forecasts** — a least-squares burn rate over the current window (resets and top-ups start a new cycle automatically) gives projected usage at reset, the exhaustion time if you'll hit 100 % early, and a pace indicator against a linear budget. Balances get a per-hour burn (`rate`) and `hoursRemaining`, shown in hours below 72 h left and in days beyond. Confidence grows with sample count and span.
 
 **macOS** — menu-bar ring + percent for the most constrained window; instant dropdown listing every provider's usage bars, reset countdown and balance at a glance; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, iCloud sync, optional hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
 

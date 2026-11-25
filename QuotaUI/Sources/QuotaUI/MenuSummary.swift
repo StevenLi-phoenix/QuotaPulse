@@ -73,14 +73,15 @@ public enum MenuSummary {
         return Group(provider: provider.id, info: provider.display, plan: provider.account?.plan, status: provider.status, lines: lines)
     }
 
-    /// "≈ 20d left" from the balance forecast; "—" while the pace is still unknown.
+    /// "≈ 20h left" or, from 72 h on, "≈ 4d left" from the balance forecast; "—" while the pace is still unknown.
     static func balanceReset(_ forecast: Forecast?) -> String {
-        guard let f = forecast, f.confidence != .insufficient, f.rate > 0.0001, let days = f.daysRemaining else {
+        guard let f = forecast, f.confidence != .insufficient, f.rate > 0.0001, let hours = f.hoursRemaining else {
             return "—"
         }
-        let whole = QuotaFormat.wholeDays(days)
-        if whole < 1 { return L("under a day left") }
-        if whole > 365 { return L("over a year left") }
-        return L("≈ \(whole)d left")
+        if hours < 1 { return L("under an hour left") }
+        if hours < QuotaFormat.balanceHoursLimit { return L("≈ \(QuotaFormat.wholeHours(hours))h left") }
+        let days = hours / 24
+        if days > 365 { return L("over a year left") }
+        return L("≈ \(QuotaFormat.wholeDays(days))d left")
     }
 }

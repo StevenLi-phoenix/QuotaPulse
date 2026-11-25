@@ -54,7 +54,7 @@
 ## 架构决定
 
 1. **Mac 是 hub**：Mac Mini 常开、在 Tailscale 上。菜单栏 App 持凭据、轮询、存样本、算预测，并用 `NWListener` 提供 `GET /v1/health|snapshot|history`（Bearer token）。iOS/watch 只消费 JSON，不碰任何供应商凭据。hub 现在是可选直连，本地脚本和设备日志上传走它；数据同步默认走第 7 条的 iCloud。
-2. **预测**在 `QuotaCore.ForecastEngine`：对当前窗口（`resetsAt - windowDuration` 之后，或检测到 utilization 下跌即视为新窗口）内样本做最小二乘回归；输出 reset 时预计用量、打满时刻、pace（相对线性预算的偏差）。余额型对最近 7 天做回归得日均花费与剩余天数。样本不足 2 个或跨度 < 10 分钟 → `insufficient`。
+2. **预测**在 `QuotaCore.ForecastEngine`：对当前窗口（`resetsAt - windowDuration` 之后，或检测到 utilization 下跌即视为新窗口）内样本做最小二乘回归；输出 reset 时预计用量、打满时刻、pace（相对线性预算的偏差）。余额型对最近 7 天做回归得每小时花费（`rate`，与窗口的 %/h 同为小时）和剩余小时数 `hoursRemaining`（旧版的 `daysRemaining` 和按天的 `rate` 读取时自动换算）；显示上剩余 72 小时以内用小时，以上用天。样本不足 2 个或跨度 < 10 分钟 → `insufficient`。
 3. **macOS 签名**：主 App 用 Automatic 签名（CloudKit 需要 provisioning profile），无 sandbox；widget 用 Manual 签名、有 sandbox、无 profile。两者共用团队前缀 App Group `88U7V98QAC.app.lishuyu.quotapulse`，数据在对应 Group Container 下。iOS/watchOS 用 App Group `group.app.lishuyu.quotapulse`（模拟器不校验，真机需在开发者账号开通）。
 4. **通知权限懒申请**：阈值告警默认关；打开时才 `requestAuthorization`，避免无人值守时弹系统对话框。
 5. **Keychain 读取走 `/usr/bin/security` 子进程 + 3 秒超时**：Claude Code 自己用该 CLI 写入，ACL 已包含它，因此不会弹窗；万一弹窗，超时 kill 子进程即关闭对话框并退回文件读取。

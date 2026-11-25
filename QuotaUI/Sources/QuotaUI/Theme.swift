@@ -144,11 +144,15 @@ public enum Present {
 
     public static func balanceForecastText(balance: Balance, forecast: Forecast?) -> String? {
         guard let f = forecast, f.confidence != .insufficient else { return (forecast?.sampleCount ?? 0) > 0 ? L("Learning your spend…") : nil }
-        guard f.rate > 0.0001, let days = f.daysRemaining else { return L("No spend observed yet") }
-        let perDay = QuotaFormat.money(f.rate, symbol: balance.symbol)
-        if days < 1 { return String(localized: "\(perDay)/day — less than a day left", bundle: .module) }
-        if days > 365 { return String(localized: "\(perDay)/day — over a year left", bundle: .module) }
-        return String(localized: "\(perDay)/day — about \(QuotaFormat.wholeDays(days)) days left", bundle: .module)
+        guard f.rate > 0.0001, let hours = f.hoursRemaining else { return L("No spend observed yet") }
+        let perHour = QuotaFormat.money(f.rate, symbol: balance.symbol)
+        if hours < 1 { return String(localized: "\(perHour)/h — less than an hour left", bundle: .module) }
+        if hours < QuotaFormat.balanceHoursLimit {
+            return String(localized: "\(perHour)/h — about \(QuotaFormat.wholeHours(hours)) hours left", bundle: .module)
+        }
+        let days = hours / 24
+        if days > 365 { return String(localized: "\(perHour)/h — over a year left", bundle: .module) }
+        return String(localized: "\(perHour)/h — about \(QuotaFormat.wholeDays(days)) days left", bundle: .module)
     }
 
     public static func updatedText(_ date: Date, now: Date = Date()) -> String {

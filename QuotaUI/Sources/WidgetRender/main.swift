@@ -22,7 +22,7 @@ let snapshot = QuotaSnapshot(generatedAt: now.addingTimeInterval(-180), hubName:
         UsageWindow(id: "secondary", title: "Weekly", utilization: 76, resetsAt: now.addingTimeInterval(2 * 86400), duration: 7 * 86400),
     ], forecasts: ["secondary": Forecast(confidence: .medium, rate: 0.6, projectedAtReset: 92, paceDelta: 11, sampleCount: 30, span: 86400)]),
     ProviderSnapshot(id: .deepseek, fetchedAt: now, balance: Balance(currency: "CNY", total: 23.45, granted: 0, toppedUp: 23.45),
-                     forecasts: ["balance": Forecast(confidence: .medium, rate: 1.2, daysRemaining: 19.5, sampleCount: 12, span: 2 * 86400)]),
+                     forecasts: ["balance": Forecast(confidence: .medium, rate: 0.05, hoursRemaining: 468, sampleCount: 12, span: 2 * 86400)]),
 ])
 let sparks: [ProviderID: [Double]] = [
     .claude: [12, 15, 19, 22, 28, 30, 36, 41, 44, 50, 55, 58, 63],

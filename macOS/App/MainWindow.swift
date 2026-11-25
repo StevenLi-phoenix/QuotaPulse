@@ -200,8 +200,12 @@ struct ForecastTable: View {
                     GridRow {
                         Text(L("Balance"))
                         Text(b.formatted).monospacedDigit()
-                        Text(f.map { "\(QuotaFormat.money($0.rate, symbol: b.symbol))/d" } ?? "—").monospacedDigit()
-                        Text(f?.daysRemaining.map { String(localized: "\(QuotaFormat.wholeDays($0)) days") } ?? "—")
+                        Text(f.map { "\(QuotaFormat.money($0.rate, symbol: b.symbol))/h" } ?? "—").monospacedDigit()
+                        Text(f?.hoursRemaining.map { hours in
+                            hours < QuotaFormat.balanceHoursLimit
+                                ? String(localized: "\(QuotaFormat.wholeHours(hours)) hours")
+                                : String(localized: "\(QuotaFormat.wholeDays(hours / 24)) days")
+                        } ?? "—")
                         Text(confidence(f))
                     }
                     .font(.callout)

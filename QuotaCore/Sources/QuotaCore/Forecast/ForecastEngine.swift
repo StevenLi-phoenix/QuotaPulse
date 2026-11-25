@@ -53,7 +53,7 @@ public enum ForecastEngine {
         default: .low
         }
         return Forecast(confidence: confidence, rate: perHour, projectedAtReset: projected, exhaustionAt: exhaustion,
-                        paceDelta: pace, daysRemaining: nil, sampleCount: cycle.count, span: span)
+                        paceDelta: pace, hoursRemaining: nil, sampleCount: cycle.count, span: span)
     }
 
     /// Samples belonging to the current reset cycle: after the window start when known, otherwise
@@ -106,13 +106,13 @@ public enum ForecastEngine {
         let slopePerSec = Regression.slope(segment.map { ($0.at.timeIntervalSince1970, $0.value) })
         // A flat series still yields a rounding-noise slope (~1e-26/s); count it as spend only when the
         // fitted line falls by more than the top-up tolerance over the observed span.
-        let burnPerDay = -slopePerSec * span > 0.01 ? -slopePerSec * 86400 : 0
-        let days: Double? = burnPerDay > 0 ? balance.total / burnPerDay : nil
-        let exhaustion = days.map { now.addingTimeInterval($0 * 86400) }
+        let burnPerHour = -slopePerSec * span > 0.01 ? -slopePerSec * 3600 : 0
+        let hours: Double? = burnPerHour > 0 ? balance.total / burnPerHour : nil
+        let exhaustion = hours.map { now.addingTimeInterval($0 * 3600) }
         let confidence: Forecast.Confidence = span >= 2 * 86400 && segment.count >= 10 ? .high
             : (span >= 6 * 3600 && segment.count >= 4 ? .medium : .low)
-        return Forecast(confidence: confidence, rate: burnPerDay, projectedAtReset: nil, exhaustionAt: exhaustion,
-                        paceDelta: nil, daysRemaining: days, sampleCount: segment.count, span: span)
+        return Forecast(confidence: confidence, rate: burnPerHour, projectedAtReset: nil, exhaustionAt: exhaustion,
+                        paceDelta: nil, hoursRemaining: hours, sampleCount: segment.count, span: span)
     }
 }
 

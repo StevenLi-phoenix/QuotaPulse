@@ -1591,12 +1591,22 @@
         }
       }
     },
-    "\\(QuotaFormat.wholeDays($0)) days": {
+    "\\(QuotaFormat.wholeDays(hours / 24)) days": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(QuotaFormat.wholeDays($0)) 天"
+            "value": "\\(QuotaFormat.wholeDays(hours / 24)) 天"
+          }
+        }
+      }
+    },
+    "\\(QuotaFormat.wholeHours(hours)) hours": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\\(QuotaFormat.wholeHours(hours)) 小时"
           }
         }
       }

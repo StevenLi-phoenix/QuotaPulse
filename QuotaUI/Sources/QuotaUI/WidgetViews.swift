@@ -62,8 +62,11 @@ public struct WidgetSmallView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(b.formatted).font(.system(b.isCredits ? .headline : .title2, design: .rounded).weight(.bold)).monospacedDigit().minimumScaleFactor(0.6)
                             Text(L("Balance")).font(.caption2).foregroundStyle(.secondary)
-                            if let d = p.forecasts[Sample.balanceWindowID]?.daysRemaining {
-                                Text(String(localized: "~\(QuotaFormat.wholeDays(d))d left", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
+                            if let h = p.forecasts[Sample.balanceWindowID]?.hoursRemaining {
+                                Text(h < QuotaFormat.balanceHoursLimit
+                                     ? String(localized: "~\(QuotaFormat.wholeHours(h))h left", bundle: .module)
+                                     : String(localized: "~\(QuotaFormat.wholeDays(h / 24))d left", bundle: .module))
+                                    .font(.caption2).foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -104,8 +107,11 @@ public struct WidgetMediumView: View {
                         if let b = p.balance, p.windows.isEmpty {
                             Text(b.formatted).font(.caption.monospacedDigit().weight(.semibold))
                             Spacer()
-                            if let d = p.forecasts[Sample.balanceWindowID]?.daysRemaining {
-                                Text(String(localized: "~\(QuotaFormat.wholeDays(d))d", bundle: .module)).font(.caption2).foregroundStyle(.secondary)
+                            if let h = p.forecasts[Sample.balanceWindowID]?.hoursRemaining {
+                                Text(h < QuotaFormat.balanceHoursLimit
+                                     ? String(localized: "~\(QuotaFormat.wholeHours(h))h", bundle: .module)
+                                     : String(localized: "~\(QuotaFormat.wholeDays(h / 24))d", bundle: .module))
+                                    .font(.caption2).foregroundStyle(.secondary)
                             }
                         } else {
                             ForEach(p.displayWindows.prefix(2)) { w in
