@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-11-24
+
 ### Changed
 - Balance forecasts carry `schemaVersion: 2` (both unit pairs present), so the hub and other readers no longer infer the shape from which fields exist.
 
