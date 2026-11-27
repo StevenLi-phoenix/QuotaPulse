@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-27
+
 ### Changed
 - Every bar, ring and gauge reads like a battery, filled to what is **left** (menu bar, dropdown, overview cards, widgets, Watch and complications); the numbers beside them say "62% left" and gauges run red at the empty end.
 - A used-up window in the menu bar is an empty bar with a red stub; a sliver left still shows the provider's colour.
