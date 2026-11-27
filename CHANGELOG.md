@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-27
+
 ### Changed
 - The menu-bar item is a row of narrow bars, one per provider in the provider's own colour, filled to how much is **left** in that provider's tightest window; it carries no text (the old ring read "100%" for a used-up window, which looked like plenty), a red dot under a bar means running low or used up, a dashed hollow bar is out of date or has no data, and the tooltip lists every provider's window, percent left and reset.
 - A provider that publishes no colour gets a stable one derived from its id instead of grey.
