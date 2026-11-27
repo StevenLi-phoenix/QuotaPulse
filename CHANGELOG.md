@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-27
+
 ### Changed
 - Menu-bar bars fill to what is **used**, the same direction as the dropdown's usage bars, on a plain grey track with a colour stub at 0 %, so a full bar is a used-up window; the red dots and dashed outlines are gone (out-of-date bars are faded instead).
 - Grok Bot's colour is violet instead of grey, which read as disabled next to the other bars.
