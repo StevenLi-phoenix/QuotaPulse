@@ -21,7 +21,7 @@ public struct HistoryChart: View {
     }
 
     private func title(_ id: String) -> String {
-        windows.first { $0.id == id }?.title ?? (id == Sample.balanceWindowID ? L("Balance") : id)
+        windows.first { $0.id == id }?.localizedTitle ?? (id == Sample.balanceWindowID ? L("Balance") : id)
     }
 
     /// Hours for a day or less, weekday + hour beyond — long "Oct 15 at 2…" labels get clipped.

@@ -356,9 +356,9 @@ final class AppModel {
                 for t in settings.alerts.thresholds where w.utilization >= t && last < t {
                     alertedThresholds[key] = t
                     let content = UNMutableNotificationContent()
-                    content.title = "\(p.localizedName) \(w.title) at \(QuotaFormat.percent(w.utilization))"
+                    content.title = L("\(p.localizedName) \(w.localizedTitle) at \(QuotaFormat.percent(w.utilization))")
                     content.body = Present.resetText(w)
-                    if let f = p.forecasts[w.id], let ex = f.exhaustionAt { content.body += " · " + String(localized: "Out at \(Present.resetClock(ex))") }
+                    if let out = Present.outText(window: w, forecast: p.forecasts[w.id]) { content.body += " · " + out }
                     content.sound = .default
                     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "\(key).\(Int(t))", content: content, trigger: nil))
                 }

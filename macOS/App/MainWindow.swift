@@ -69,7 +69,6 @@ struct MainWindow: View {
 
 struct OverviewPage: View {
     @Environment(AppModel.self) private var model
-    private let columns = [GridItem(.adaptive(minimum: 340, maximum: 520), spacing: 14, alignment: .top)]
 
     var body: some View {
         @Bindable var model = model
@@ -83,11 +82,13 @@ struct OverviewPage: View {
                 EmptyStateView(title: L("Nothing to show yet"), message: L("Enable a provider in Settings or wait for the first refresh."))
                     .padding(40)
             } else {
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
+                // Columns stack independently, so a short card never leaves a row-height hole beside a tall one.
+                MasonryLayout(minColumnWidth: 340, maxColumnWidth: 520, spacing: 14) {
                     ForEach(model.snapshot.providers) { p in
                         ProviderCard(snapshot: p, sparkline: model.sparklines[p.id] ?? [], style: .full, now: now)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
                 .animation(QPDesign.spring, value: model.snapshot.providers.map(\.id))
             }
@@ -187,7 +188,7 @@ struct ForecastTable: View {
                 ForEach(provider.displayWindows) { w in
                     let f = provider.forecasts[w.id]
                     GridRow {
-                        Text(w.title).foregroundStyle(w.isReported ? .primary : .tertiary)
+                        Text(w.localizedTitle).foregroundStyle(w.isReported ? .primary : .tertiary)
                         Text(w.isReported ? QuotaFormat.percent(w.utilization) : L("n/a")).monospacedDigit()
                         Text(f.map { QuotaFormat.rate($0.rate) } ?? "—").monospacedDigit()
                         Text(f?.projectedAtReset.map { QuotaFormat.percent($0) } ?? "—").monospacedDigit()

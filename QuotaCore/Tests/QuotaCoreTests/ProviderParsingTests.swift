@@ -238,7 +238,12 @@ let t0 = Date(timeIntervalSince1970: 1_792_120_000) // 2026-10-16T03:06:40Z
     }
 
     @Test func formatting() {
-        #expect(QuotaFormat.percent(0) == "0.0%")
+        #expect(QuotaFormat.percent(0) == "0%")
+        #expect(QuotaFormat.percent(3.0) == "3%")
+        #expect(QuotaFormat.percent(3.14) == "3.1%")
+        #expect(QuotaFormat.rate(0.5549) == "0.55%/h")
+        #expect(QuotaFormat.rate(4.58) == "4.6%/h")
+        #expect(QuotaFormat.rate(28.75) == "29%/h")
         #expect(QuotaFormat.percent(42.4) == "42%")
         #expect(QuotaFormat.percent(99.97) == "100%")
         #expect(QuotaFormat.countdown(to: t0.addingTimeInterval(2 * 3600 + 14 * 60), from: t0) == "2h 14m")

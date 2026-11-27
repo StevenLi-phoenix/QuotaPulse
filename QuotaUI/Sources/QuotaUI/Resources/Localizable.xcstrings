@@ -1,6 +1,106 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ %@ at %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ 已用 %3$@"
+          }
+        }
+      }
+    },
+    "%@/h — about %lld days left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@/小时 —— 约可用 %2$lld 天"
+          }
+        }
+      }
+    },
+    "%@/h — about %lld hours left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@/小时 —— 约可用 %2$lld 小时"
+          }
+        }
+      }
+    },
+    "%@/h — less than an hour left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@/小时 —— 不足一小时"
+          }
+        }
+      }
+    },
+    "%@/h — over a year left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@/小时 —— 可用一年以上"
+          }
+        }
+      }
+    },
+    "%lld days": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天"
+          }
+        }
+      }
+    },
+    "%lld hours": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 小时"
+          }
+        }
+      }
+    },
+    "%lld lines · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 行 · %2$@"
+          }
+        }
+      }
+    },
+    "%lld pts ahead of budget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "超出预算 %lld 点"
+          }
+        }
+      }
+    },
+    "%lld pts under budget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低于预算 %lld 点"
+          }
+        }
+      }
+    },
     "10 minutes": {
       "localizations": {
         "zh-Hans": {
@@ -71,6 +171,16 @@
         }
       }
     },
+    "5-hour": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 小时"
+          }
+        }
+      }
+    },
     "6 h": {
       "localizations": {
         "zh-Hans": {
@@ -127,6 +237,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新生成 token 会断开所有已配对设备。"
+          }
+        }
+      }
+    },
+    "API balance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API 余额"
           }
         }
       }
@@ -191,6 +311,16 @@
         }
       }
     },
+    "Apps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用"
+          }
+        }
+      }
+    },
     "At reset": {
       "localizations": {
         "zh-Hans": {
@@ -201,22 +331,22 @@
         }
       }
     },
-    "At this pace you hit 100% at \\(resetClock(ex))": {
+    "At this pace you hit 100%% %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按当前速度将在 \\(resetClock(ex)) 用尽"
+            "value": "按当前速度将在 %@ 用尽"
           }
         }
       }
     },
-    "At this pace: \\(QuotaFormat.percent(p)) by reset (\\(QuotaFormat.rate(f.rate)))": {
+    "At this pace: %@ by reset (%@)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按当前速度：重置时约 \\(QuotaFormat.percent(p))（\\(QuotaFormat.rate(f.rate))）"
+            "value": "按当前速度：重置时约 %1$@（%2$@）"
           }
         }
       }
@@ -271,6 +401,16 @@
         }
       }
     },
+    "ChatGPT subscription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPT 订阅"
+          }
+        }
+      }
+    },
     "Check for Updates…": {
       "localizations": {
         "zh-Hans": {
@@ -301,12 +441,32 @@
         }
       }
     },
+    "Claude Code · OAuth": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code · OAuth"
+          }
+        }
+      }
+    },
     "Claude's usage endpoint rate-limits aggressively; 5 minutes is the recommended floor. 429s back off automatically up to 30 minutes.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "Claude 的用量接口限流很严，建议最短 5 分钟。遇到 429 会自动退避，最长 30 分钟。"
+          }
+        }
+      }
+    },
+    "Coding plan": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编程套餐"
           }
         }
       }
@@ -411,6 +571,16 @@
         }
       }
     },
+    "Desktop app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面应用"
+          }
+        }
+      }
+    },
     "Device": {
       "localizations": {
         "zh-Hans": {
@@ -481,22 +651,22 @@
         }
       }
     },
-    "Early estimate: 100% around \\(resetClock(ex)) (\\(QuotaFormat.rate(f.rate)))": {
+    "Early estimate: %@ by reset (%@)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "初步估计：约 \\(resetClock(ex)) 用尽（\\(QuotaFormat.rate(f.rate))）"
+            "value": "初步估计：重置时约 %1$@（%2$@）"
           }
         }
       }
     },
-    "Early estimate: \\(QuotaFormat.percent(p)) by reset (\\(QuotaFormat.rate(f.rate)))": {
+    "Early estimate: 100%% %@ (%@)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "初步估计：重置时约 \\(QuotaFormat.percent(p))（\\(QuotaFormat.rate(f.rate))）"
+            "value": "初步估计：约 %1$@ 用尽（%2$@）"
           }
         }
       }
@@ -761,12 +931,12 @@
         }
       }
     },
-    "Last heartbeat \\(heartbeat) · \\(d.eventCount) events": {
+    "Last heartbeat %@ · %lld events": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近心跳 \\(heartbeat) · \\(d.eventCount) 条事件"
+            "value": "最近心跳 %1$@ · %2$lld 条事件"
           }
         }
       }
@@ -817,6 +987,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在学习你的花费…"
+          }
+        }
+      }
+    },
+    "Limit reached": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已用尽"
+          }
+        }
+      }
+    },
+    "Limit reached · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已用尽 · %@"
           }
         }
       }
@@ -897,6 +1087,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "MetricKit 报告"
+          }
+        }
+      }
+    },
+    "Monthly": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每月"
           }
         }
       }
@@ -1161,12 +1361,22 @@
         }
       }
     },
-    "Out at \\(Present.resetClock(ex))": {
+    "Opus": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(Present.resetClock(ex)) 用尽"
+            "value": "Opus"
+          }
+        }
+      }
+    },
+    "Out %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 用尽"
           }
         }
       }
@@ -1181,12 +1391,12 @@
         }
       }
     },
-    "Paid \\(QuotaFormat.money(tu, symbol: balance.symbol)) · Granted \\(QuotaFormat.money(g, symbol: balance.symbol))": {
+    "Paid %@ · Granted %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "充值 \\(QuotaFormat.money(tu, symbol: balance.symbol)) · 赠送 \\(QuotaFormat.money(g, symbol: balance.symbol))"
+            "value": "充值 %1$@ · 赠送 %2$@"
           }
         }
       }
@@ -1491,12 +1701,12 @@
         }
       }
     },
-    "Resets in \\(QuotaFormat.countdown(to: r, from: now))": {
+    "Resets in %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(QuotaFormat.countdown(to: r, from: now)) 后重置"
+            "value": "%@ 后重置"
           }
         }
       }
@@ -1731,6 +1941,16 @@
         }
       }
     },
+    "Sonnet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonnet"
+          }
+        }
+      }
+    },
     "Status": {
       "localizations": {
         "zh-Hans": {
@@ -1831,32 +2051,32 @@
         }
       }
     },
-    "Updated \\(Int(s / 3600)) h ago": {
+    "Updated %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(Int(s / 3600)) 小时前更新"
+            "value": "更新于 %@"
           }
         }
       }
     },
-    "Updated \\(Int(s / 60)) min ago": {
+    "Updated %lld h ago": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(Int(s / 60)) 分钟前更新"
+            "value": "%lld 小时前更新"
           }
         }
       }
     },
-    "Updated \\(date.formatted(date: .abbreviated, time: .shortened))": {
+    "Updated %lld min ago": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "更新于 \\(date.formatted(date: .abbreviated, time: .shortened))"
+            "value": "%lld 分钟前更新"
           }
         }
       }
@@ -1941,6 +2161,16 @@
         }
       }
     },
+    "Weekly": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周"
+          }
+        }
+      }
+    },
     "Widgets & Watch": {
       "localizations": {
         "zh-Hans": {
@@ -2021,92 +2251,22 @@
         }
       }
     },
-    "\\(QuotaFormat.wholeDays(hours / 24)) days": {
+    "Zen / Go": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(QuotaFormat.wholeDays(hours / 24)) 天"
+            "value": "Zen / Go"
           }
         }
       }
     },
-    "\\(QuotaFormat.wholeHours(hours)) hours": {
+    "at %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(QuotaFormat.wholeHours(hours)) 小时"
-          }
-        }
-      }
-    },
-    "\\(perHour)/h — about \\(QuotaFormat.wholeDays(days)) days left": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(perHour)/小时 —— 约可用 \\(QuotaFormat.wholeDays(days)) 天"
-          }
-        }
-      }
-    },
-    "\\(perHour)/h — about \\(QuotaFormat.wholeHours(hours)) hours left": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(perHour)/小时 —— 约可用 \\(QuotaFormat.wholeHours(hours)) 小时"
-          }
-        }
-      }
-    },
-    "\\(perHour)/h — less than an hour left": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(perHour)/小时 —— 不足一小时"
-          }
-        }
-      }
-    },
-    "\\(perHour)/h — over a year left": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(perHour)/小时 —— 可用一年以上"
-          }
-        }
-      }
-    },
-    "\\(pts) pts ahead of budget": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "超出预算 \\(pts) 点"
-          }
-        }
-      }
-    },
-    "\\(pts) pts under budget": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "低于预算 \\(pts) 点"
-          }
-        }
-      }
-    },
-    "\\(u.count) lines · \\(u.at.formatted(date: .omitted, time: .shortened))": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(u.count) 行 · \\(u.at.formatted(date: .omitted, time: .shortened))"
+            "value": "%@"
           }
         }
       }
@@ -2171,6 +2331,16 @@
         }
       }
     },
+    "on %@ at %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@"
+          }
+        }
+      }
+    },
     "over a year left": {
       "localizations": {
         "zh-Hans": {
@@ -2181,12 +2351,12 @@
         }
       }
     },
-    "tomorrow \\(date.formatted(date: .omitted, time: .shortened))": {
+    "tomorrow at %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "明天 \\(date.formatted(date: .omitted, time: .shortened))"
+            "value": "明天 %@"
           }
         }
       }
@@ -2201,62 +2371,62 @@
         }
       }
     },
-    "~\\(QuotaFormat.wholeDays(h / 24))d": {
+    "~%lldd": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(QuotaFormat.wholeDays(h / 24)) 天"
+            "value": "约 %lld 天"
           }
         }
       }
     },
-    "~\\(QuotaFormat.wholeDays(h / 24))d left": {
+    "~%lldd left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约剩 \\(QuotaFormat.wholeDays(h / 24)) 天"
+            "value": "约剩 %lld 天"
           }
         }
       }
     },
-    "~\\(QuotaFormat.wholeHours(h))h": {
+    "~%lldh": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(QuotaFormat.wholeHours(h)) 小时"
+            "value": "约 %lld 小时"
           }
         }
       }
     },
-    "~\\(QuotaFormat.wholeHours(h))h left": {
+    "~%lldh left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约剩 \\(QuotaFormat.wholeHours(h)) 小时"
+            "value": "约剩 %lld 小时"
           }
         }
       }
     },
-    "≈ \\(QuotaFormat.wholeDays(days))d left": {
+    "≈ %lldd left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(QuotaFormat.wholeDays(days)) 天可用"
+            "value": "约 %lld 天可用"
           }
         }
       }
     },
-    "≈ \\(QuotaFormat.wholeHours(hours))h left": {
+    "≈ %lldh left": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "约 \\(QuotaFormat.wholeHours(hours)) 小时可用"
+            "value": "约 %lld 小时可用"
           }
         }
       }

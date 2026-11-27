@@ -84,21 +84,33 @@ public struct UsageBar: View {
 public struct Sparkline: View {
     public var values: [Double]
     public var color: Color
-    public var maxValue: Double
+    /// Fixed top of the scale (100 for percent windows, floor 0); nil scales to the series' own min…max, for balances
+    /// whose amounts have no natural ceiling.
+    public var maxValue: Double?
 
-    public init(values: [Double], color: Color, maxValue: Double = 100) {
+    public init(values: [Double], color: Color, maxValue: Double? = 100) {
         self.values = values
         self.color = color
         self.maxValue = maxValue
     }
 
+    /// Value → 0…1 height fraction.
+    private func fraction(_ v: Double) -> Double {
+        if let maxValue {
+            let top = max(maxValue, values.max() ?? maxValue)
+            return top > 0 ? v / top : 0
+        }
+        guard let lo = values.min(), let hi = values.max(), hi - lo > max(abs(hi), 1) * 1e-6 else { return 0.5 }
+        // Keep the line off the edges so a falling balance reads as a slope, not a wall.
+        return 0.1 + 0.8 * (v - lo) / (hi - lo)
+    }
+
     public var body: some View {
         GeometryReader { geo in
             if values.count >= 2 {
-                let top = max(maxValue, values.max() ?? maxValue)
                 let pts = values.enumerated().map { i, v in
                     CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(values.count - 1),
-                            y: geo.size.height * (1 - CGFloat(min(1, max(0, v / top)))))
+                            y: geo.size.height * (1 - CGFloat(min(1, max(0, fraction(v))))))
                 }
                 ZStack {
                     Path { p in
@@ -195,14 +207,13 @@ public struct PlanBadge: View {
 public struct WindowRow: View {
     public var window: UsageWindow
     public var forecast: Forecast?
-    public var color: Color?
     public var compact: Bool
     public var now: Date
 
-    public init(window: UsageWindow, forecast: Forecast?, color: Color? = nil, compact: Bool = false, now: Date = Date()) {
+    /// Percent, bar and notes are coloured by the window's health (`UsageLevel(window:forecast:)`), not the brand colour.
+    public init(window: UsageWindow, forecast: Forecast?, compact: Bool = false, now: Date = Date()) {
         self.window = window
         self.forecast = forecast
-        self.color = color
         self.compact = compact
         self.now = now
     }
@@ -219,7 +230,7 @@ public struct WindowRow: View {
     private var placeholderBody: some View {
         VStack(alignment: .leading, spacing: compact ? 3 : 5) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(window.title).font(compact ? .caption : .subheadline).fontWeight(.medium).foregroundStyle(.tertiary)
+                Text(window.localizedTitle).font(compact ? .caption : .subheadline).fontWeight(.medium).foregroundStyle(.tertiary)
                 Spacer(minLength: 4)
                 Text(L("n/a")).font(.system(compact ? .caption : .subheadline, design: .rounded).weight(.semibold)).foregroundStyle(.tertiary)
             }
@@ -232,9 +243,11 @@ public struct WindowRow: View {
     private var reportedBody: some View {
         let used = window.currentUtilization(now: now)
         let fresh: Bool = { if case .awaitingFirstUse = window.phase(now: now) { return true } else { return false } }()
+        let exhausted = window.isExhausted(now: now)
+        let health = UsageLevel(window: window, forecast: forecast, now: now)
         return VStack(alignment: .leading, spacing: compact ? 3 : 5) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(window.title).font(compact ? .caption : .subheadline).fontWeight(.medium)
+                Text(window.localizedTitle).font(compact ? .caption : .subheadline).fontWeight(.medium)
                 if let note = window.note, !compact, !window.title.contains(note) {
                     Text(note).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
@@ -244,30 +257,40 @@ public struct WindowRow: View {
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(QPDesign.quick, value: used)
-                    .foregroundStyle(UsageLevel(percent: used).color)
+                    .foregroundStyle(health.color)
             }
-            UsageBar(percent: used, color: color, height: compact ? 5 : 7, projected: fresh ? nil : forecast?.projectedAtReset)
-            HStack(spacing: 6) {
-                Label {
-                    Text(Present.resetText(window, now: now))
-                } icon: {
-                    if fresh { Image(systemName: "sparkles").foregroundStyle(UsageLevel.calm.color) }
+            UsageBar(percent: used, color: health.color, height: compact ? 5 : 7,
+                     projected: fresh || exhausted ? nil : forecast?.projectedAtReset)
+            if exhausted {
+                // The quota is gone: no pace, no forecast — just when it comes back.
+                Label(Present.exhaustedText(window, now: now), systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(UsageLevel.critical.color)
+                    .lineLimit(1)
+            } else {
+                HStack(spacing: 6) {
+                    Label {
+                        Text(Present.resetText(window, now: now))
+                    } icon: {
+                        if fresh { Image(systemName: "sparkles").foregroundStyle(UsageLevel.calm.color) }
+                    }
+                    .labelStyle(.titleAndIcon)
+                    if let pace = Present.paceText(forecast) {
+                        Text("·").foregroundStyle(.quaternary)
+                        Text(pace.text).foregroundStyle(pace.isOver && health > .calm ? health.color : .secondary)
+                    }
+                    Spacer(minLength: 0)
                 }
-                .labelStyle(.titleAndIcon)
-                if let pace = Present.paceText(forecast) {
-                    Text("·").foregroundStyle(.quaternary)
-                    Text(pace.text).foregroundStyle(pace.isOver ? UsageLevel.hot.color : .secondary)
-                }
-                Spacer(minLength: 0)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            if !compact, !fresh, let text = Present.forecastText(window: window, forecast: forecast, now: now) {
+            if !compact, !fresh, !exhausted, let text = Present.forecastText(window: window, forecast: forecast, now: now) {
                 let alarming = forecast?.willExhaustBeforeReset == true && forecast?.confidence != .low
                 Label(text, systemImage: alarming ? "exclamationmark.triangle.fill" : "chart.line.uptrend.xyaxis")
                     .font(.caption2)
-                    .foregroundStyle(alarming ? UsageLevel.critical.color : (forecast?.willExhaustBeforeReset == true ? UsageLevel.hot.color : .secondary))
+                    // Same colour as the percent and bar: red stays reserved for an exhausted window.
+                    .foregroundStyle(forecast?.willExhaustBeforeReset == true ? health.color : .secondary)
                     .lineLimit(2)
             }
         }
@@ -337,7 +360,7 @@ public struct ProviderCard: View {
                 errorBody
             } else {
                 ForEach(snapshot.displayWindows) { w in
-                    WindowRow(window: w, forecast: snapshot.forecasts[w.id], color: snapshot.color, compact: compact, now: now)
+                    WindowRow(window: w, forecast: snapshot.forecasts[w.id], compact: compact, now: now)
                 }
                 if let b = snapshot.balance {
                     BalanceRow(balance: b, forecast: snapshot.forecasts[Sample.balanceWindowID], compact: compact)
@@ -374,14 +397,14 @@ public struct ProviderCard: View {
             Spacer(minLength: 4)
             if sparkline.count >= 2 {
                 // Flexible width so the name never wraps on narrow cards; the sparkline gives way first.
-                Sparkline(values: sparkline, color: snapshot.color)
+                Sparkline(values: sparkline, color: snapshot.color, maxValue: snapshot.sparklineMax)
                     .frame(maxWidth: compact ? 56 : 80)
                     .frame(height: compact ? 20 : 26)
                     .layoutPriority(-1)
             }
             StatusBadge(snapshot.status)
             if let p = snapshot.headlinePercent {
-                UsageRing(percent: p, color: snapshot.color, lineWidth: compact ? 4 : 5)
+                UsageRing(percent: p, color: (snapshot.health(now: now) ?? .calm).color, lineWidth: compact ? 4 : 5)
                     .frame(width: compact ? 34 : 44, height: compact ? 34 : 44)
             }
         }

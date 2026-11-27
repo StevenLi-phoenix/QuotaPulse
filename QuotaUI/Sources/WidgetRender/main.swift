@@ -56,6 +56,33 @@ MainActor.assumeIsolated {
     render(ProviderCard(snapshot: snapshot.providers[0], sparkline: sparks[.claude]!, style: .full, now: now), size: CGSize(width: 380, height: 250), name: "card-claude.png")
 }
 
+// The main window's overview grid (MasonryLayout) at a two-column window width, for layout checks.
+// `QP_SNAPSHOT=<path/to/snapshot.json>` draws a real snapshot instead (sparklines from the `samples.json` beside it).
+MainActor.assumeIsolated {
+    var snap = snapshot, at = now, lines = sparks
+    if let path = ProcessInfo.processInfo.environment["QP_SNAPSHOT"] {
+        let url = URL(fileURLWithPath: path)
+        snap = try! JSON.decoder.decode(QuotaSnapshot.self, from: Data(contentsOf: url))
+        at = snap.generatedAt
+        let samplesURL = url.deletingLastPathComponent().appendingPathComponent("samples.json")
+        let samples = (try? JSON.decoder.decode([Sample].self, from: Data(contentsOf: samplesURL))) ?? []
+        lines = Derive.sparklines(samples: samples.filter { $0.at >= at.addingTimeInterval(-86400) }, snapshot: snap)
+    }
+    let grid = MasonryLayout(minColumnWidth: 340, maxColumnWidth: 520, spacing: 14) {
+        ForEach(snap.providers) { p in ProviderCard(snapshot: p, sparkline: lines[p.id] ?? [], style: .full, now: at) }
+    }
+    .padding(20)
+    .frame(width: 900, alignment: .topLeading)
+    .background(Color(nsColor: .windowBackgroundColor))
+    .environment(\.colorScheme, .dark)
+    let r = ImageRenderer(content: grid)
+    r.scale = 2
+    if let cg = r.cgImage, let png = NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:]) {
+        try! png.write(to: outDir.appendingPathComponent("overview.png"))
+        print("wrote overview.png \(cg.width)x\(cg.height)")
+    }
+}
+
 // The menu-bar dropdown body (opaque background, as in MacOS/App/MenuPanelView.swift) in light and dark, for contrast checks.
 MainActor.assumeIsolated {
     let groups = MenuSummary.groups(for: snapshot, now: now)

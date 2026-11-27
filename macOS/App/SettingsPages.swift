@@ -175,7 +175,7 @@ struct HubPage: View {
                                     Text(d.name).font(.headline)
                                     Text("\(d.platform) · v\(d.appVersion)").font(.caption).foregroundStyle(.secondary)
                                 }
-                                let heartbeat = Present.updatedText(d.lastSeen, now: model.ticker.now).replacingOccurrences(of: "Updated ", with: "")
+                                let heartbeat = d.lastSeen.formatted(.relative(presentation: .named))
                                 Text(String(localized: "Last heartbeat \(heartbeat) · \(d.eventCount) events"))
                                     .font(.caption).foregroundStyle(.secondary)
                                 if let e = d.lastError {

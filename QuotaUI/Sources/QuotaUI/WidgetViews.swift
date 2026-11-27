@@ -52,10 +52,10 @@ public struct WidgetSmallView: View {
                 Spacer(minLength: 2)
                 HStack(alignment: .center, spacing: 10) {
                     if let w = primary {
-                        UsageRing(percent: w.currentUtilization(), color: p.color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
+                        UsageRing(percent: w.currentUtilization(), color: UsageLevel(window: w, forecast: p.forecasts[w.id]).color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(QuotaFormat.percent(w.currentUtilization())).font(.system(.title3, design: .rounded).weight(.bold)).monospacedDigit()
-                            Text(w.title).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            Text(w.localizedTitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                             ResetCountdown(w).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).lineLimit(1)
                         }
                     } else if let b = p.balance {
@@ -72,9 +72,9 @@ public struct WidgetSmallView: View {
                     }
                 }
                 Spacer(minLength: 2)
-                if let w = primary, let f = p.forecasts[w.id], f.willExhaustBeforeReset, let ex = f.exhaustionAt {
-                    Label(String(localized: "Out at \(Present.resetClock(ex))", bundle: .module), systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption2.weight(.semibold)).foregroundStyle(UsageLevel.critical.color).lineLimit(1)
+                if let w = primary, let out = Present.outText(window: w, forecast: p.forecasts[w.id]) {
+                    Label(out, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.semibold)).foregroundStyle(UsageLevel(window: w, forecast: p.forecasts[w.id]).color).lineLimit(1)
                 } else if p.status.isError {
                     Text(Present.statusTitle(p.status)).font(.caption2).foregroundStyle(UsageLevel.hot.color).lineLimit(1)
                 } else if let w = primary, let pace = Present.paceText(p.forecasts[w.id]) {
@@ -117,12 +117,12 @@ public struct WidgetMediumView: View {
                             ForEach(p.displayWindows.prefix(2)) { w in
                                 VStack(alignment: .leading, spacing: 2) {
                                     if w.isReported {
-                                        UsageBar(percent: w.currentUtilization(), color: p.color, height: 5)
+                                        UsageBar(percent: w.currentUtilization(), color: UsageLevel(window: w, forecast: p.forecasts[w.id]).color, height: 5)
                                     } else {
                                         Capsule().fill(.quaternary.opacity(0.5)).frame(height: 5)
                                     }
                                     HStack {
-                                        Text(w.title).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
+                                        Text(w.localizedTitle).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                                         Spacer(minLength: 2)
                                         Text(w.isReported ? QuotaFormat.percent(w.currentUtilization()) : Present.resetShort(w))
                                             .font(.system(size: 9, weight: .semibold).monospacedDigit())
@@ -136,13 +136,14 @@ public struct WidgetMediumView: View {
                     if providers.count <= 3, let w = p.primaryWindow {
                         HStack(spacing: 4) {
                             Text(Present.resetText(w))
-                            if let pace = Present.paceText(p.forecasts[w.id]) {
+                            let health = UsageLevel(window: w, forecast: p.forecasts[w.id])
+                            if !w.isExhausted(), let pace = Present.paceText(p.forecasts[w.id]) {
                                 Text("·").foregroundStyle(.quaternary)
-                                Text(pace.text).foregroundStyle(pace.isOver ? UsageLevel.hot.color : .secondary)
+                                Text(pace.text).foregroundStyle(pace.isOver && health > .calm ? health.color : .secondary)
                             }
-                            if let f = p.forecasts[w.id], let ex = f.exhaustionAt {
+                            if let out = Present.outText(window: w, forecast: p.forecasts[w.id]) {
                                 Text("·").foregroundStyle(.quaternary)
-                                Text(String(localized: "Out at \(Present.resetClock(ex))", bundle: .module)).foregroundStyle(UsageLevel.critical.color)
+                                Text(out).foregroundStyle(health.color)
                             }
                         }
                         .font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
@@ -181,11 +182,11 @@ public struct WidgetLargeView: View {
                             Text(p.localizedName).font(.subheadline.weight(.semibold))
                             if let plan = p.account?.plan { PlanBadge(plan) }
                             Spacer()
-                            if let s = sparklines[p.id], s.count >= 2 { Sparkline(values: s, color: p.color).frame(width: 70, height: 18) }
+                            if let s = sparklines[p.id], s.count >= 2 { Sparkline(values: s, color: p.color, maxValue: p.sparklineMax).frame(width: 70, height: 18) }
                             StatusBadge(p.status)
                         }
                         ForEach(p.displayWindows.prefix(2)) { w in
-                            WindowRow(window: w, forecast: p.forecasts[w.id], color: p.color, compact: true)
+                            WindowRow(window: w, forecast: p.forecasts[w.id], compact: true)
                         }
                         if let b = p.balance, p.windows.isEmpty {
                             BalanceRow(balance: b, forecast: p.forecasts[Sample.balanceWindowID], compact: true)

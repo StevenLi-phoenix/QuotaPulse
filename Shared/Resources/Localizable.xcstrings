@@ -1,6 +1,46 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ %@ at %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ 已用 %3$@"
+          }
+        }
+      }
+    },
+    "%lld days": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天"
+          }
+        }
+      }
+    },
+    "%lld hours": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 小时"
+          }
+        }
+      }
+    },
+    "%lld lines · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 行 · %2$@"
+          }
+        }
+      }
+    },
     "10 minutes": {
       "localizations": {
         "zh-Hans": {
@@ -611,12 +651,12 @@
         }
       }
     },
-    "Last heartbeat \\(heartbeat) · \\(d.eventCount) events": {
+    "Last heartbeat %@ · %lld events": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近心跳 \\(heartbeat) · \\(d.eventCount) 条事件"
+            "value": "最近心跳 %1$@ · %2$lld 条事件"
           }
         }
       }
@@ -887,16 +927,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "可选。无需 iCloud，通过局域网或 Tailscale 工作，并会把这台设备的日志发送到 Mac。"
-          }
-        }
-      }
-    },
-    "Out at \\(Present.resetClock(ex))": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(Present.resetClock(ex)) 用尽"
           }
         }
       }
@@ -1587,36 +1617,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "iPhone 和 Apple Watch 登录同一 iCloud 账号后，无需配对，在任何地方都能看到这些数字。写入你私有 iCloud 数据库的只有用量数字、套餐名称和这台 Mac 的名字，API key 和 token 绝不会离开这台 Mac。"
-          }
-        }
-      }
-    },
-    "\\(QuotaFormat.wholeDays(hours / 24)) days": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(QuotaFormat.wholeDays(hours / 24)) 天"
-          }
-        }
-      }
-    },
-    "\\(QuotaFormat.wholeHours(hours)) hours": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(QuotaFormat.wholeHours(hours)) 小时"
-          }
-        }
-      }
-    },
-    "\\(u.count) lines · \\(u.at.formatted(date: .omitted, time: .shortened))": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\\(u.count) 行 · \\(u.at.formatted(date: .omitted, time: .shortened))"
           }
         }
       }

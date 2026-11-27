@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+- Chinese UI no longer mixes in English: `gen-strings.py` stores interpolated strings under their runtime keys (`Resets in %@`), so "Resets in", "pts ahead of budget", "Updated … ago", the forecast sentences and the balance lines are translated on every device.
+- Window titles (5-hour, Weekly, Monthly) and provider subtitles are translated.
+- Forecast times read as one phrase ("tomorrow at 15:44", "on Tue at 02:13"; zh "明天 15:44", "周二 02:13") instead of "at tomorrow 15:44" or English with a Chinese weekday.
+- An exhausted window says "Limit reached · Resets in 1h 27m" instead of forecasting a run-out that already happened, and drops its pace note; widgets and alerts say "Limit reached" too.
+- The overview lays cards out in independent columns (masonry), so a short card no longer leaves a row-high gap beside a tall one.
+- Balance sparklines scale to their own range, so a steady balance draws a line instead of a solid block.
+- Burn rates under 1 %/h show two decimals (0.55 %/h), so used + rate × hours left matches the projection; whole percents under 10 drop the ".0".
+
+### Changed
+- Percent, bar and ring colours show a window's health instead of the brand colour: red when exhausted, orange when the forecast runs out before the reset, amber when ahead of budget, green otherwise. The brand colour stays on the glyph, border and sparkline.
+
+### Added
+- `gen-strings.py --verify <dirs>` checks catalog keys against the compiler's `.stringsdata`; `WidgetRender` also draws `overview.png`, from a real `snapshot.json` when `QP_SNAPSHOT` is set.
+
 ## [0.4.6] - 2026-11-24
 
 ### Changed

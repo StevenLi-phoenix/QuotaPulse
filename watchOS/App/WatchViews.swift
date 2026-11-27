@@ -46,7 +46,7 @@ struct WatchProviderRow: View {
     var body: some View {
         HStack(spacing: 8) {
             if let w = provider.primaryWindow {
-                UsageRing(percent: w.currentUtilization(now: now), color: provider.color, lineWidth: 4, showsLabel: false).frame(width: 30, height: 30)
+                UsageRing(percent: w.currentUtilization(now: now), color: (provider.health(now: now) ?? .calm).color, lineWidth: 4, showsLabel: false).frame(width: 30, height: 30)
             } else {
                 ProviderGlyph(provider, size: 26)
             }
@@ -74,7 +74,7 @@ struct WatchDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack { ProviderGlyph(p, size: 22); Text(p.localizedName).font(.headline); if let plan = p.account?.plan { PlanBadge(plan) } }
                     ForEach(p.displayWindows) { w in
-                        WindowRow(window: w, forecast: p.forecasts[w.id], color: p.color, compact: true, now: now)
+                        WindowRow(window: w, forecast: p.forecasts[w.id], compact: true, now: now)
                         if let t = Present.forecastText(window: w, forecast: p.forecasts[w.id], now: now) {
                             Text(t).font(.caption2).foregroundStyle(p.forecasts[w.id]?.willExhaustBeforeReset == true ? UsageLevel.critical.color : .secondary)
                         }

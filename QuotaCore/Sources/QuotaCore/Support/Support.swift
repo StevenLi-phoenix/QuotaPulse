@@ -184,9 +184,10 @@ public enum FileIO {
 // MARK: - Formatting
 
 public enum QuotaFormat {
+    /// "100%", "45%", "3.1%"; a whole number under 10 drops its ".0" ("3%", not "3.0%").
     public static func percent(_ value: Double) -> String {
         if value >= 99.95 { return "100%" }
-        if value < 10 { return String(format: "%.1f%%", value) }
+        if value < 10, abs(value - value.rounded()) >= 0.05 { return String(format: "%.1f%%", value) }
         return String(format: "%.0f%%", value)
     }
 
@@ -234,9 +235,12 @@ public enum QuotaFormat {
         return "< 1m"
     }
 
+    /// Burn rate with enough digits that "used + rate × hours left" lands on the printed projection
+    /// ("0.55%/h", not "0.6%/h", which over 156 h is 8 points off).
     public static func rate(_ perHour: Double) -> String {
-        if perHour < 0.05 { return "flat" }
-        if perHour < 1 { return String(format: "%.1f%%/h", perHour) }
+        if perHour < 0.005 { return "flat" }
+        if perHour < 1 { return String(format: "%.2f%%/h", perHour) }
+        if perHour < 10 { return String(format: "%.1f%%/h", perHour) }
         return String(format: "%.0f%%/h", perHour)
     }
 }

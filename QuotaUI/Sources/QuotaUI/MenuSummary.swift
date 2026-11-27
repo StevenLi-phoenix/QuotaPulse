@@ -47,7 +47,7 @@ public enum MenuSummary {
         for w in provider.displayWindows {
             let used = w.currentUtilization(now: now)
             lines.append(Line(id: "\(provider.id.rawValue).\(w.id)",
-                              title: w.title,
+                              title: w.localizedTitle,
                               value: QuotaFormat.percent(used),
                               percent: w.isReported ? used : nil,
                               reset: Present.resetShort(w, now: now),

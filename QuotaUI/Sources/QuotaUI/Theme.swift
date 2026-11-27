@@ -31,10 +31,25 @@ public extension ProviderSnapshot {
     var dashboardURL: URL? { display.dashboardURL }
 }
 
-/// Semantic colour for how close a window is to exhaustion.
-public enum UsageLevel: Sendable {
+public extension UsageWindow {
+    /// Titles are published by the reading Mac ("Weekly · Opus"); each " · " part goes through the string table, so known
+    /// periods are translated and model names pass through.
+    var localizedTitle: String {
+        title.components(separatedBy: " · ")
+            .map { String(localized: String.LocalizationValue($0), bundle: .module) }
+            .joined(separator: " · ")
+    }
+
+    /// Nothing left until the reset (what `QuotaFormat.percent` prints as 100%).
+    func isExhausted(now: Date = Date()) -> Bool { isReported && currentUtilization(now: now) >= 99.95 }
+}
+
+/// Semantic colour for a window's health. Health is its own encoding: the provider's brand colour says *which* service,
+/// bar length and ring arc say *how much* is used, and this level says *whether that is a problem*.
+public enum UsageLevel: Sendable, Comparable {
     case calm, warm, hot, critical
 
+    /// Level from the used share alone (menu panel rows, which carry no forecast).
     public init(percent: Double) {
         switch percent {
         case ..<50: self = .calm
@@ -42,6 +57,23 @@ public enum UsageLevel: Sendable {
         case ..<95: self = .hot
         default: self = .critical
         }
+    }
+
+    /// Health of a window: the used share, raised by the forecast. Exhausted is critical; a confident forecast that
+    /// runs out before the reset is hot; ahead of the linear budget (or a tentative run-out) is warm.
+    public init(window: UsageWindow, forecast: Forecast?, now: Date = Date()) {
+        let used = window.currentUtilization(now: now)
+        if window.isExhausted(now: now) { self = .critical; return }
+        var level = UsageLevel(percent: used)
+        if case .awaitingFirstUse = window.phase(now: now) { self = level; return }
+        if let f = forecast, f.confidence != .insufficient {
+            if f.willExhaustBeforeReset {
+                level = max(level, f.confidence == .low ? .warm : .hot)
+            } else if (f.paceDelta ?? 0) >= Present.paceTolerance {
+                level = max(level, .warm)
+            }
+        }
+        self = level
     }
 
     public var color: Color {
@@ -61,6 +93,16 @@ public enum UsageLevel: Sendable {
         case .critical: L("Almost out")
         }
     }
+}
+
+public extension ProviderSnapshot {
+    /// Worst health across the reported windows (drives the header ring); nil when there are none.
+    func health(now: Date = Date()) -> UsageLevel? {
+        reportedWindows.map { UsageLevel(window: $0, forecast: forecasts[$0.id], now: now) }.max()
+    }
+
+    /// Sparkline scale: percent windows draw on 0–100, balances (money, credits) on their own range.
+    var sparklineMax: Double? { primaryWindow == nil ? nil : 100 }
 }
 
 public enum QPDesign {
@@ -104,15 +146,39 @@ public enum Present {
         }
     }
 
-    public static func resetClock(_ date: Date) -> String {
+    /// A point in time with its preposition, ready to drop into a sentence: "at 15:44", "tomorrow at 15:44",
+    /// "on Tue at 02:13", "on Dec 5 at 02:13" (zh: "15:44", "明天 15:44", "周二 02:13", "12月5日 02:13").
+    public static func whenText(_ date: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
-        if cal.isDateInToday(date) { return date.formatted(date: .omitted, time: .shortened) }
-        if cal.isDateInTomorrow(date) { return String(localized: "tomorrow \(date.formatted(date: .omitted, time: .shortened))", bundle: .module) }
-        return date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+        let time = date.formatted(date: .omitted, time: .shortened)
+        if cal.isDate(date, inSameDayAs: now) { return String(localized: "at \(time)", bundle: .module) }
+        if let tomorrow = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(date, inSameDayAs: tomorrow) {
+            return String(localized: "tomorrow at \(time)", bundle: .module)
+        }
+        // A weekday is only unambiguous within the coming week.
+        let day = date.timeIntervalSince(now) < 6 * 86400
+            ? date.formatted(.dateTime.weekday(.abbreviated))
+            : date.formatted(.dateTime.month(.abbreviated).day())
+        return String(localized: "on \(day) at \(time)", bundle: .module)
+    }
+
+    /// "Limit reached · Resets in 1h 32m" for an exhausted window.
+    public static func exhaustedText(_ window: UsageWindow, now: Date = Date()) -> String {
+        String(localized: "Limit reached · \(resetText(window, now: now))", bundle: .module)
+    }
+
+    /// Short run-out note for widgets and alerts: "Limit reached" once exhausted, "Out tomorrow at 15:44" when the
+    /// forecast runs out before the reset, nil otherwise.
+    public static func outText(window: UsageWindow, forecast: Forecast?, now: Date = Date()) -> String? {
+        if window.isExhausted(now: now) { return L("Limit reached") }
+        guard let f = forecast, f.willExhaustBeforeReset, let ex = f.exhaustionAt, ex > now else { return nil }
+        return String(localized: "Out \(whenText(ex, now: now))", bundle: .module)
     }
 
     /// One-line forecast sentence for a window.
     public static func forecastText(window: UsageWindow, forecast: Forecast?, now: Date = Date()) -> String? {
+        // Nothing to forecast once the quota is gone: say so instead of predicting a run-out that already happened.
+        if window.isExhausted(now: now) { return exhaustedText(window, now: now) }
         guard let f = forecast, f.confidence != .insufficient else {
             return (forecast?.sampleCount ?? 0) > 0 ? L("Learning your pace…") : nil
         }
@@ -120,8 +186,8 @@ public enum Present {
         let early = f.confidence == .low
         if let ex = f.exhaustionAt {
             return early
-                ? String(localized: "Early estimate: 100% around \(resetClock(ex)) (\(QuotaFormat.rate(f.rate)))", bundle: .module)
-                : String(localized: "At this pace you hit 100% at \(resetClock(ex))", bundle: .module)
+                ? String(localized: "Early estimate: 100% \(whenText(ex, now: now)) (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+                : String(localized: "At this pace you hit 100% \(whenText(ex, now: now))", bundle: .module)
         }
         if f.rate < 0.05 {
             return L("Idle — no usage in this window")
@@ -134,9 +200,12 @@ public enum Present {
         return QuotaFormat.rate(f.rate)
     }
 
+    /// Points either side of the linear budget that still count as "on pace".
+    public static let paceTolerance = 3.0
+
     public static func paceText(_ forecast: Forecast?) -> (text: String, isOver: Bool)? {
         guard let d = forecast?.paceDelta, forecast?.confidence != .insufficient else { return nil }
-        if abs(d) < 3 { return (L("On pace"), false) }
+        if abs(d) < paceTolerance { return (L("On pace"), false) }
         let pts = Int(abs(d).rounded())
         return d > 0 ? (String(localized: "\(pts) pts ahead of budget", bundle: .module), true)
                      : (String(localized: "\(pts) pts under budget", bundle: .module), false)
