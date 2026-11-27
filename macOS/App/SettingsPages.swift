@@ -346,11 +346,13 @@ struct GeneralPage: View {
             }
             Section(L("Menu bar")) {
                 Picker(L("Show"), selection: Binding(get: { model.settings.menuBarStyle }, set: { model.setMenuBarStyle($0) })) {
-                    Text(L("Ring and percent")).tag("both")
-                    Text(L("Percent only")).tag("percent")
-                    Text(L("Ring only")).tag("icon")
+                    Text(L("Icon and percent left")).tag("both")
+                    Text(L("Percent left only")).tag("percent")
+                    Text(L("Icon only")).tag("icon")
                 }
                 .pickerStyle(.segmented)
+                Text(L("The menu-bar chip tracks the window closest to running out and shows how much is left. It turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, and an amber dot means another provider is failing. Hover it for every provider."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle(L("Launch at login"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                 Toggle(L("Show in Dock"), isOn: Binding(get: { model.showInDock }, set: { model.showInDock = $0 }))
                 Text(L("Off: QuotaPulse is a menu-bar-only app (find it top right, or search QuotaPulse in Spotlight). On: a Dock icon that reopens this window."))

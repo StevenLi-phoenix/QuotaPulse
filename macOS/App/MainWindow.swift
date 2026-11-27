@@ -103,12 +103,12 @@ struct MenuBarTip: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(nsImage: MenuBarIcon.ring(percent: 37, hasData: true, refreshing: false))
+            Image(nsImage: MenuBarImage.image(for: MenuBarStatus.make(snapshot: model.snapshot), style: model.settings.menuBarStyle))
                 .padding(8)
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 3) {
                 Text(L("QuotaPulse lives in the menu bar")).font(.headline)
-                Text(L("Look for the small ring and percentage at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General."))
+                Text(L("Look for the small chip with a provider icon and the percentage left at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General."))
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()

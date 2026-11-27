@@ -68,7 +68,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Menu bar glyph: a tiny ring for the most constrained window plus its percentage.
 extension QuotaPulseApp {
     /// `quotapulse://open` shows the main window; `quotapulse://panel` the dropdown preview.
     func handle(_ url: URL) {
@@ -81,55 +80,19 @@ extension QuotaPulseApp {
     }
 }
 
+/// The menu-bar item: one fixed-size chip (`MenuBarImage`) with its own colours, so it reads on any menu bar; what it says
+/// is decided by `MenuBarStatus` (most constrained window, percent left, health colour, out-of-date / empty states).
 struct MenuBarLabel: View {
     var model: AppModel
 
     var body: some View {
-        let focus = model.snapshot.mostConstrained
-        let percent = focus?.window.currentUtilization(now: model.ticker.now)
-        HStack(spacing: 4) {
-            if model.settings.menuBarStyle != "percent" {
-                Image(nsImage: MenuBarIcon.ring(percent: percent ?? 0, hasData: percent != nil, refreshing: model.isRefreshing))
+        let status = MenuBarStatus.make(snapshot: model.snapshot, now: model.ticker.now,
+                                        staleAfter: MenuBarStatus.staleAfter(pollInterval: model.settings.pollInterval))
+        Image(nsImage: MenuBarImage.image(for: status, style: model.settings.menuBarStyle, refreshing: model.isRefreshing))
+            .help(status.tooltip)
+            .accessibilityLabel(Text(status.accessibilityLabel))
+            .onChange(of: status, initial: true) { _, new in
+                QPLog.ui.debug("menu bar: \(new.logLine, privacy: .public) style=\(model.settings.menuBarStyle, privacy: .public)")
             }
-            if model.settings.menuBarStyle != "icon", let percent {
-                Text(QuotaFormat.percent(percent)).monospacedDigit()
-            } else if model.settings.menuBarStyle == "percent" {
-                Text("—")
-            }
-        }
-        .accessibilityLabel(Text(focus.map { "\($0.provider.localizedName) \(QuotaFormat.percent($0.window.currentUtilization()))" } ?? "QuotaPulse"))
-    }
-}
-
-enum MenuBarIcon {
-    /// Template image so it adapts to light/dark menu bars.
-    static func ring(percent: Double, hasData: Bool, refreshing: Bool) -> NSImage {
-        let size = NSSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: false) { rect in
-            let center = NSPoint(x: rect.midX, y: rect.midY)
-            let radius: CGFloat = 6.5
-            let track = NSBezierPath()
-            track.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
-            track.lineWidth = 2
-            NSColor.black.withAlphaComponent(hasData ? 0.28 : 0.5).setStroke()
-            track.stroke()
-            if hasData {
-                let sweep = max(2, 360 * CGFloat(min(1, percent / 100)))
-                let arc = NSBezierPath()
-                arc.appendArc(withCenter: center, radius: radius, startAngle: 90, endAngle: 90 - sweep, clockwise: true)
-                arc.lineWidth = 2.6
-                arc.lineCapStyle = .round
-                NSColor.black.setStroke()
-                arc.stroke()
-            }
-            if refreshing {
-                let dot = NSBezierPath(ovalIn: NSRect(x: center.x - 1.5, y: center.y - 1.5, width: 3, height: 3))
-                NSColor.black.setFill()
-                dot.fill()
-            }
-            return true
-        }
-        image.isTemplate = true
-        return image
     }
 }

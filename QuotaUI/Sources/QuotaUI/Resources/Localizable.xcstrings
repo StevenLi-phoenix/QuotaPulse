@@ -11,6 +11,16 @@
         }
       }
     },
+    "%@ left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩 %@"
+          }
+        }
+      }
+    },
     "%@/h — about %lld days left": {
       "localizations": {
         "zh-Hans": {
@@ -881,6 +891,26 @@
         }
       }
     },
+    "Icon and percent left": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图标 + 剩余百分比"
+          }
+        }
+      }
+    },
+    "Icon only": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅图标"
+          }
+        }
+      }
+    },
     "Idle — no usage in this window": {
       "localizations": {
         "zh-Hans": {
@@ -1031,12 +1061,12 @@
         }
       }
     },
-    "Look for the small ring and percentage at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": {
+    "Look for the small chip with a provider icon and the percentage left at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "看屏幕右上角那个小圆环和百分比 ↗。点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。"
+            "value": "看屏幕右上角带服务图标和剩余百分比的小块 ↗。点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。"
           }
         }
       }
@@ -1381,6 +1411,26 @@
         }
       }
     },
+    "Out of date": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已过期"
+          }
+        }
+      }
+    },
+    "Out of date · showing the last known value": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据已过期 · 显示的是最后一次读到的值"
+          }
+        }
+      }
+    },
     "Overview": {
       "localizations": {
         "zh-Hans": {
@@ -1421,12 +1471,12 @@
         }
       }
     },
-    "Percent only": {
+    "Percent left only": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "仅百分比"
+            "value": "仅剩余百分比"
           }
         }
       }
@@ -1741,26 +1791,6 @@
         }
       }
     },
-    "Ring and percent": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "圆环 + 百分比"
-          }
-        }
-      }
-    },
-    "Ring only": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅圆环"
-          }
-        }
-      }
-    },
     "Run QuotaPulse on a Mac signed in to this iCloud account. Your numbers appear here as soon as it publishes.": {
       "localizations": {
         "zh-Hans": {
@@ -1987,6 +2017,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "这不是 QuotaPulse 的配对二维码。"
+          }
+        }
+      }
+    },
+    "The menu-bar chip tracks the window closest to running out and shows how much is left. It turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, and an amber dot means another provider is failing. Hover it for every provider.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "菜单栏小块跟踪最接近用完的额度窗口，显示还剩多少。临近上限时变橙、变红；数据过期时变灰并带虚线边；右上角的琥珀色圆点表示另一个服务读取失败。悬停可看全部服务。"
           }
         }
       }
