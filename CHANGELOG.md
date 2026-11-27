@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- Every bar, ring and gauge reads like a battery, filled to what is **left** (menu bar, dropdown, overview cards, widgets, Watch and complications); the numbers beside them say "62% left" and gauges run red at the empty end.
+- A used-up window in the menu bar is an empty bar with a red stub; a sliver left still shows the provider's colour.
+- Forecasts say what will be left at the reset ("At this pace: 28% left at reset") and "runs out at 14:29" instead of "hit 100%"; threshold notifications say "80% used".
+- The Forecast table in History still lists used percent and burn rate, matching its usage charts.
+
 ## [0.5.3] - 2026-11-27
 
 ### Changed

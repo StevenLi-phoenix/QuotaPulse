@@ -1,7 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "%@ %@ at %@": {
+    "%@ %@: %@ used": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -341,7 +341,7 @@
         }
       }
     },
-    "At this pace you hit 100%% %@": {
+    "At this pace it runs out %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -351,12 +351,12 @@
         }
       }
     },
-    "At this pace: %@ by reset (%@)": {
+    "At this pace: %@ left at reset (%@)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按当前速度：重置时约 %1$@（%2$@）"
+            "value": "按当前速度：重置时约剩 %1$@（%2$@）"
           }
         }
       }
@@ -661,17 +661,17 @@
         }
       }
     },
-    "Early estimate: %@ by reset (%@)": {
+    "Early estimate: %@ left at reset (%@)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "初步估计：重置时约 %1$@（%2$@）"
+            "value": "初步估计：重置时约剩 %1$@（%2$@）"
           }
         }
       }
     },
-    "Early estimate: 100%% %@ (%@)": {
+    "Early estimate: runs out %@ (%@)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {

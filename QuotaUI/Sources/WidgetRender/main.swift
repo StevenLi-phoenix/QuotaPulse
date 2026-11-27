@@ -101,7 +101,7 @@ MainActor.assumeIsolated {
     }
 }
 
-// The menu-bar item (a row of provider-coloured bars, height = used) on a dark and a light menu bar, in each state.
+// The menu-bar item (a row of provider-coloured bars, height = what is left) on a dark and a light menu bar, in each state.
 // `menubar-{dark,light}.png`; QP_SNAPSHOT adds the real snapshot as a last row.
 MainActor.assumeIsolated {
     func provider(_ id: ProviderID, used: Double?, forecast: Forecast? = nil, status: ProviderStatus = .ok, age: TimeInterval = 60) -> ProviderSnapshot {

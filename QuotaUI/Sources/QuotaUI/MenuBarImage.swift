@@ -2,13 +2,14 @@
 import AppKit
 import QuotaCore
 
-/// Draws the menu-bar item: a row of narrow vertical level meters, one per provider. One visual variable per meaning:
+/// Draws the menu-bar item: a row of narrow vertical level meters, one per provider, read like batteries. One visual
+/// variable per meaning:
 ///
-/// - **Height = how much is used** in the provider's tightest window, filled from the bottom like the usage bars in the
-///   dropdown panel (and the providers' own "% used" pages). A full bar is a used-up window; a calm menu bar is short bars.
-/// - **Colour = which provider** (`ProviderInfo.brandHex`). Every bar keeps a short stub of its colour even at 0 % used, so
-///   each provider stays identifiable.
-/// - The empty part is a neutral grey track with no outline, so an empty bar never looks like a full one.
+/// - **Height = how much is left** in the provider's tightest window, filled from the bottom like a battery and like every
+///   other bar and ring in the app. A full bar is an untouched window.
+/// - **Colour = which provider** (`ProviderInfo.brandHex`). A sliver left still shows a short stub of the colour.
+/// - The empty part is a neutral grey track with no outline, so an empty bar never looks like a full one. A used-up window
+///   is the empty track with a red stub at the bottom (a dead battery).
 /// - Out of date: the same bar, faded. No data yet: the track alone, faded.
 ///
 /// No text, dots or dashes: at menu-bar size extra marks read as punctuation, and the tooltip carries the numbers. The image
@@ -22,10 +23,12 @@ public enum MenuBarImage {
     static let barBottom: CGFloat = 2.5
     static let barTop: CGFloat = 17.5
     static let corner: CGFloat = 1.2
-    /// Fill shown at 0 % used, so the bar still shows its provider's colour.
+    /// Smallest fill while anything is left, so a nearly used-up bar still shows its provider's colour.
     static let minFill: CGFloat = 2
     /// Mid grey at this alpha reads as a quiet track on both a dark and a light menu bar.
     static let track = NSColor(white: 0.5, alpha: 0.45)
+    /// Stub drawn in a used-up window's empty track.
+    static let deadStub = NSColor(srgbRed: 1, green: 0.23, blue: 0.19, alpha: 1)
     static let fadedAlpha: CGFloat = 0.4
 
     /// Width for a number of bars (at least one: the empty placeholder).
@@ -38,9 +41,11 @@ public enum MenuBarImage {
         NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
     }
 
-    /// Fill height in points for a used percentage: proportional, never below the colour stub.
-    static func fillHeight(used: Double) -> CGFloat {
-        let h = (barTop - barBottom) * CGFloat(min(100, max(0, used)) / 100)
+    /// Fill height in points for what is left: proportional, never below the colour stub while anything is left, zero when
+    /// used up.
+    static func fillHeight(remaining: Double) -> CGFloat {
+        guard remaining > 0.05 else { return 0 }
+        let h = (barTop - barBottom) * CGFloat(min(100, remaining) / 100)
         return max(minFill, h)
     }
 
@@ -50,10 +55,10 @@ public enum MenuBarImage {
         let image = NSImage(size: size, flipped: false) { _ in
             if bars.isEmpty {
                 // Nothing to show yet: one faded empty track.
-                drawBar(x: pad, used: nil, tint: color(ProviderInfo.neutralHex), alpha: fadedAlpha)
+                drawBar(x: pad, remaining: nil, tint: color(ProviderInfo.neutralHex), alpha: fadedAlpha)
             }
             for (i, bar) in bars.enumerated() {
-                drawBar(x: pad + CGFloat(i) * (barWidth + gap), used: bar.used, tint: color(bar.colorHex),
+                drawBar(x: pad + CGFloat(i) * (barWidth + gap), remaining: bar.remaining, tint: color(bar.colorHex),
                         alpha: bar.kind == .live ? 1 : fadedAlpha)
             }
             return true
@@ -63,16 +68,19 @@ public enum MenuBarImage {
         return image
     }
 
-    private static func drawBar(x: CGFloat, used: Double?, tint: NSColor, alpha: CGFloat) {
+    private static func drawBar(x: CGFloat, remaining: Double?, tint: NSColor, alpha: CGFloat) {
         let frame = NSRect(x: x, y: barBottom, width: barWidth, height: barTop - barBottom)
         let shape = NSBezierPath(roundedRect: frame, xRadius: corner, yRadius: corner)
         track.withAlphaComponent(track.alphaComponent * alpha).setFill()
         shape.fill()
-        guard let used else { return }
+        guard let remaining else { return }
+        let fill = fillHeight(remaining: remaining)
+        // Used up: a red stub instead of the provider's colour.
+        let (paint, h) = fill > 0 ? (tint, fill) : (deadStub, minFill)
         NSGraphicsContext.saveGraphicsState()
         shape.addClip()
-        tint.withAlphaComponent(alpha).setFill()
-        NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: fillHeight(used: used)).fill()
+        paint.withAlphaComponent(alpha).setFill()
+        NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: h).fill()
         NSGraphicsContext.restoreGraphicsState()
     }
 }

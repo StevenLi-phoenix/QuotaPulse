@@ -4,7 +4,7 @@
 
 **How much AI do I have left, and when does it run out?** — answered in the macOS menu bar, on the desktop, on your iPhone's home screen and on your wrist.
 
-QuotaPulse watches the rate-limit windows and balances of the AI providers you already use — **Claude** (Claude Code subscription), **OpenAI Codex** (ChatGPT subscription), **DeepSeek** (prepaid balance), **OpenCode Zen/Go**, **GLM / z.ai** and **Grok Bot** (desktop app) — and turns the raw percentages into something actionable:
+QuotaPulse watches the rate-limit windows and balances of the AI providers you already use — **Claude** (Claude Code subscription), **OpenAI Codex** (ChatGPT subscription), **DeepSeek** (prepaid balance), **OpenCode Zen/Go**, **GLM / z.ai** and **Grok Bot** (desktop app) — and turns the raw percentages into something actionable. Every bar, ring and gauge reads like a battery — filled to what is **left** — and the numbers next to them say "62% left":
 
 - *"At this pace you hit 100 % at 18:40 — reset is at 21:00"*
 - *"9 pts ahead of budget"* / *"On pace"*
@@ -53,7 +53,7 @@ Screenshots come from the running apps: the Mac itself, iPhone 17 (iOS 27.0) and
 
 **Forecasts** — a least-squares burn rate over the current window (resets and top-ups start a new cycle automatically) gives projected usage at reset, the exhaustion time if you'll hit 100 % early, and a pace indicator against a linear budget. Balances get a burn per day and per hour (`rate`/`daysRemaining` and `ratePerHour`/`hoursRemaining` side by side, so older apps keep reading the daily pair), shown in hours below 72 h left and in days beyond. Confidence grows with sample count and span.
 
-**macOS** — menu-bar item of narrow level meters, one per provider in its own colour and filled to what is used in its tightest window, like the dropdown's usage bars (no text: a full bar is a used-up window, a faded bar is out of date, the tooltip has every number); instant dropdown listing every provider's usage bars, reset countdown and balance at a glance; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, iCloud sync, optional hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
+**macOS** — menu-bar item of narrow level meters, one per provider in its own colour and filled to what is left in its tightest window, like a battery (no text: a full bar is an untouched window, an empty bar with a red stub is used up, a faded bar is out of date, the tooltip has every number); instant dropdown listing every provider's bars (filled to what is left), reset countdown and balance at a glance; main window with Overview, 24 h / 7 d / 30 d history charts and forecast table, provider settings, iCloud sync, optional hub pairing with QR code, threshold notifications (opt-in, 80 % / 95 %), launch at login. Desktop widgets in small (pick a provider), medium and large.
 
 **iOS** — open it and your numbers are there, delivered through iCloud on any network, with a silent push when the Mac publishes. Provider cards, detail charts, pull-to-refresh, background refresh, home-screen and lock-screen widgets. A banner tells you when the Mac has gone quiet. Pushes data to the watch. A direct connection (scan the QR code or paste URL + token) is optional.
 

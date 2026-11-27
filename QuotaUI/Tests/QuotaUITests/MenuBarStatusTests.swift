@@ -3,7 +3,7 @@ import Testing
 import QuotaCore
 @testable import QuotaUI
 
-/// The menu-bar bars: one per provider, filled to what is used in its tightest window, with alert / out-of-date / no-data states
+/// The menu-bar bars: one per provider, filled to what is left in its tightest window, with alert / out-of-date / no-data states
 /// and a tooltip that carries every number (the item itself has no text).
 @Suite struct MenuBarStatusTests {
     let now = Date(timeIntervalSince1970: 1_792_120_000)
@@ -126,21 +126,21 @@ import QuotaCore
         #expect(make(many).bars.count == MenuBarStatus.maxBars)
     }
 
-    /// The bar's height is what is used (same direction as the dropdown's usage bars), so a used-up window is a full bar.
-    @Test func barHeightFollowsUsedNotLeft() {
+    /// The bar's height is what is left, like a battery: an untouched window is a full bar, a used-up one is empty.
+    @Test func barHeightFollowsWhatIsLeft() {
         let s = make([provider(.claude, [window("a", used: 12)]), provider(.codex, [window("b", used: 100)]),
                       provider(.opencode, [], status: .network("down"))])
-        #expect(s.bars.map(\.used) == [12, 100, nil])
+        #expect(s.bars.map(\.remaining) == [88, 0, nil])
     }
 
     #if os(macOS)
-    /// Every bar keeps a stub of its provider's colour at 0 % used; full use fills the whole bar.
-    @Test func fillHeightKeepsAColourStubAndFillsToTheTop() {
+    /// A sliver left keeps a stub of the provider's colour; used up has no fill (a red stub is drawn instead); untouched fills the bar.
+    @Test func fillHeightKeepsAColourStubUntilUsedUp() {
         let full = MenuBarImage.barTop - MenuBarImage.barBottom
-        #expect(MenuBarImage.fillHeight(used: 0) == MenuBarImage.minFill)
-        #expect(MenuBarImage.fillHeight(used: 50) == full / 2)
-        #expect(MenuBarImage.fillHeight(used: 100) == full)
-        #expect(MenuBarImage.fillHeight(used: 140) == full)
+        #expect(MenuBarImage.fillHeight(remaining: 0) == 0)
+        #expect(MenuBarImage.fillHeight(remaining: 1) == MenuBarImage.minFill)
+        #expect(MenuBarImage.fillHeight(remaining: 50) == full / 2)
+        #expect(MenuBarImage.fillHeight(remaining: 100) == full)
     }
     #endif
 

@@ -54,7 +54,7 @@ public struct WidgetSmallView: View {
                     if let w = primary {
                         UsageRing(percent: w.currentUtilization(), color: UsageLevel(window: w, forecast: p.forecasts[w.id]).color, lineWidth: 6, showsLabel: false).frame(width: 52, height: 52)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(QuotaFormat.percent(w.currentUtilization())).font(.system(.title3, design: .rounded).weight(.bold)).monospacedDigit()
+                            Text(Present.leftText(used: w.currentUtilization())).font(.system(.title3, design: .rounded).weight(.bold)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
                             Text(w.localizedTitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                             ResetCountdown(w).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).lineLimit(1)
                         }
@@ -124,7 +124,7 @@ public struct WidgetMediumView: View {
                                     HStack {
                                         Text(w.localizedTitle).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                                         Spacer(minLength: 2)
-                                        Text(w.isReported ? QuotaFormat.percent(w.currentUtilization()) : Present.resetShort(w))
+                                        Text(w.isReported ? Present.leftText(used: w.currentUtilization()) : Present.resetShort(w))
                                             .font(.system(size: 9, weight: .semibold).monospacedDigit())
                                             .foregroundStyle(w.isReported ? .primary : .tertiary)
                                     }
@@ -219,13 +219,14 @@ public struct AccessoryCircularView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Gauge(value: min(1, w.currentUtilization() / 100)) {
+            // Like a battery: the gauge and the number are what is left; low is the red end.
+            Gauge(value: max(0, min(1, 1 - w.currentUtilization() / 100))) {
                 Image(systemName: p.symbol)
             } currentValueLabel: {
-                Text("\(Int(w.currentUtilization().rounded()))").font(.system(.body, design: .rounded).weight(.semibold))
+                Text(QuotaFormat.percentLeft(used: w.currentUtilization()).dropLast()).font(.system(.body, design: .rounded).weight(.semibold))
             }
             .gaugeStyle(.accessoryCircular)
-            .tint(Gradient(colors: [UsageLevel.calm.color, UsageLevel.warm.color, UsageLevel.critical.color]))
+            .tint(Gradient(colors: [UsageLevel.critical.color, UsageLevel.warm.color, UsageLevel.calm.color]))
         } else if let p = provider, let b = p.balance {
             Gauge(value: 1) { Image(systemName: p.symbol) } currentValueLabel: {
                 Text(b.isCredits ? "\(Int(b.total / 1000))k" : QuotaFormat.money(b.total, symbol: b.symbol)).font(.system(.caption2, design: .rounded).weight(.semibold)).minimumScaleFactor(0.5)
@@ -255,7 +256,7 @@ public struct AccessoryRectangularView: View {
                         Text(p.localizedName).font(.caption2.weight(.semibold)).lineLimit(1)
                         Spacer(minLength: 2)
                         if let w = p.primaryWindow {
-                            Text(QuotaFormat.percent(w.currentUtilization())).font(.caption2.monospacedDigit().weight(.semibold))
+                            Text(Present.leftText(used: w.currentUtilization())).font(.caption2.monospacedDigit().weight(.semibold))
                             ResetCountdown(w).font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary).frame(width: 46, alignment: .trailing)
                         } else if let b = p.balance {
                             Text(b.formatted).font(.caption2.monospacedDigit().weight(.semibold)).minimumScaleFactor(0.6)
@@ -273,7 +274,7 @@ public struct AccessoryInlineView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Text("\(Image(systemName: p.symbol)) \(p.localizedName) \(QuotaFormat.percent(w.currentUtilization())) · \(Present.resetShort(w))")
+            Text("\(Image(systemName: p.symbol)) \(p.localizedName) \(Present.leftText(used: w.currentUtilization())) · \(Present.resetShort(w))")
         } else if let p = provider, let b = p.balance {
             Text("\(Image(systemName: p.symbol)) \(p.localizedName) \(b.formatted)")
         } else {
@@ -288,10 +289,10 @@ public struct AccessoryCornerView: View {
 
     public var body: some View {
         if let p = provider, let w = p.primaryWindow {
-            Text("\(Int(w.currentUtilization().rounded()))%")
+            Text(QuotaFormat.percentLeft(used: w.currentUtilization()))
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .widgetCurvedLabel { Text(p.localizedName) }
-                .widgetCurvedGauge(value: min(1, w.currentUtilization() / 100))
+                .widgetCurvedGauge(value: max(0, min(1, 1 - w.currentUtilization() / 100)))
         } else {
             Image(systemName: "gauge.with.dots.needle.33percent")
         }
@@ -310,7 +311,7 @@ private extension View {
     @ViewBuilder func widgetCurvedGauge(value: Double) -> some View {
         #if os(watchOS)
         self.widgetLabel {
-            Gauge(value: value) { EmptyView() }.tint(Gradient(colors: [UsageLevel.calm.color, UsageLevel.warm.color, UsageLevel.critical.color]))
+            Gauge(value: value) { EmptyView() }.tint(Gradient(colors: [UsageLevel.critical.color, UsageLevel.warm.color, UsageLevel.calm.color]))
         }
         #else
         self

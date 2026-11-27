@@ -20,7 +20,7 @@ import QuotaCore
         QuotaSnapshot(generatedAt: now, hubName: "Mac", providers: providers)
     }
 
-    @Test func oneLinePerWindowRoundsUsedPercent() {
+    @Test func oneLinePerWindowSaysWhatIsLeft() {
         let claude = ProviderSnapshot(
             id: .claude, fetchedAt: now, account: AccountInfo(plan: "Max 20x"),
             windows: [window("five_hour", "5-hour", used: 7.2, resetsIn: 7200),
@@ -32,7 +32,8 @@ import QuotaCore
         #expect(group.provider == .claude)
         #expect(group.plan == "Max 20x")
         #expect(group.lines.map(\.title) == ["5-hour", "Weekly", "Almost"])
-        #expect(group.lines.map(\.value) == ["7.2%", "42%", "100%"])
+        // The text says what is left (like the battery-style bar); a window with a sliver used reads 0% only when used up.
+        #expect(group.lines.map(\.value) == [L("\("93%") left"), L("\("58%") left"), L("\("0%") left")])
         #expect(group.lines.map(\.reset) == ["2h", "2h", "2h"])
         #expect(group.lines.map(\.percent) == [7.2, 42.4, 99.97])
         #expect(group.lines.filter { !$0.isReported }.isEmpty)
@@ -42,7 +43,7 @@ import QuotaCore
         let codex = ProviderSnapshot(id: .codex, fetchedAt: now,
                                      windows: [window("five_hour", "5-hour", used: 30)])
         let line = MenuSummary.group(for: codex, now: now).lines[0]
-        #expect(line.value == "30%")
+        #expect(line.value == L("\("70%") left"))
         #expect(line.reset == "—")
     }
 
@@ -63,7 +64,7 @@ import QuotaCore
                                      windows: [window("five_hour", "5-hour", used: 55, resetsIn: 3600)])
         let staleGroup = MenuSummary.group(for: stale, now: now)
         #expect(staleGroup.lines.count == 1)
-        #expect(staleGroup.lines[0].value == "55%")
+        #expect(staleGroup.lines[0].value == L("\("45%") left"))
         #expect(staleGroup.status.isError)
     }
 
