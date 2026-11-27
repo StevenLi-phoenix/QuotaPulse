@@ -191,12 +191,6 @@ public enum QuotaFormat {
         return String(format: "%.0f%%", value)
     }
 
-    /// What is left of a window, from its used percent: whole numbers, "0%" only when it is really used up (a sliver left
-    /// still reads "1%"). Every view shows quotas this way round, like a battery.
-    public static func percentLeft(used: Double) -> String {
-        used >= 99.95 ? "0%" : "\(min(100, max(1, Int((100 - used).rounded()))))%"
-    }
-
     /// Money or credits depending on the balance's currency.
     public static func amount(_ value: Double, balance: Balance) -> String {
         if balance.isCredits {

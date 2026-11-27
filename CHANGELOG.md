@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- Reverts 0.5.4's battery-style fill: bars, rings and gauges fill to what is **used** again, with the 0.5.3 percent text, forecast wording and threshold notifications.
+
 ## [0.5.4] - 2026-11-27
 
 ### Changed

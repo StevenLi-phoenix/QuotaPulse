@@ -1,7 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "%@ %@: %@ used": {
+    "%@ %@ at %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {

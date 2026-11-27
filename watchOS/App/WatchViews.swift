@@ -53,7 +53,7 @@ struct WatchProviderRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(provider.localizedName).font(.headline)
                 if let w = provider.primaryWindow {
-                    Text("\(Present.leftText(used: w.currentUtilization(now: now))) · \(Present.resetShort(w, now: now))").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    Text("\(QuotaFormat.percent(w.currentUtilization(now: now))) · \(Present.resetShort(w, now: now))").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 } else if let b = provider.balance {
                     Text(b.formatted).font(.caption2).foregroundStyle(.secondary)
                 }

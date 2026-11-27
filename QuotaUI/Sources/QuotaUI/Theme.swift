@@ -124,9 +124,6 @@ public enum QPDesign {
 // MARK: - Presentation helpers (pure, testable-by-eye strings)
 
 public enum Present {
-    /// "62% left" (zh: "剩 62%"), from a window's used percent.
-    public static func leftText(used: Double) -> String { L("\(QuotaFormat.percentLeft(used: used)) left") }
-
     public static func resetText(_ window: UsageWindow, now: Date = Date()) -> String {
         if !window.isReported { return L("Not reported by Codex API (known bug)") }
         switch window.phase(now: now) {
@@ -189,16 +186,16 @@ public enum Present {
         let early = f.confidence == .low
         if let ex = f.exhaustionAt {
             return early
-                ? String(localized: "Early estimate: runs out \(whenText(ex, now: now)) (\(QuotaFormat.rate(f.rate)))", bundle: .module)
-                : String(localized: "At this pace it runs out \(whenText(ex, now: now))", bundle: .module)
+                ? String(localized: "Early estimate: 100% \(whenText(ex, now: now)) (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+                : String(localized: "At this pace you hit 100% \(whenText(ex, now: now))", bundle: .module)
         }
         if f.rate < 0.05 {
             return L("Idle — no usage in this window")
         }
         if let p = f.projectedAtReset {
             return early
-                ? String(localized: "Early estimate: \(QuotaFormat.percentLeft(used: p)) left at reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
-                : String(localized: "At this pace: \(QuotaFormat.percentLeft(used: p)) left at reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+                ? String(localized: "Early estimate: \(QuotaFormat.percent(p)) by reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
+                : String(localized: "At this pace: \(QuotaFormat.percent(p)) by reset (\(QuotaFormat.rate(f.rate)))", bundle: .module)
         }
         return QuotaFormat.rate(f.rate)
     }

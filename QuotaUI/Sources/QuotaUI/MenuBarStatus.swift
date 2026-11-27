@@ -2,9 +2,9 @@ import Foundation
 import QuotaCore
 
 /// What the menu-bar item says, decided from the snapshot alone (no drawing): one narrow bar per provider, coloured by
-/// provider, filled to how much is **left** in that provider's tightest window, like a battery (the same direction as every
-/// other bar and ring in the app). No text appears in the menu bar; the tooltip carries the words. `MenuBarImage` draws it;
-/// keeping the decision here makes it testable.
+/// provider, filled to how much is **used** in that provider's tightest window (the same direction as the dropdown's usage
+/// bars). No text appears in the menu bar; the tooltip carries the words. `MenuBarImage` draws it; keeping the decision
+/// here makes it testable.
 public struct MenuBarStatus: Sendable, Equatable {
     public enum Kind: Sendable, Equatable {
         /// A fresh reading: solid bar.
@@ -24,9 +24,11 @@ public struct MenuBarStatus: Sendable, Equatable {
         /// The tracked window: the provider's one with the least left.
         public var windowID: String?
         public var windowTitle: String?
-        /// 0…100 left in that window (what the bar's height shows); nil for `.noData`.
+        /// 0…100 left in that window; nil for `.noData`.
         public var remaining: Double?
-        /// Running low (80 % used, or a forecast that runs out before the reset) or exhausted. Not drawn (a short bar already
+        /// 0…100 used in that window (what the bar's height shows); nil for `.noData`.
+        public var used: Double? { remaining.map { 100 - $0 } }
+        /// Running low (80 % used, or a forecast that runs out before the reset) or exhausted. Not drawn (a tall bar already
         /// says it, and colour means "which provider"); it feeds the tooltip and the debug log.
         public var alert: Bool
     }
@@ -85,6 +87,12 @@ public struct MenuBarStatus: Sendable, Equatable {
         return true
     }
 
+    static func percentLeft(used: Double) -> String {
+        used >= 99.95 ? "0%" : "\(min(100, max(1, Int((100 - used).rounded()))))%"
+    }
+
+    static func leftText(_ percent: String) -> String { L("\(percent) left") }
+
     public static func make(snapshot: QuotaSnapshot, now: Date = Date(), staleAfter: TimeInterval = 20 * 60) -> MenuBarStatus {
         var bars: [Bar] = []
         var lines: [String] = []
@@ -100,11 +108,11 @@ public struct MenuBarStatus: Sendable, Equatable {
             if let t {
                 let w = t.window
                 let exhausted = w.isExhausted(now: now)
-                line += " · \(w.localizedTitle): \(Present.leftText(used: t.used))"
+                line += " · \(w.localizedTitle): \(leftText(percentLeft(used: t.used)))"
                 line += " · " + (exhausted ? Present.exhaustedText(w, now: now) : Present.resetText(w, now: now))
                 if t.level >= .hot, !exhausted { line += " · " + t.level.label }
                 if !p.status.isOK { line += " · " + Present.statusTitle(p.status) } else if !fresh { line += " · " + L("Out of date") }
-                spoken.append("\(name) \(Present.leftText(used: t.used))")
+                spoken.append("\(name) \(leftText(percentLeft(used: t.used)))")
             } else if !p.status.isOK {
                 line += " · " + Present.statusTitle(p.status)
             } else if let b = p.balance {

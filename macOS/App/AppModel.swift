@@ -352,7 +352,7 @@ final class AppModel {
                 for t in settings.alerts.thresholds where w.utilization >= t && last < t {
                     alertedThresholds[key] = t
                     let content = UNMutableNotificationContent()
-                    content.title = L("\(p.localizedName) \(w.localizedTitle): \(QuotaFormat.percent(w.utilization)) used")
+                    content.title = L("\(p.localizedName) \(w.localizedTitle) at \(QuotaFormat.percent(w.utilization))")
                     content.body = Present.resetText(w)
                     if let out = Present.outText(window: w, forecast: p.forecasts[w.id]) { content.body += " · " + out }
                     content.sound = .default

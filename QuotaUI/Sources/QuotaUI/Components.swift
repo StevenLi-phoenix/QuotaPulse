@@ -3,7 +3,6 @@ import QuotaCore
 
 // MARK: - Ring
 
-/// A ring that reads like a battery: `percent` is what is **used**, the ring and its label show what is left.
 public struct UsageRing: View {
     public var percent: Double
     public var color: Color?
@@ -19,17 +18,15 @@ public struct UsageRing: View {
 
     public var body: some View {
         let tint = color ?? UsageLevel(percent: percent).color
-        let left = max(0, min(100, 100 - percent))
         ZStack {
             Circle().stroke(tint.opacity(0.18), lineWidth: lineWidth)
             Circle()
-                .trim(from: 0, to: left / 100)
+                .trim(from: 0, to: max(0.001, min(1, percent / 100)))
                 .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .opacity(percent >= 99.95 ? 0 : 1)
                 .rotationEffect(.degrees(-90))
                 .animation(QPDesign.spring, value: percent)
             if showsLabel {
-                Text(QuotaFormat.percentLeft(used: percent))
+                Text(QuotaFormat.percent(percent))
                     .font(.system(.caption, design: .rounded).weight(.semibold))
                     .monospacedDigit()
                     .minimumScaleFactor(0.5)
@@ -39,19 +36,17 @@ public struct UsageRing: View {
                     .animation(QPDesign.quick, value: percent)
             }
         }
-        .accessibilityLabel(Text(Present.leftText(used: percent)))
+        .accessibilityLabel(Text(QuotaFormat.percent(percent)))
     }
 }
 
 // MARK: - Bar
 
-/// A bar that reads like a battery: `percent` is what is **used**, the fill is what is left (a full bar is an untouched
-/// window, an empty one is used up).
 public struct UsageBar: View {
     public var percent: Double
     public var color: Color?
     public var height: CGFloat
-    /// Optional used percent expected at the reset (forecast): the part of the fill it would use up is drawn faint.
+    /// Optional second marker (e.g. projected-at-reset) drawn as a faint extension.
     public var projected: Double?
     /// Neutral (primary-coloured) track for tight spots such as the menu panel, where a tinted track vanishes on the material.
     public var neutralTrack: Bool
@@ -70,22 +65,14 @@ public struct UsageBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(neutralTrack ? Color.primary.opacity(0.16) : tint.opacity(0.15))
                     .overlay { if neutralTrack { Capsule().strokeBorder(Color.primary.opacity(0.28), lineWidth: 0.5) } }
-                let left = max(0, min(100, 100 - percent))
-                // A sliver left still shows as a dot; used up shows the bare track.
-                let fill = { (p: Double) in p <= 0 ? 0 : max(height, geo.size.width * CGFloat(p / 100)) }
-                if left > 0 {
-                    // Expected to be gone by the reset: the whole fill faint, then the part that should survive solid.
-                    let survives = projected.map { max(0, min(left, 100 - $0)) } ?? left
-                    if survives < left {
-                        Capsule().fill(tint.opacity(0.32))
-                            .frame(width: fill(left))
-                            .animation(QPDesign.spring, value: percent)
-                    }
-                    Capsule().fill(tint)
-                        .frame(width: fill(survives))
-                        .opacity(survives > 0 ? 1 : 0)
-                        .animation(QPDesign.spring, value: survives)
+                if let projected, projected > percent {
+                    Capsule().fill(tint.opacity(0.32))
+                        .frame(width: geo.size.width * CGFloat(min(1, projected / 100)))
+                        .animation(QPDesign.spring, value: projected)
                 }
+                Capsule().fill(tint)
+                    .frame(width: max(height, geo.size.width * CGFloat(min(1, percent / 100))))
+                    .animation(QPDesign.spring, value: percent)
             }
         }
         .frame(height: height)
@@ -265,7 +252,7 @@ public struct WindowRow: View {
                     Text(note).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
-                Text(Present.leftText(used: used))
+                Text(QuotaFormat.percent(used))
                     .font(.system(compact ? .caption : .subheadline, design: .rounded).weight(.semibold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
