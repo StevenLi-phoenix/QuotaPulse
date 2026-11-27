@@ -101,13 +101,15 @@ MainActor.assumeIsolated {
     }
 }
 
-// The menu-bar item (a row of provider-coloured bars) on a dark and a light menu bar (sanity check), in each state.
+// The menu-bar item (a row of provider-coloured bars, height = used) on a dark and a light menu bar, in each state.
 // `menubar-{dark,light}.png`; QP_SNAPSHOT adds the real snapshot as a last row.
 MainActor.assumeIsolated {
     func provider(_ id: ProviderID, used: Double?, forecast: Forecast? = nil, status: ProviderStatus = .ok, age: TimeInterval = 60) -> ProviderSnapshot {
         let w = used.map { [UsageWindow(id: "w", title: "5-hour", utilization: $0, resetsAt: now.addingTimeInterval(8000), duration: 18000)] } ?? []
+        // Grok Bot is not built in: its colour travels in its descriptor, as it does in a real snapshot.
         return ProviderSnapshot(id: id, fetchedAt: now.addingTimeInterval(-age), status: status, windows: w,
-                                forecasts: forecast.map { ["w": $0] } ?? [:], lastSuccessAt: now.addingTimeInterval(-age))
+                                forecasts: forecast.map { ["w": $0] } ?? [:], lastSuccessAt: now.addingTimeInterval(-age),
+                                info: id == .grokbot ? GrokBotProvider().descriptor.info : nil)
     }
     func status(_ providers: [ProviderSnapshot]) -> MenuBarStatus {
         MenuBarStatus.make(snapshot: QuotaSnapshot(generatedAt: now, hubName: "Mac", providers: providers), now: now)

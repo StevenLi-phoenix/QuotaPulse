@@ -2,24 +2,31 @@
 import AppKit
 import QuotaCore
 
-/// Draws the menu-bar item: a row of narrow vertical bars, one per provider, in the provider's colour. A bar's fill height is
-/// how much is left. No text, so a glance reads shapes and colours only.
+/// Draws the menu-bar item: a row of narrow vertical level meters, one per provider. One visual variable per meaning:
 ///
-/// - Live: tinted track with a solid fill from the bottom.
-/// - Out of date: hollow with a dashed edge and a tick where the last known level was.
-/// - No data yet: hollow, dashed, empty.
-/// - Running low or exhausted: a red dot under the bar (colour means "which provider", so the warning is a separate shape).
+/// - **Height = how much is used** in the provider's tightest window, filled from the bottom like the usage bars in the
+///   dropdown panel (and the providers' own "% used" pages). A full bar is a used-up window; a calm menu bar is short bars.
+/// - **Colour = which provider** (`ProviderInfo.brandHex`). Every bar keeps a short stub of its colour even at 0 % used, so
+///   each provider stays identifiable.
+/// - The empty part is a neutral grey track with no outline, so an empty bar never looks like a full one.
+/// - Out of date: the same bar, faded. No data yet: the track alone, faded.
 ///
-/// It carries its own colours (a template image could not be coloured per provider). The size depends only on how many
-/// providers have bars, so values changing never move the neighbouring menu-bar items.
+/// No text, dots or dashes: at menu-bar size extra marks read as punctuation, and the tooltip carries the numbers. The image
+/// carries its own colours (a template image could not be coloured per provider). The size depends only on how many providers
+/// have bars, so values changing never move the neighbouring menu-bar items.
 public enum MenuBarImage {
     public static let height: CGFloat = 20
     static let barWidth: CGFloat = 4
-    static let gap: CGFloat = 1.5
+    static let gap: CGFloat = 2
     static let pad: CGFloat = 1
-    static let barTop: CGFloat = 19
-    static let barBottom: CGFloat = 5.5
-    static let dot: CGFloat = 3.2
+    static let barBottom: CGFloat = 2.5
+    static let barTop: CGFloat = 17.5
+    static let corner: CGFloat = 1.2
+    /// Fill shown at 0 % used, so the bar still shows its provider's colour.
+    static let minFill: CGFloat = 2
+    /// Mid grey at this alpha reads as a quiet track on both a dark and a light menu bar.
+    static let track = NSColor(white: 0.5, alpha: 0.45)
+    static let fadedAlpha: CGFloat = 0.4
 
     /// Width for a number of bars (at least one: the empty placeholder).
     public static func width(bars: Int) -> CGFloat {
@@ -31,16 +38,23 @@ public enum MenuBarImage {
         NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
     }
 
+    /// Fill height in points for a used percentage: proportional, never below the colour stub.
+    static func fillHeight(used: Double) -> CGFloat {
+        let h = (barTop - barBottom) * CGFloat(min(100, max(0, used)) / 100)
+        return max(minFill, h)
+    }
+
     public static func image(for status: MenuBarStatus) -> NSImage {
         let bars = status.bars
         let size = NSSize(width: width(bars: bars.count), height: height)
         let image = NSImage(size: size, flipped: false) { _ in
             if bars.isEmpty {
-                // Nothing to show yet: one empty dashed bar in neutral grey.
-                drawBar(x: pad, kind: .noData, remaining: nil, tint: color(ProviderInfo.neutralHex), alert: false)
+                // Nothing to show yet: one faded empty track.
+                drawBar(x: pad, used: nil, tint: color(ProviderInfo.neutralHex), alpha: fadedAlpha)
             }
             for (i, bar) in bars.enumerated() {
-                drawBar(x: pad + CGFloat(i) * (barWidth + gap), kind: bar.kind, remaining: bar.remaining, tint: color(bar.colorHex), alert: bar.alert)
+                drawBar(x: pad + CGFloat(i) * (barWidth + gap), used: bar.used, tint: color(bar.colorHex),
+                        alpha: bar.kind == .live ? 1 : fadedAlpha)
             }
             return true
         }
@@ -49,43 +63,17 @@ public enum MenuBarImage {
         return image
     }
 
-    private static func drawBar(x: CGFloat, kind: MenuBarStatus.Kind, remaining: Double?, tint: NSColor, alert: Bool) {
+    private static func drawBar(x: CGFloat, used: Double?, tint: NSColor, alpha: CGFloat) {
         let frame = NSRect(x: x, y: barBottom, width: barWidth, height: barTop - barBottom)
-        let r = barWidth / 2
-        let outline = NSBezierPath(roundedRect: frame.insetBy(dx: 0.4, dy: 0.4), xRadius: r, yRadius: r)
-        outline.lineWidth = 0.8
-        switch kind {
-        case .live:
-            tint.withAlphaComponent(0.3).setFill()
-            NSBezierPath(roundedRect: frame, xRadius: r, yRadius: r).fill()
-            if let left = remaining {
-                let h = frame.height * CGFloat(min(100, max(0, left)) / 100)
-                if h > 0.5 {
-                    NSGraphicsContext.saveGraphicsState()
-                    NSBezierPath(roundedRect: frame, xRadius: r, yRadius: r).addClip()
-                    tint.setFill()
-                    NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: max(h, 1.5)).fill()
-                    NSGraphicsContext.restoreGraphicsState()
-                }
-            }
-            tint.withAlphaComponent(0.85).setStroke()
-            outline.stroke()
-        case .stale, .noData:
-            tint.setStroke()
-            outline.setLineDash([1.6, 1.2], count: 2, phase: 0)
-            outline.stroke()
-            if kind == .stale, let left = remaining {
-                // Where the level was when the data was last good.
-                let y = frame.minY + frame.height * CGFloat(min(100, max(0, left)) / 100)
-                tint.setFill()
-                NSRect(x: frame.minX + 0.4, y: min(max(y, frame.minY + 0.8), frame.maxY - 1.6) - 0.6, width: frame.width - 0.8, height: 1.2).fill()
-            }
-        }
-        if alert {
-            let d = NSRect(x: frame.midX - dot / 2, y: 0.8, width: dot, height: dot)
-            NSColor(srgbRed: 1, green: 0.23, blue: 0.19, alpha: 1).setFill()
-            NSBezierPath(ovalIn: d).fill()
-        }
+        let shape = NSBezierPath(roundedRect: frame, xRadius: corner, yRadius: corner)
+        track.withAlphaComponent(track.alphaComponent * alpha).setFill()
+        shape.fill()
+        guard let used else { return }
+        NSGraphicsContext.saveGraphicsState()
+        shape.addClip()
+        tint.withAlphaComponent(alpha).setFill()
+        NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: fillHeight(used: used)).fill()
+        NSGraphicsContext.restoreGraphicsState()
     }
 }
 #endif

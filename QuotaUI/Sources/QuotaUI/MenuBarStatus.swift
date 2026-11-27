@@ -2,15 +2,16 @@ import Foundation
 import QuotaCore
 
 /// What the menu-bar item says, decided from the snapshot alone (no drawing): one narrow bar per provider, coloured by
-/// provider, filled to how much is **left** in that provider's tightest window. No text appears in the menu bar; the
-/// tooltip carries the words. `MenuBarImage` draws it; keeping the decision here makes it testable.
+/// provider, filled to how much is **used** in that provider's tightest window (the same direction as the dropdown's usage
+/// bars). No text appears in the menu bar; the tooltip carries the words. `MenuBarImage` draws it; keeping the decision
+/// here makes it testable.
 public struct MenuBarStatus: Sendable, Equatable {
     public enum Kind: Sendable, Equatable {
         /// A fresh reading: solid bar.
         case live
-        /// Last known value: the provider is failing or has not answered for a while. Drawn hollow with a dashed edge.
+        /// Last known value: the provider is failing or has not answered for a while. Drawn faded.
         case stale
-        /// A provider that has nothing to show yet. Hollow, dashed, no level.
+        /// A provider that has nothing to show yet. Drawn as a faded empty track.
         case noData
     }
 
@@ -25,8 +26,10 @@ public struct MenuBarStatus: Sendable, Equatable {
         public var windowTitle: String?
         /// 0…100 left in that window; nil for `.noData`.
         public var remaining: Double?
-        /// Running low (80 % used, or a forecast that runs out before the reset) or exhausted. Shown as a dot, never as colour,
-        /// because colour already means "which provider".
+        /// 0…100 used in that window (what the bar's height shows); nil for `.noData`.
+        public var used: Double? { remaining.map { 100 - $0 } }
+        /// Running low (80 % used, or a forecast that runs out before the reset) or exhausted. Not drawn (a tall bar already
+        /// says it, and colour means "which provider"); it feeds the tooltip and the debug log.
         public var alert: Bool
     }
 

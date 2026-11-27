@@ -10,7 +10,7 @@ public extension ProviderID {
 public struct GrokBotProvider: UsageProvider {
     public let descriptor = ProviderDescriptor(
         id: .grokbot,
-        info: ProviderInfo(displayName: "Grok Bot", subtitle: "Desktop app", kind: .rateWindows, brandHex: 0x8E8E93, symbol: "scope",
+        info: ProviderInfo(displayName: "Grok Bot", subtitle: "Desktop app", kind: .rateWindows, brandHex: 0xA855F7, symbol: "scope",
                            dashboardURL: URL(string: "https://cursor.com/dashboard/spending")),
         defaultEnabled: true)
     public static let usageURL = URL(string: "https://api2.cursor.sh/aiserver.v1.DashboardService/GetSandUsageStatus")!
