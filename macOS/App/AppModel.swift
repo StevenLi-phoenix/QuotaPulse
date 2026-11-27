@@ -202,10 +202,6 @@ final class AppModel {
         Task { await engine.update { $0.pollInterval = seconds }; settings = await engine.settings }
     }
 
-    func setMenuBarStyle(_ style: String) {
-        Task { await engine.update { $0.menuBarStyle = style }; settings = await engine.settings }
-    }
-
     func setRetention(_ days: Int) {
         Task { await engine.update { $0.retentionDays = days }; settings = await engine.settings }
     }

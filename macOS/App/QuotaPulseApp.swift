@@ -80,19 +80,18 @@ extension QuotaPulseApp {
     }
 }
 
-/// The menu-bar item: one fixed-size chip (`MenuBarImage`) with its own colours, so it reads on any menu bar; what it says
-/// is decided by `MenuBarStatus` (most constrained window, percent left, health colour, out-of-date / empty states).
+/// The menu-bar item: one narrow bar per provider (`MenuBarImage`), no text. What each bar says is decided by `MenuBarStatus`.
 struct MenuBarLabel: View {
     var model: AppModel
 
     var body: some View {
         let status = MenuBarStatus.make(snapshot: model.snapshot, now: model.ticker.now,
                                         staleAfter: MenuBarStatus.staleAfter(pollInterval: model.settings.pollInterval))
-        Image(nsImage: MenuBarImage.image(for: status, style: model.settings.menuBarStyle, refreshing: model.isRefreshing))
+        Image(nsImage: MenuBarImage.image(for: status))
             .help(status.tooltip)
             .accessibilityLabel(Text(status.accessibilityLabel))
             .onChange(of: status, initial: true) { _, new in
-                QPLog.ui.debug("menu bar: \(new.logLine, privacy: .public) style=\(model.settings.menuBarStyle, privacy: .public)")
+                QPLog.ui.debug("menu bar: \(new.logLine, privacy: .public)")
             }
     }
 }

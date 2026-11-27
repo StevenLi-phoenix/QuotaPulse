@@ -54,7 +54,8 @@ public struct AppSettings: Codable, Sendable, Hashable {
     /// Days of sample history to keep.
     public var retentionDays: Int
     public var launchAtLogin: Bool
-    /// Menu-bar label style: "percent" | "icon" | "both".
+    /// Legacy: the menu bar once had text/icon styles. The item is now text-free bars and nothing reads this, but older apps decode the key as
+    /// required, so it stays in the wire format.
     public var menuBarStyle: String
     /// The first refresh with a gateway link turned DeepSeek and OpenCode on; after that the user's toggles rule.
     public var gatewaySeeded: Bool
@@ -95,7 +96,7 @@ public struct AppSettings: Codable, Sendable, Hashable {
         alerts = try c.decode(AlertSettings.self, forKey: .alerts)
         retentionDays = try c.decode(Int.self, forKey: .retentionDays)
         launchAtLogin = try c.decode(Bool.self, forKey: .launchAtLogin)
-        menuBarStyle = try c.decode(String.self, forKey: .menuBarStyle)
+        menuBarStyle = try c.decodeIfPresent(String.self, forKey: .menuBarStyle) ?? "both"
         gatewaySeeded = try c.decodeIfPresent(Bool.self, forKey: .gatewaySeeded) ?? false
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
         gatewayZaiSeeded = try c.decodeIfPresent(Bool.self, forKey: .gatewayZaiSeeded) ?? false

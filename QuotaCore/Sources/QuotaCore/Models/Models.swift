@@ -92,10 +92,24 @@ public struct ProviderInfo: Codable, Sendable, Hashable {
     public static let neutralHex: UInt32 = 0x8E8E93
     public static let neutralSymbol = "gauge.with.dots.needle.33percent"
 
+    /// A stable colour for a provider that publishes none: the id's hash picks the hue (FNV-1a), saturation and brightness are fixed so
+    /// it reads on light and dark backgrounds. The same id gets the same colour on every device.
+    public static func defaultHex(for id: ProviderID) -> UInt32 {
+        var h: UInt32 = 2166136261
+        for b in id.rawValue.utf8 { h = (h ^ UInt32(b)) &* 16777619 }
+        let hue = Double(h % 360) / 360, s = 0.62, v = 0.9
+        let i = Int(hue * 6) % 6, f = hue * 6 - Double(Int(hue * 6))
+        let p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s)
+        let rgb: (Double, Double, Double) = [(v, t, p), (q, v, p), (p, v, t), (p, q, v), (t, p, v), (v, p, q)][i]
+        func byte(_ x: Double) -> UInt32 { UInt32((x * 255).rounded()) }
+        return byte(rgb.0) << 16 | byte(rgb.1) << 8 | byte(rgb.2)
+    }
+
     /// A provider nothing describes: its id, title-cased, in neutral colours.
     public static func generic(_ id: ProviderID) -> ProviderInfo {
+        let hex = defaultHex(for: id)
         let name = id.rawValue.split(whereSeparator: { $0 == "_" || $0 == "-" }).map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
-        return ProviderInfo(displayName: name.isEmpty ? id.rawValue : name)
+        return ProviderInfo(displayName: name.isEmpty ? id.rawValue : name, brandHex: hex)
     }
 
     /// The original five, for snapshots written before providers described themselves (older Macs, the gateway).

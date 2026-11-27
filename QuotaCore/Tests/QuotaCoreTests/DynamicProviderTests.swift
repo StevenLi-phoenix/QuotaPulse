@@ -76,9 +76,19 @@ private struct NoGrokBot: GrokBotCredentialLoading {
         #expect(reading(.codex).display.brandHex == 0x10A37F)
         let unknown = reading("new_agent").display
         #expect(unknown.displayName == "New Agent")
-        #expect(unknown.brandHex == ProviderInfo.neutralHex)
+        #expect(unknown.brandHex == ProviderInfo.defaultHex(for: "new_agent"))
         #expect(unknown.symbol == ProviderInfo.neutralSymbol)
         #expect(unknown.dashboardURL == nil)
+    }
+
+    @Test func aProviderWithoutAColourGetsAStableOneFromItsId() {
+        let a = ProviderInfo.defaultHex(for: "new_agent"), b = ProviderInfo.defaultHex(for: "other_agent")
+        #expect(a == ProviderInfo.defaultHex(for: "new_agent"))
+        #expect(a != b)
+        #expect(a <= 0xFFFFFF)
+        // Not grey: a hash colour keeps saturation, so two new providers do not both look "neutral".
+        let channels = [(a >> 16) & 0xFF, (a >> 8) & 0xFF, a & 0xFF]
+        #expect(channels.max()! - channels.min()! > 40)
     }
 
     @Test func grokBotIsDescribedOnlyByItsReader() {

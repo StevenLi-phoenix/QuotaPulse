@@ -114,13 +114,8 @@
   "Claude's usage endpoint rate-limits aggressively; 5 minutes is the recommended floor. 429s back off automatically up to 30 minutes.": "Claude 的用量接口限流很严，建议最短 5 分钟。遇到 429 会自动退避，最长 30 分钟。",
   "Menu bar": "菜单栏",
   "Show": "显示",
-  "Icon and percent left": "图标 + 剩余百分比",
-  "Percent left only": "仅剩余百分比",
-  "Icon only": "仅图标",
-  "The menu-bar chip tracks the window closest to running out and shows how much is left. It turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, and an amber dot means another provider is failing. Hover it for every provider.": "菜单栏小块跟踪最接近用完的额度窗口，显示还剩多少。临近上限时变橙、变红；数据过期时变灰并带虚线边；右上角的琥珀色圆点表示另一个服务读取失败。悬停可看全部服务。",
   "\\(percent) left": "剩 \\(percent)",
   "Out of date": "已过期",
-  "Out of date · showing the last known value": "数据已过期 · 显示的是最后一次读到的值",
   "Launch at login": "登录时启动",
   "Keep samples for": "样本保留",
   "7 days": "7 天",
@@ -152,7 +147,6 @@
   "Fresh": "已清零",
   "Pay-as-you-go credits beyond the included limits": "超出套餐后按量计费的 credits",
   "QuotaPulse lives in the menu bar": "QuotaPulse 住在菜单栏里",
-  "Look for the small chip with a provider icon and the percentage left at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": "看屏幕右上角带服务图标和剩余百分比的小块 ↗。点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。",
   "Show in Dock": "在 Dock 显示",
   "Off: QuotaPulse is a menu-bar-only app (find it top right, or search QuotaPulse in Spotlight). On: a Dock icon that reopens this window.": "关：QuotaPulse 只在菜单栏（右上角，或在 Spotlight 搜 QuotaPulse）。开：显示 Dock 图标，点击重新打开此窗口。",
   "Device": "设备",
@@ -250,5 +244,7 @@
   "API balance": "API 余额",
   "Zen / Go": "Zen / Go",
   "Coding plan": "编程套餐",
-  "Desktop app": "桌面应用"
+  "Desktop app": "桌面应用",
+  "One bar per provider, in the provider's colour; the fuller the bar, the more is left in its tightest window. A red dot under a bar means it is running low or used up; a dashed hollow bar is out of date or has no data yet. Hover for every number.": "每个服务一根竖条，用该服务自己的颜色；条越满，表示它最紧的那个额度剩得越多。条下方的红点表示快用完或已用尽；虚线空心条表示数据已过期或还没有数据。悬停可看每个数字。",
+  "Look for the small coloured bars at the top right of your screen ↗: one per provider, the fuller the bar the more is left. Hover for the numbers, click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": "看屏幕右上角的彩色小竖条 ↗：每个服务一根，条越满剩得越多。悬停看数字，点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。"
 }

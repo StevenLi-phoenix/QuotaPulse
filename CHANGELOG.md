@@ -5,10 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- The menu-bar item is a row of narrow bars, one per provider in the provider's own colour, filled to how much is **left** in that provider's tightest window; it carries no text (the old ring read "100%" for a used-up window, which looked like plenty), a red dot under a bar means running low or used up, a dashed hollow bar is out of date or has no data, and the tooltip lists every provider's window, percent left and reset.
+- A provider that publishes no colour gets a stable one derived from its id instead of grey.
+
+### Removed
+- The "Show" (ring / percent) menu-bar setting; the bars have no text, and the legacy `menuBarStyle` key stays in the synced settings only so older apps keep decoding them.
+
 ## [0.5.1] - 2026-11-27
 
 ### Changed
-- The menu-bar item is a chip with its own colours instead of a template ring, so it reads on light, dark, transparent and bright-wallpaper menu bars: provider icon, percent **left** (a full ring labelled 100% used to mean "limit reached") and a draining bar for the window closest to running out; it turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, shows an amber dot when another provider is failing, and its tooltip lists every provider.
+- Tag only, never published (superseded by the next release).
 
 ## [0.5.0] - 2026-11-26
 

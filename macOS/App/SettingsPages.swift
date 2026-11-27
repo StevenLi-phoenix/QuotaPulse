@@ -345,13 +345,7 @@ struct GeneralPage: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section(L("Menu bar")) {
-                Picker(L("Show"), selection: Binding(get: { model.settings.menuBarStyle }, set: { model.setMenuBarStyle($0) })) {
-                    Text(L("Icon and percent left")).tag("both")
-                    Text(L("Percent left only")).tag("percent")
-                    Text(L("Icon only")).tag("icon")
-                }
-                .pickerStyle(.segmented)
-                Text(L("The menu-bar chip tracks the window closest to running out and shows how much is left. It turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, and an amber dot means another provider is failing. Hover it for every provider."))
+                Text(L("One bar per provider, in the provider's colour; the fuller the bar, the more is left in its tightest window. A red dot under a bar means it is running low or used up; a dashed hollow bar is out of date or has no data yet. Hover for every number."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(L("Launch at login"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                 Toggle(L("Show in Dock"), isOn: Binding(get: { model.showInDock }, set: { model.showInDock = $0 }))

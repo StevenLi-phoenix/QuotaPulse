@@ -101,43 +101,39 @@ MainActor.assumeIsolated {
     }
 }
 
-// The menu-bar chip on the backgrounds a menu bar can have (white and bright wallpaper are the cases that used to lose a template icon),
-// every state, and the three styles. `menubar-{light,dark,white,wallpaper}.png`; QP_SNAPSHOT draws the real snapshot as a last chip.
+// The menu-bar item (a row of provider-coloured bars) on a dark and a light menu bar (sanity check), in each state.
+// `menubar-{dark,light}.png`; QP_SNAPSHOT adds the real snapshot as a last row.
 MainActor.assumeIsolated {
-    func provider(_ id: ProviderID, used: Double, forecast: Forecast? = nil, status: ProviderStatus = .ok, age: TimeInterval = 60) -> ProviderSnapshot {
-        let w = UsageWindow(id: "w", title: "5-hour", utilization: used, resetsAt: now.addingTimeInterval(8000), duration: 18000)
-        return ProviderSnapshot(id: id, fetchedAt: now.addingTimeInterval(-age), status: status, windows: [w],
+    func provider(_ id: ProviderID, used: Double?, forecast: Forecast? = nil, status: ProviderStatus = .ok, age: TimeInterval = 60) -> ProviderSnapshot {
+        let w = used.map { [UsageWindow(id: "w", title: "5-hour", utilization: $0, resetsAt: now.addingTimeInterval(8000), duration: 18000)] } ?? []
+        return ProviderSnapshot(id: id, fetchedAt: now.addingTimeInterval(-age), status: status, windows: w,
                                 forecasts: forecast.map { ["w": $0] } ?? [:], lastSuccessAt: now.addingTimeInterval(-age))
     }
-    let runOut = Forecast(confidence: .high, rate: 30, projectedAtReset: 100, exhaustionAt: now.addingTimeInterval(3600), paceDelta: 20)
     func status(_ providers: [ProviderSnapshot]) -> MenuBarStatus {
         MenuBarStatus.make(snapshot: QuotaSnapshot(generatedAt: now, hubName: "Mac", providers: providers), now: now)
     }
-    var states: [(String, MenuBarStatus)] = [
-        ("calm", status([provider(.claude, used: 12)])),
-        ("warm", status([provider(.codex, used: 62, forecast: Forecast(confidence: .medium, rate: 5, projectedAtReset: 80, paceDelta: 20))])),
-        ("hot", status([provider(.opencode, used: 88)])),
-        ("limit", status([provider(.codex, used: 100)])),
-        ("issue", status([provider(.claude, used: 30), provider(.codex, used: 10, status: .network("down"))])),
-        ("stale", status([provider(.claude, used: 55, status: .expired("token"))])),
+    let runOut = Forecast(confidence: .high, rate: 30, projectedAtReset: 100, exhaustionAt: now.addingTimeInterval(3600), paceDelta: 20)
+    var rows: [(String, MenuBarStatus)] = [
+        ("plenty", status([provider(.claude, used: 12), provider(.codex, used: 30), provider(.opencode, used: 45), provider(.grokbot, used: 20)])),
+        ("mixed", status([provider(.claude, used: 12), provider(.codex, used: 62), provider(.opencode, used: 85), provider(.grokbot, used: 39)])),
+        ("limit", status([provider(.claude, used: 12), provider(.codex, used: 100), provider(.opencode, used: 47), provider(.grokbot, used: 39)])),
+        ("forecast", status([provider(.claude, used: 40, forecast: runOut), provider(.codex, used: 30)])),
+        ("stale", status([provider(.claude, used: 55, status: .expired("token")), provider(.codex, used: 30), provider(.opencode, used: nil, status: .network("down")), provider(.grokbot, used: 20)])),
         ("empty", status([])),
+        ("six", status((0..<6).map { provider(ProviderID("agent_\($0)"), used: Double($0 * 18)) })),
     ]
-    let realPath = ProcessInfo.processInfo.environment["QP_SNAPSHOT"]
-    if let realPath, let data = FileManager.default.contents(atPath: realPath),
-       let real = try? { let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601; return try d.decode(QuotaSnapshot.self, from: data) }() {
-        states.append(("real", MenuBarStatus.make(snapshot: real, now: Date())))
+    if let realPath = ProcessInfo.processInfo.environment["QP_SNAPSHOT"], let data = FileManager.default.contents(atPath: realPath) {
+        let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
+        if let real = try? d.decode(QuotaSnapshot.self, from: data) { rows.append(("real", MenuBarStatus.make(snapshot: real, now: Date()))) }
     }
     let backgrounds: [(String, NSColor)] = [
+        ("dark", NSColor(srgbRed: 0.05, green: 0.05, blue: 0.06, alpha: 1)),
         ("light", NSColor(srgbRed: 0.93, green: 0.93, blue: 0.94, alpha: 1)),
-        ("dark", NSColor(srgbRed: 0.10, green: 0.10, blue: 0.11, alpha: 1)),
-        ("white", .white),
-        ("wallpaper", NSColor(srgbRed: 0.35, green: 0.62, blue: 0.95, alpha: 1)),
     ]
-    let styles = ["both", "icon", "percent"]
-    let scale: CGFloat = 4, pad: CGFloat = 10, rowH: CGFloat = 26
+    let scale: CGFloat = 8, pad: CGFloat = 12, rowH: CGFloat = 28
     for (bgName, bg) in backgrounds {
-        let cell = MenuBarImage.width(style: "both") + pad
-        let w = CGFloat(states.count) * cell + pad, h = CGFloat(styles.count) * rowH + 4
+        let cell = MenuBarImage.width(bars: MenuBarStatus.maxBars) + pad
+        let w = CGFloat(rows.count) * cell + pad, h = rowH + 4
         let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(w * scale), pixelsHigh: Int(h * scale), bitsPerSample: 8, samplesPerPixel: 4,
                                    hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
         rep.size = NSSize(width: w, height: h)
@@ -145,15 +141,12 @@ MainActor.assumeIsolated {
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
         bg.setFill()
         NSRect(x: 0, y: 0, width: w, height: h).fill()
-        for (r, style) in styles.enumerated() {
-            for (c, state) in states.enumerated() {
-                let img = MenuBarImage.image(for: state.1, style: style, refreshing: false)
-                img.draw(at: NSPoint(x: pad + CGFloat(c) * cell, y: h - CGFloat(r + 1) * rowH + (rowH - MenuBarImage.height) / 2 - 2), from: .zero, operation: .sourceOver, fraction: 1)
-            }
+        for (c, row) in rows.enumerated() {
+            MenuBarImage.image(for: row.1).draw(at: NSPoint(x: pad + CGFloat(c) * cell, y: (h - MenuBarImage.height) / 2), from: .zero, operation: .sourceOver, fraction: 1)
         }
         NSGraphicsContext.restoreGraphicsState()
         try! rep.representation(using: .png, properties: [:])!.write(to: outDir.appendingPathComponent("menubar-\(bgName).png"))
         print("wrote menubar-\(bgName).png")
     }
-    for s in states { print("menubar \(s.0): \(s.1.logLine) | \(s.1.percentText)") }
+    for r in rows { print("menubar \(r.0): \(r.1.logLine) width=\(MenuBarImage.width(bars: r.1.bars.count))") }
 }

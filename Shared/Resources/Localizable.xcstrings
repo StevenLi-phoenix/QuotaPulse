@@ -621,26 +621,6 @@
         }
       }
     },
-    "Icon and percent left": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "图标 + 剩余百分比"
-          }
-        }
-      }
-    },
-    "Icon only": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅图标"
-          }
-        }
-      }
-    },
     "JSON Lines logs live in Files → QuotaPulse → Logs. With a direct connection they are also pushed to your Mac (Hub & Devices → Devices). Crash and hang reports from MetricKit are kept under Diagnostics.": {
       "localizations": {
         "zh-Hans": {
@@ -731,12 +711,12 @@
         }
       }
     },
-    "Look for the small chip with a provider icon and the percentage left at the top right of your screen ↗. Click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": {
+    "Look for the small coloured bars at the top right of your screen ↗: one per provider, the fuller the bar the more is left. Hover for the numbers, click it for the quick panel; this window has history, settings and pairing. You can also show a Dock icon under General.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "看屏幕右上角带服务图标和剩余百分比的小块 ↗。点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。"
+            "value": "看屏幕右上角的彩色小竖条 ↗：每个服务一根，条越满剩得越多。悬停看数字，点它打开快捷面板；这个窗口里有历史、设置和配对。也可以在“通用”里打开 Dock 图标。"
           }
         }
       }
@@ -901,6 +881,16 @@
         }
       }
     },
+    "One bar per provider, in the provider's colour; the fuller the bar, the more is left in its tightest window. A red dot under a bar means it is running low or used up; a dashed hollow bar is out of date or has no data yet. Hover for every number.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个服务一根竖条，用该服务自己的颜色；条越满，表示它最紧的那个额度剩得越多。条下方的红点表示快用完或已用尽；虚线空心条表示数据已过期或还没有数据。悬停可看每个数字。"
+          }
+        }
+      }
+    },
     "Open QuotaPulse…": {
       "localizations": {
         "zh-Hans": {
@@ -967,16 +957,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "配对设备（可选）"
-          }
-        }
-      }
-    },
-    "Percent left only": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅剩余百分比"
           }
         }
       }
@@ -1351,16 +1331,6 @@
         }
       }
     },
-    "Show": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示"
-          }
-        }
-      }
-    },
     "Show in Dock": {
       "localizations": {
         "zh-Hans": {
@@ -1427,16 +1397,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "这不是 QuotaPulse 的配对二维码。"
-          }
-        }
-      }
-    },
-    "The menu-bar chip tracks the window closest to running out and shows how much is left. It turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, and an amber dot means another provider is failing. Hover it for every provider.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "菜单栏小块跟踪最接近用完的额度窗口，显示还剩多少。临近上限时变橙、变红；数据过期时变灰并带虚线边；右上角的琥珀色圆点表示另一个服务读取失败。悬停可看全部服务。"
           }
         }
       }
