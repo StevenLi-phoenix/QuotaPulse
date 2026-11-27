@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-27
+
 ### Changed
 - The menu-bar item is a chip with its own colours instead of a template ring, so it reads on light, dark, transparent and bright-wallpaper menu bars: provider icon, percent **left** (a full ring labelled 100% used to mean "limit reached") and a draining bar for the window closest to running out; it turns orange then red as the limit nears, goes grey with a dashed edge when the data is out of date, shows an amber dot when another provider is failing, and its tooltip lists every provider.
 
