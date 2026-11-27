@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-26
+
 ### Fixed
 - Chinese UI no longer mixes in English: `gen-strings.py` stores interpolated strings under their runtime keys (`Resets in %@`), so "Resets in", "pts ahead of budget", "Updated … ago", the forecast sentences and the balance lines are translated on every device.
 - Window titles (5-hour, Weekly, Monthly) and provider subtitles are translated.
